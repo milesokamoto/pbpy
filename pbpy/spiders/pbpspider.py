@@ -236,16 +236,16 @@ class PbpspiderSpider(scrapy.Spider):
         date = response.xpath("//div[@id='contentarea']/table[3]/tbody/tr[1]/td[2]/text()").get()[9:19]
         date = date.replace('/', '')
         if len(teamindex[teamindex['school'] == home]) < 1:
-            homeabb = home
+            home_abb = home
         else:
-            homeabb = teamindex[teamindex['school'] == home].iloc[0]['abbreviation']
+            home_abb = teamindex[teamindex['school'] == home].iloc[0]['abbreviation']
         #AWAY_TEAM_ID
         if len(teamindex[teamindex['school'] == away]) < 1:
-            awayabb = away
+            away_abb = away
         else:
-            awayabb = teamindex[teamindex['school'] == away].iloc[0]['abbreviation']
+            away_abb = teamindex[teamindex['school'] == away].iloc[0]['abbreviation']
         ####debug
-        print(date + awayabb + ' @ ' + homeabb)
+        print(date + away_abb + ' @ ' + home_abb)
         print(home_lineup)
         print(home_subs)
         print(away_lineup)
@@ -933,7 +933,7 @@ class PbpspiderSpider(scrapy.Spider):
                     print('event outs: ' + str(event_outs))
                     print('event cd: ' + str(event_cd))
                     print('inning outs: ' + str(inn_outs))
-                    playout = [date, homeabb, awayabb, inning, inn_half, outs, balls, strikes, seq, away_score, home_score, batter, pitcher,
+                    playout = [date, home_abb, away_abb, inning, inn_half, outs, balls, strikes, seq, away_score, home_score, batter, pitcher,
                     pos2_id, pos3_id, pos4_id, pos5_id, pos6_id, pos7_id, pos8_id, pos9_id,
                     run_1st, run_2nd, run_3rd, event_abb, leadoff_fl, ph_fl, batter_pos, order, event_cd,
                     batter_event_fl, ab_fl, hit_fl, sh_fl, sf_fl, event_outs, dp_fl, tp_fl,
