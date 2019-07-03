@@ -313,9 +313,12 @@ class PbpspiderSpider(scrapy.Spider):
                 line += 1 #go to next play
                 event_outs = 0 #keeping track of outs to know if left or right column contains the next play
                 if inn_half == 0: #left side for top half]
-                    test = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][1]/text()").get()
-                    if not test is None:
-                        play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][1]/text()").get()
+                    play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][1]/text()").get()
+                    if not play is None:
+                        if 'No play' in play:
+                            line += 1
+                            play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][1]/text()").get()
+                    if not play is None:
                         order = store_aw_order
                         lineup = away_lineup
                         # BAT_HOME_ID (1 or 0 for home or away)
@@ -324,16 +327,18 @@ class PbpspiderSpider(scrapy.Spider):
                         end = True
 
                 elif inn_half == 1: #right side for bottom half
-                    test = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
-                    if not test is None:
-                        play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
+                    play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
+                    if not play is None:
+                        if 'No play' in play:
+                            line += 1
+                            play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
+                    if not play is None:
                         order = store_hm_order
                         lineup = home_lineup
                     else:
                         play = "No Play"
                         end = True
-                else:
-                    end = True #end inning once 6 outs
+                if end: #end inning once 6 outs
                     break
                 # OUTS_CT
                 outs = inn_outs%3
@@ -433,7 +438,10 @@ class PbpspiderSpider(scrapy.Spider):
                     if not ' for ' in sub_txt:
                         sublist = lu['name']
                     else:
-                        sublist = subs
+                        sublist = lu['name']
+                        subfull = next((s for s in sublist if subin.lower() in s.lower()), None)
+                        if subfull is None:
+                            sublist = subs
 
                     #check if replacement is in either lineup or subs list
                     subfull = next((s for s in sublist if subin.lower() in s.lower()), None)
@@ -486,8 +494,6 @@ class PbpspiderSpider(scrapy.Spider):
                             subfull = next((s for s in sublist if subin.lower() in s.lower()), None)
                             if subfull is None:
                                 subfull = next((s for s in sublist if subin[0:3].title() in s.title()), None)
-                        if subfull is None:
-                            problemnames.append(subin)
 
                     #find replaced player
                     if ' for ' in sub_txt:
@@ -547,9 +553,9 @@ class PbpspiderSpider(scrapy.Spider):
                                 if subfull is None:
                                     subfull = ''
                                 if outfull is None:
-                                    problemnames.append(subout)
                                     outfull = ''
                         print(lu)
+                        print(subs)
                         print(subin)
                         print(subfull)
                         print(subout)
@@ -670,15 +676,13 @@ class PbpspiderSpider(scrapy.Spider):
 
                     # EVENT_TX
                     event = re.search(r'([sdth][a-z]{3}[rl]ed *((to [a-z]* *[a-z]*)*|(up [a-z]* [a-z]*)|(down [a-z]* [a-z]* [a-z]* *[a-z]*)|(through [a-z]* [a-z]* [a-z]*)))|([a-z]*ed out( to [0-9a-z]{1,2})*)|(popped up( to [0-9a-z]{1,2}))|(infield fly( to [0-9a-z]{1,2}))|(?<!, )out at first|(struck out *[a-z]*)|(reached[ on]*.*((error by [0-9a-z]{1,2})|fielder\'s choice))|walked|(hit by pitch)|((\w* into \w* play ([0-9a-z]{1,2})*)( to [0-9a-z]{1,2})*)|(out on batter\'s interference)', play)
-                    if not event is None and not 'picked off' in play and not 'caught stealing' in play:
+                    if not event is None:
                         event = event.group()
                         print('event: ' + event)
-                    else:
+                    if 'picked off' in play or 'caught stealing' in play::
                         runner_event_fl = True
-                        event =  ''
                         runners_txt.append(event_txt)
-                        if re.search(r'stole [a-z]*|advanced to \w* on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|out at .*(picked off|caught stealing)', event_txt) is None:
-                            problemnames.append(play)
+                        # if re.search(r'stole [a-z]*|advanced to \w* on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|out at .*(picked off|caught stealing)', event_txt) is None:
                     if 'error' in event:
                         err_type = re.search(r'(?<=a )[a-z]*(?= error)', event)
                         if not err_type is None:
@@ -694,7 +698,6 @@ class PbpspiderSpider(scrapy.Spider):
                     if 'bunt' in event:
                         bunt_fl = True
 
-
                     run_event_abb = ''
                     if runner_event_fl:
                         run_event = re.search(r'stole [a-z]*|advanced to \w* on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|out at .*(picked off|caught stealing)', event_txt)
@@ -703,7 +706,7 @@ class PbpspiderSpider(scrapy.Spider):
                             run_short_event = re.search(r'stole [a-z]*|advanced to \w* on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|out at .*(picked off|caught stealing)', run_event).group(1)
                         if run_short_event in codes:
                             run_abb = codes[run_short_event]
-                            if run_abb in event_codes:
+                            if run_abb in event_codes and event_cd == '':
                                 event_cd = event_codes[run_abb]
                         if 'wild pitch' in play:
                             wp_fl = True
@@ -791,13 +794,12 @@ class PbpspiderSpider(scrapy.Spider):
                         if not ',' in runner:
                             runner = runner + ','
 
-
                         runnerfull = next((s for s in runners if runner.lower() in s.lower()), None)
                         if runnerfull is None:
                             runnerfull = next((s for s in runners if runner[0:3].title() in s.title()), None)
                         if runnerfull is None:
-                            problemnames.append(runner)
                             runnerfull = ''
+                        print(runner)
                         print(runnerfull)
                         print(runners)
                         if 'advanced' in runner_outcome:
@@ -827,7 +829,7 @@ class PbpspiderSpider(scrapy.Spider):
                     if batter_event_fl:
                         if 'advanced' in b_outcome:
                             runners_dest[0] = base_codes[re.search(r'(?<=advanced to )\w*', b_outcome).group()]
-                        elif 'out at' in b_outcome:
+                        if 'out at' in b_outcome:
                             runners_dest[0] = 0
                         elif 'scored' in b_outcome:
                             runners_dest[0] = 4
@@ -938,9 +940,9 @@ class PbpspiderSpider(scrapy.Spider):
                     run_1st, run_2nd, run_3rd, event_abb, leadoff_fl, ph_fl, batter_pos, order, event_cd,
                     batter_event_fl, ab_fl, hit_fl, sh_fl, sf_fl, event_outs, dp_fl, tp_fl,
                     rbi, wp_fl, pb_fl, fld_cd, bunt_fl, runners_dest[0], runners_dest[1], runners_dest[2], runners_dest[3], run1_sb, run2_sb, run3_sb, run1_cs, run2_cs, run3_cs, run1_pk, run2_pk, run3_pk, pr1, pr2, pr3, event_no, play]
-
+                    print('\n\n')
                     if event_fl:
-                        playinfo.append(playout)
+                        play_info.append(playout)
             # ERR_CT -- fielding or throwing?
             # ERR1_FLD_CD
             # ERR1_CD
@@ -1093,11 +1095,11 @@ class PbpspiderSpider(scrapy.Spider):
             # EVENT_ID
 
 
-#                    df=pd.DataFrame(playinfo,columns=['Date','GameID', 'Team', 'Batter', 'Event', 'RBI', 'Count', 'EventNo', 'AB'])
-        df=pd.DataFrame(playinfo, columns=['GameID', 'HomeID', 'AwayID', 'Inning', 'inn_half', 'outs', 'balls', 'strikes', 'seq', 'away_score', 'home_score', 'batter', 'pitcher',
+#                    df=pd.DataFrame(play_info,columns=['Date','GameID', 'Team', 'Batter', 'Event', 'RBI', 'Count', 'EventNo', 'AB'])
+        df=pd.DataFrame(play_info, columns=['GameID', 'HomeID', 'AwayID', 'Inning', 'inn_half', 'outs', 'balls', 'strikes', 'seq', 'away_score', 'home_score', 'batter', 'pitcher',
         'pos2_id', 'pos3_id', 'pos4_id', 'pos5_id', 'pos6_id', 'pos7_id', 'pos8_id', 'pos9_id',
         'run_1st', 'run_2nd', 'run_3rd', 'event_abb', 'leadoff_fl', 'ph_fl', 'batter_pos', 'order', 'event_cd',
         'batter_event_fl', 'ab_fl', 'hit_fl', 'sh_fl', 'sf_fl', 'event_outs', 'dp_fl', 'tp_fl',
         'rbi', 'wp_fl', 'pb_fl', 'fld_cd', 'bunt_fl', 'batter_dest', 'runner1_dest', 'runner2_dest', 'runner3_dest', 'run1_sb', 'run2_sb', 'run3_sb', 'run1_cs', 'run2_cs', 'run3_cs', 'run1_pk', 'run2_pk', 'run3_pk', 'pr1', 'pr2', 'pr3', 'event_no', 'pbptext']
 )
-        df.to_csv('\\pbp\\' + date +'.csv', mode='a', index=False, header=False)
+        df.to_csv('.././pbp/' + date +'.csv', mode='a', index=False, header=False)
