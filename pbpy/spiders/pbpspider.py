@@ -679,7 +679,7 @@ class PbpspiderSpider(scrapy.Spider):
                     if not event is None:
                         event = event.group()
                         print('event: ' + event)
-                    if 'picked off' in play or 'caught stealing' in play::
+                    if 'picked off' in play or 'caught stealing' in play:
                         runner_event_fl = True
                         runners_txt.append(event_txt)
                         # if re.search(r'stole [a-z]*|advanced to \w* on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|out at .*(picked off|caught stealing)', event_txt) is None:
