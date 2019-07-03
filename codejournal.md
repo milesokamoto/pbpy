@@ -438,18 +438,7 @@ Find text for what happened on the play
         runners_dest[0] = 1
     else:
         runners_dest[0] = 0
-    print(runners_dest)
-    if 'advanced' in b_outcome:
-        runners_dest[0] = base_codes[re.search(r'(?<=advanced to )\w*', b_outcome).group()]
-    elif 'out' in b_outcome:
-        runners_dest[0] = 0
-
-
-    runners_dest
-    runners[1]
-    base = 0
-    runners
-    runners_dest
+        
     for base in range(0,4):
         br = runners[3-base]
         if  br != '':
@@ -530,8 +519,5 @@ df=pd.DataFrame(playinfo, columns=['date', 'away', 'home', 'inning', 'outs', 'pi
 df.to_csv('\\pbp\\' + date +'.csv', mode='a', index=False, header=False)
 err=pd.DataFrame(problemnames, columns = ['names'])
 err.to_csv('\\errors\\err.csv', mode='a', index=False, header=False)
-
-
-
 ```
 
