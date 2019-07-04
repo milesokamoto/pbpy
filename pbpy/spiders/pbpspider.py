@@ -18,88 +18,88 @@ import re
 
 teamindex = pd.read_csv('https://raw.githubusercontent.com/milesok/pbpy/master/teams.csv')
 codes = {
-'singled': '1B',
-'doubled': '2B',
-'tripled': '3B',
-'homered': 'HR',
-'flied out': 'F',
-'flied into double play': 'F',
-'popped up': 'P',
-'infield fly': 'P', #label w/ flag?
-'popped into double play': 'F',
-'lined into double play': 'L',
-'lined out': 'L',
-'grounded out': 'G',
-'out at first': 'G', ##ONLY FOR BATTERS - check on this for fielding
-'grounded into double play': 'G',
-'hit into double play': 'G',
-'fouled into double play': 'F',
-'fouled out': 'F', #when doing fielders, add f after fielder code
-'struck out looking': 'KL',
-'struck out swinging': 'KS',
-'struck out': 'K',
-'hit by pitch': 'HBP',
-'walked': 'BB',
-'stole': 'SB',
-'picked off': 'PO',
-'caught stealing': 'CS',
-'wild pitch': 'WP',
-'passed ball': 'PB',
-'balk': 'BK',
-'batter\'s interference': 'BINT',
-'error': 'E',
-'fielder\'s choice': 'FC'
+    'singled': '1B',
+    'doubled': '2B',
+    'tripled': '3B',
+    'homered': 'HR',
+    'flied out': 'F',
+    'flied into double play': 'F',
+    'popped up': 'P',
+    'infield fly': 'P', #label w/ flag?
+    'popped into double play': 'F',
+    'lined into double play': 'L',
+    'lined out': 'L',
+    'grounded out': 'G',
+    'out at first': 'G', ##ONLY FOR BATTERS - check on this for fielding
+    'grounded into double play': 'G',
+    'hit into double play': 'G',
+    'fouled into double play': 'F',
+    'fouled out': 'F', #when doing fielders, add f after fielder code
+    'struck out looking': 'KL',
+    'struck out swinging': 'KS',
+    'struck out': 'K',
+    'hit by pitch': 'HBP',
+    'walked': 'BB',
+    'stole': 'SB',
+    'picked off': 'PO',
+    'caught stealing': 'CS',
+    'wild pitch': 'WP',
+    'passed ball': 'PB',
+    'balk': 'BK',
+    'batter\'s interference': 'BINT',
+    'catcher\'s interference': 'C',
+    'error': 'E',
+    'fielder\'s choice': 'FC'
 }
-
 event_codes = {
-'G': 2,
-'F': 2,
-'P': 2,
-'L': 2,
-'BINT': 2,
-'KL': 3,
-'KS': 3,
-'K': 3,
-'SB': 4,
-'DI': 5,
-'CS': 6,
-'PO': 8,
-'WP': 9,
-'PB': 10,
-'BK': 11,
-'BB': 14,
-'IBB': 15,
-'HBP':16,
-'CINT': 17,
-'E': 18,
-'FC': 19,
-'1B': 20,
-'2B': 21,
-'3B': 22,
-'HR': 23
+    'G': 2,
+    'F': 2,
+    'P': 2,
+    'L': 2,
+    'BINT': 2,
+    'KL': 3,
+    'KS': 3,
+    'K': 3,
+    'SB': 4,
+    'DI': 5,
+    'CS': 6,
+    'PO': 8,
+    'WP': 9,
+    'PB': 10,
+    'BK': 11,
+    'BB': 14,
+    'IBB': 15,
+    'HBP':16,
+    'C': 17,
+    'E': 18,
+    'FC': 19,
+    '1B': 20,
+    '2B': 21,
+    '3B': 22,
+    'HR': 23
 }
 
 fielder_codes = {
-'p' : 1,
-'c' : 2,
-'1b' : 3,
-'2b' : 4,
-'3b' : 5,
-'ss' : 6,
-'lf' : 7,
-'cf' : 8,
-'rf' : 9,
-'dh' : 10,
-'ph' : 11
+    'p' : 1,
+    'c' : 2,
+    '1b' : 3,
+    '2b' : 4,
+    '3b' : 5,
+    'ss' : 6,
+    'lf' : 7,
+    'cf' : 8,
+    'rf' : 9,
+    'dh' : 10,
+    'ph' : 11
 }
 
 base_codes = {
-'first': 1,
-'second': 2,
-'third': 3,
-'home': 4,
-'scored': 4,
-'out': 0
+    'first': 1,
+    'second': 2,
+    'third': 3,
+    'home': 4,
+    'scored': 4,
+    'out': 0
 }
 
 class PbpspiderSpider(scrapy.Spider):
@@ -109,7 +109,7 @@ class PbpspiderSpider(scrapy.Spider):
 
     def start_requests(self):
         urls = []
-        d = date(2019, 2, 15)
+        d = date(2019, 2, 16)
         d = str(d)
         urls.append("https://stats.ncaa.org/season_divisions/16800/scoreboards?game_date=" + d[5:7] + "%2F" + d[8:10] + "%2F" + d[0:4])
 
@@ -222,8 +222,6 @@ class PbpspiderSpider(scrapy.Spider):
         play_info = []
         away_score = 0
         home_score = 0
-        print(away_lineup)
-        print(home_lineup)
 
         store_hm_order = 1
         store_aw_order = 1
@@ -253,10 +251,10 @@ class PbpspiderSpider(scrapy.Spider):
         gameid = date + '-' + away_abb + '-' + home_abb
 
         ###LOOP THROUGH INNINGS###
-        print("START INNING")
         n=0 #event number
         event_no = 0
         for inn in range(1, int(last)+1): #loop through each inning
+            print("****INNING " + str(inn) + "******")
             inn_outs = 0
             inning = inn
             leadoff_fl = True
@@ -271,7 +269,7 @@ class PbpspiderSpider(scrapy.Spider):
                 print('outs: ' + str(inn_outs))
                 hit_fl = False
                 ab_fl = False
-                batter_event_fl = False
+                batter_event_fl = True
                 runner_event_fl = False
                 event_fl = False
                 event_abb = ''
@@ -342,25 +340,24 @@ class PbpspiderSpider(scrapy.Spider):
                     break
                 # OUTS_CT
                 outs = inn_outs%3
-                play = play.replace('3a', ':')
-                play = play.replace(';', ':')
-                play = play.replace('a dropped fly', 'an error')
-                play = play.replace('a muffed throw', 'an error')
-                play = play.replace('out at first ss to 2b, reached on a fielder\'s choice', ' reached on a fielder\'s choice')
+                play = play.replace('3a', ':').replace(';', ':').replace('a dropped fly', 'an error').replace('a muffed throw', 'an error').replace('out at first ss to 2b, reached on a fielder\'s choice', ' reached on a fielder\'s choice')
 
 
                 # play = play.replace('for WILLIAMS, C.', '.')
-
-
-
+                ###Individual cases:
                 if 'Popup' in play:
                     skip = True
                 if 'Umpires review' in play:
                     skip = True
-                if 'Hamrock, D. pinch ran for Richardson.' in play:
-                    play = 'Hamrock, D. pinch ran for Weiller, J..'
+                # if 'Hamrock, D. pinch ran for Richardson.' in play:
+                #     play = 'Hamrock, D. pinch ran for Weiller, J..'
+                if 'HIBBITS pinch ran for SCHROEDER.' in play: #2/16
+                    play = 'HIBBITS pinch hit for SCHROEDER.'
+                if 'FIELDS,J. to rf' in play:
+                    play = 'Winikur to rf'
                 event_txt = play.split(":")[0]
                 runners_txt = play.split(": ")[1:]
+
 
                 player = re.search(r'(?:(?:[a-z]* (?![a-z]))*[A-Z][A-Za-z\'\.\,-]*)*', event_txt)
                 if not player is None:
@@ -370,6 +367,7 @@ class PbpspiderSpider(scrapy.Spider):
                 subtest = re.search(r"(?:(?:[a-z]* (?![a-z]))*[A-Z][A-Za-z'\.\,-]*){1,} (pinch (?:hit|ran)|to [0-9a-z]{1,2}) *(for(?:(?:\.* (?![a-z]))*[A-Z][A-Za-z'\.\,-]*)*)*", event_txt)
                 if not subtest is None:
                     sub_txt = subtest.group()
+                    batter_event_fl = False
                     print(sub_txt)
                 if '/  for' in event_txt:
                     subtest = lu[lu['position']=='P'].iloc[0]['name'] + ' to p' + event_txt.split('/ ')[1]
@@ -600,7 +598,7 @@ class PbpspiderSpider(scrapy.Spider):
 
                     #BAT_ID
                     runners[0] = batter
-                    print(play + 'batter: ' + batter + ' //outs: ' + str(inn_outs) + '//runners: ' + str(runners))
+                    print('batter: ' + batter + '\nrunners: ' + str(runners) + '\n' + play)
                     batter_pos = lineup['position'].iloc[order-1] #find in lineup
 
                     if batter_pos == 'PH':
@@ -673,16 +671,35 @@ class PbpspiderSpider(scrapy.Spider):
                     # RESP_PIT_ID
                     # RESP_PIT_HAND_CD
 
+                    print("battertxt: " + event_txt)
+                    print("runnertxt: " + str(runners_txt))
 
                     # EVENT_TX
-                    event = re.search(r'([sdth][a-z]{3}[rl]ed *((to [a-z]* *[a-z]*)*|(up [a-z]* [a-z]*)|(down [a-z]* [a-z]* [a-z]* *[a-z]*)|(through [a-z]* [a-z]* [a-z]*)))|([a-z]*ed out( to [0-9a-z]{1,2})*)|(popped up( to [0-9a-z]{1,2}))|(infield fly( to [0-9a-z]{1,2}))|(?<!, )out at first|(struck out *[a-z]*)|(reached[ on]*.*((error by [0-9a-z]{1,2})|fielder\'s choice))|walked|(hit by pitch)|((\w* into \w* play ([0-9a-z]{1,2})*)( to [0-9a-z]{1,2})*)|(out on batter\'s interference)', play)
+                    event = re.search(r'([sdth][a-z]{3}[rl]ed *((to [a-z]* *[a-z]*)*|(up [a-z]* [a-z]*)|(down [a-z]* [a-z]* [a-z]* *[a-z]*)|(through [a-z]* [a-z]* [a-z]*)))|([a-z]*ed out( to [0-9a-z]{1,2})*)|(popped up( to [0-9a-z]{1,2}))|(infield fly( to [0-9a-z]{1,2}))|(?<!, )out at first|(struck out *[a-z]*)|(reached[ on]*.*((error by [0-9a-z]{1,2})|fielder\'s choice))|reached on catcher\'s interference|walked|(hit by pitch)|((\w* into \w* play ([0-9a-z]{1,2})*)( to [0-9a-z]{1,2})*)|(out on batter\'s interference)', play)
                     if not event is None:
                         event = event.group()
                         print('event: ' + event)
-                    if 'picked off' in play or 'caught stealing' in play:
+                    else:
+                        event = ''
+
+                    run_event = re.search(r'stole [a-z]*|advanced to \w* on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|advanced to \w* on an error by p, failed pickoff attempt|scored on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|out at .*(picked off|caught stealing)', play)
+                    if not run_event is None:
+                        print("RUN EVENT")
+                        run_event = run_event.group()
+                        run_short_event = re.search(r'stole|wild pitch|passed ball|balk|defensive indifference|picked off|caught stealing|error', run_event).group()
                         runner_event_fl = True
-                        runners_txt.append(event_txt)
-                        # if re.search(r'stole [a-z]*|advanced to \w* on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|out at .*(picked off|caught stealing)', event_txt) is None:
+                        bat_event_test = re.search(r'stole [a-z]*|advanced to \w* on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|advanced to \w* on an error by p, failed pickoff attempt|out at .*(picked off|caught stealing)', event_txt)
+                        if runners_txt == [] or runners_txt is None:
+                            runners_txt = [event_txt]
+                            batter_event_fl = False
+                            print("runnertxt: " + str(runners_txt))
+                            print("Batter Event False")
+                        elif not bat_event_test is None:
+                            runners_txt = [event_txt] + runners_txt
+                            print("runnertxt: " + str(runners_txt))
+                            batter_event_fl = False
+                            print("Batter Event False")
+
                     if 'error' in event:
                         err_type = re.search(r'(?<=a )[a-z]*(?= error)', event)
                         if not err_type is None:
@@ -690,71 +707,58 @@ class PbpspiderSpider(scrapy.Spider):
                         else:
                             err_type = 'fielding'
                         err_by = (re.search(r'(?<=error by) [0-9a-z]{1,2}', event).group()).upper()
-
-                    if 'SF' in event:
-                        sf_fl = True
-                    if 'SAC' in event:
-                        sh_fl = True
-                    if 'bunt' in event:
-                        bunt_fl = True
-
                     run_event_abb = ''
                     if runner_event_fl:
-                        run_event = re.search(r'stole [a-z]*|advanced to \w* on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|out at .*(picked off|caught stealing)', event_txt)
-                        if not run_event is None:
-                            run_event = run_event.group()
-                            run_short_event = re.search(r'stole [a-z]*|advanced to \w* on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|out at .*(picked off|caught stealing)', run_event).group(1)
                         if run_short_event in codes:
                             run_abb = codes[run_short_event]
                             if run_abb in event_codes and event_cd == '':
                                 event_cd = event_codes[run_abb]
                         if 'wild pitch' in play:
                             wp_fl = True
-
                         if 'passed ball' in play:
                             pb_fl = True
-                    else:
-                        short_event = re.search(r'([sdth][a-z]{3}[rl]ed)|([a-z]*ed out)|out at first|popped up|infield fly|(struck out *[a-z]*)|error|(fielder\'s choice)|walked|(hit by pitch)|(\w* into \w* play)|(batter\'s interference)', event)
-                    if not short_event is None and short_event != '':
-                        short_event = short_event.group()
-                    else:
-                        short_event = ''
-                    if short_event in codes:
-                        event_abb = codes[short_event]
-                    else:
-                         event_abb = ''
-                    if event_abb in event_codes:
-                        event_cd = event_codes[event_abb]
-                    else:
-                        event_cd = ''
-                    if event_cd in {20,21,22,23}:
-                        hit_fl = True
+                        print('runner event: ' + run_short_event + '\nevent code: ' + str(event_cd))
+                    if batter_event_fl:
+                        short_event = re.search(r'([sdth][a-z]{3}[rl]ed)|([a-z]*ed out)|out at first|popped up|infield fly|(struck out *[a-z]*)|error|(fielder\'s choice)|walked|(hit by pitch)|(\w* into \w* play)|((batter\'s|catcher\'s) interference)', event)
+                        if not short_event is None and short_event != '':
+                            short_event = short_event.group()
+                            print('batter event: ' + short_event)
+                            if short_event in codes:
+                                event_abb = codes[short_event]
+                                if event_abb in event_codes:
+                                    event_cd = event_codes[event_abb]
+                                    if event_cd in {20,21,22,23}:
+                                        hit_fl = True
+                                    if event_cd in {14, 15, 16, 17, 18, 19, 20}:
+                                        runners_dest[0] = 1
+                                    if event_cd ==  21:
+                                        runners_dest[0] = 2
+                                    if event_cd ==  22:
+                                        runners_dest[0] = 3
+                                    if event_cd ==  23:
+                                        runners_dest[0] = 4
+                                    print('event code: ' + str(event_cd))
+                                else:
+                                    event_cd = ''
+                                    print('no event code')
+                            else:
+                                 event_abb = ''
+                        else:
+                            short_event = ''
+                        if 'SF' in play:
+                            sf_fl = True
+                        if 'SAC' in play:
+                            sh_fl = True
+                        if 'bunt' in play:
+                            bunt_fl = True
 
-                    if event_cd in {14, 15, 16, 17, 18, 19, 20}:
-                        runners_dest[0] = 1
-                    if event_cd ==  21:
-                        runners_dest[0] = 2
-                    if event_cd ==  22:
-                        runners_dest[0] = 3
-                    if event_cd ==  23:
-                        runners_dest[0] = 4
-
-                    batter_adv = re.search(r'(advanced to [a-z]*)|((scored) on (the throw)|(advanced on an error by [a-z0-9]{1,2}))|(out at [a-z]* [0-9a-z]{1,2}(?: to [0-9a-z]{1,2})*)', event_txt)
-                    if not batter_adv is None:
-                        batter_adv = batter_adv.group()
-                        b_outcome = re.search(r"(advanced to \w*|scored|out at \w*)(?!.*(advanced|scored|out))", batter_adv).group()
-                    else:
-                        b_outcome = ''
-                        batter_adv = ''
-
-                    if event_cd in {2,3,14,15,16,17,18,19,20,21,22,23}:
-                         batter_event_fl = True
-                    if event_cd in range(1,25):
-                        event_fl = True
-                    if event_cd in {2,3,18,19,20,21,22,23}:
-                        ab_fl = True
-                    if event_cd in {20,21,22,23}:
-                        hit_fl = True
+                        batter_adv = re.search(r'(advanced to [a-z]*)|((scored) on (the throw)|(advanced on an error by [a-z0-9]{1,2}))|(out at [a-z]* [0-9a-z]{1,2}(?: to [0-9a-z]{1,2})*)', event_txt)
+                        if not batter_adv is None:
+                            batter_adv = batter_adv.group()
+                            b_outcome = re.search(r"(advanced to \w*|scored|out at \w*)(?!.*(advanced|scored|out))", batter_adv).group()
+                        else:
+                            b_outcome = ''
+                            batter_adv = ''
 
                     for r in runners_txt:
                         runner = re.search(r"^[A-Za-z \'\-,\.]*?(?= (advanced|scored|out|stole))", r)
@@ -811,6 +815,15 @@ class PbpspiderSpider(scrapy.Spider):
                             run_event_abb = run_event_abb + '/' + str(base_codes[re.search(r'(?<=stole )\w*', runner_outcome).group()])
                         else:
                             runners_dest[runners.index(runnerfull)] = 0
+
+                    if event_cd in {2,3,14,15,16,17,18,19,20,21,22,23}:
+                         batter_event_fl = True
+                    if event_cd in range(1,25):
+                        event_fl = True
+                    if event_cd in {2,3,18,19,20,21,22,23}:
+                        ab_fl = True
+                    if event_cd in {20,21,22,23}:
+                        hit_fl = True
                     if event_cd == 3:
                         if 'reached first' in event_txt:
                             runners_dest[0] = 1
@@ -822,7 +835,8 @@ class PbpspiderSpider(scrapy.Spider):
                         runners_dest[0] = 3
                     elif event_cd ==  23:
                         runners_dest[0] = 4
-                    elif event_cd in {4,5,6,9,10,11} or not batter_event_fl:
+                    # elif event_cd in {4,5,6,9,10,11}
+                    elif not batter_event_fl:
                         runners_dest[0] = 5
                     else:
                         runners_dest[0] = 0
@@ -892,8 +906,7 @@ class PbpspiderSpider(scrapy.Spider):
                     if player == '':
                         batter_event_fl = False
                     if batter_event_fl:
-                        print('batter event: True' + 'order = ' + str(order) + 'next = ' + str(order+1))
-                        print('batter: ' + player + ' order batter: ' + batter)
+                        print('batter: ' + player + ' should be: ' + batter)
                         order += 1
                         if order == 10:
                             order = 1
