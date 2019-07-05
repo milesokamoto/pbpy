@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Apr 12 20:21:10 2019
+Created on Fri Jul 4 9:30:10 2019
 
 @author: Miles Okamoto
 
 @todo:
--move runners based on events and additional text
--change player names to player IDs
--responsible runners for pitchers
--organize into methods
+
 """
 import scrapy
 from scrapy_splash import SplashRequest
@@ -78,7 +75,6 @@ event_codes = {
     '3B': 22,
     'HR': 23
 }
-
 fielder_codes = {
     'p' : 1,
     'c' : 2,
@@ -92,7 +88,6 @@ fielder_codes = {
     'dh' : 10,
     'ph' : 11
 }
-
 base_codes = {
     'first': 1,
     'second': 2,
@@ -102,17 +97,73 @@ base_codes = {
     'out': 0
 }
 
+def lineups(team, response):
+    end = False
+    lineup = []
+    subs = []
+    i = 1
+    order = 1
+    if team == 'home':
+        j = 2
+    else:
+        j=3
+    while not end:
+        pitcher = ''
+        testname = response.xpath("//table[@class='mytable']["+str(j)+"]/tbody/tr[@class='smtext'][" + str(i) + "]/td[1]/a/text()").get()
+        if testname is None: #would happen if it's not a link
+            testname = response.xpath("//table[@class='mytable']["+str(j)+"]/tbody/tr[@class='smtext'][" + str(i) + "]/td[1]/text()").get()
+        if not testname is None and not testname == 'Totals' :
+            testname = testname.replace('\xa0', ' ') #replaces spaces in name field
+
+            #for starting players
+            if not "     " in testname: #filters out subs
+                name = testname.replace('\n', '') #remove new line character
+                pos = response.xpath("//table[@class='mytable']["+str(j)+"]/tbody/tr[@class='smtext'][" + str(i) + "]/td[2]/text()").get()
+                if not pos is None:
+                    pos = pos.split('/')[0]
+                if pos == "DH":
+                    lineup.append([order, name, pos])
+                    order += 1
+                elif pos == "P":
+                    if order <= 9: #check if pitcher is hitting
+                        lineup.append([order, name, pos])
+                        order += 1
+                    else:
+                        order = 'P'
+                        lineup.append([order, name, pos])
+                        end = True
+                    pitcher = name
+                else:
+                    lineup.append([order, name, pos])
+                    if order >= 9 and pitcher != '':
+                        end = True
+                    if order > 9:
+                        end = True
+                    order += 1
+                i += 1
+                #subs
+            else:
+                name = testname.replace('\n', '').replace('     ', '').replace(' ,', ',')
+                i += 1
+                subs.append(name)
+        else:
+            end = True
+    return [pd.DataFrame(lineup, columns = ['order', 'name', 'position']), subs]
+def get_name(event):
+    s = re.search(r"[A-Za-z,\. '-]*?(?= [a-z])", event)
+    if not s is None:
+        return s.group()
+    else:
+        return input('enter name: ')
+
 class PbpspiderSpider(scrapy.Spider):
     name = 'pbpspider'
     allowed_domains = ["stats.ncaa.org"]
-    start_urls = ['http://csvfeed/']
 
     def start_requests(self):
         urls = []
-        d = date(2019, 2, 16)
-        d = str(d)
+        d = input('Enter date in format yyyy-mm-dd: ')
         urls.append("https://stats.ncaa.org/season_divisions/16800/scoreboards?game_date=" + d[5:7] + "%2F" + d[8:10] + "%2F" + d[0:4])
-
         for url in urls:
             yield SplashRequest(
                 url = url,
@@ -143,67 +194,10 @@ class PbpspiderSpider(scrapy.Spider):
         )
 
     def lineups(self, response):
-        home_subs = []
-        away_subs = []
-        home_lineup = pd.DataFrame()
-        away_lineup = pd.DataFrame()
-
-        #2 and 3 represent elements for away and home lineups
-        for j in {2,3}:
-            end = False
-            lineup = []
-            i = 1
-            order = 1
-
-            while not end:
-                pitcher = ''
-                testname = response.xpath("//table[@class='mytable']["+str(j)+"]/tbody/tr[@class='smtext'][" + str(i) + "]/td[1]/a/text()").get()
-                if testname is None: #would happen if it's not a link
-                    testname = response.xpath("//table[@class='mytable']["+str(j)+"]/tbody/tr[@class='smtext'][" + str(i) + "]/td[1]/text()").get()
-                if not testname is None and not testname == 'Totals' :
-                    testname = testname.replace('\xa0', ' ') #replaces spaces in name field
-
-                    #for starting players
-                    if not "     " in testname: #filters out subs
-                        name = testname.replace('\n', '') #remove new line character
-                        pos = response.xpath("//table[@class='mytable']["+str(j)+"]/tbody/tr[@class='smtext'][" + str(i) + "]/td[2]/text()").get()
-                        if not pos is None:
-                            pos = pos.split('/')[0]
-                        if pos == "DH":
-                            lineup.append([order, name, pos])
-                            order += 1
-                        elif pos == "P":
-                            if order <= 9: #check if pitcher is hitting
-                                lineup.append([order, name, pos])
-                                order += 1
-                            else:
-                                order = 'P'
-                                lineup.append([order, name, pos])
-                                end = True
-                            pitcher = name
-                        else:
-                            lineup.append([order, name, pos])
-                            if order >= 9 and pitcher != '':
-                                end = True
-                            if order > 9:
-                                end = True
-                            order += 1
-                        i += 1
-                        #subs
-                    else:
-                        name = testname.replace('\n', '').replace('     ', '').replace(' ,', ',')
-                        i += 1
-                        if j == 2:
-                            away_subs.append(name)
-                        else:
-                            home_subs.append(name)
-
-                else:
-                    end = True
-            if j == 2:
-                away_lineup = pd.DataFrame(lineup, columns = ['order', 'name', 'position'])
-            else:
-                home_lineup = pd.DataFrame(lineup, columns = ['order', 'name', 'position'])
+        home_lineup = lineups(home, response)[0]
+        away_lineup = lineups(away, response)[0]
+        home_subs = lineups(home, response)[1]
+        away_subs = lineups(away, response)[1]
 
         yield SplashRequest(
                 url = response.urljoin(response.xpath("//ul[@id='root']/li[3]/a/@href").get()),
@@ -223,8 +217,8 @@ class PbpspiderSpider(scrapy.Spider):
         away_score = 0
         home_score = 0
 
-        store_hm_order = 1
-        store_aw_order = 1
+        store_home_order = 1
+        store_away_order = 1
 
         ###GAME INFO###
         innings = response.xpath("//tr[@class='heading']/td[1]/a/text()").getall()[-1] #last listed inning
@@ -351,10 +345,25 @@ class PbpspiderSpider(scrapy.Spider):
                     skip = True
                 # if 'Hamrock, D. pinch ran for Richardson.' in play:
                 #     play = 'Hamrock, D. pinch ran for Weiller, J..'
-                if 'HIBBITS pinch ran for SCHROEDER.' in play: #2/16
-                    play = 'HIBBITS pinch hit for SCHROEDER.'
-                if 'FIELDS,J. to rf' in play:
-                    play = 'Winikur to rf'
+
+
+                #2/15
+                if 'Allen out at second c to 2b.' in play:
+                    play = 'Allen out at second c to 2b, caught stealing.'
+                if 'D LaManna to c for E Copeland' in play:
+                    play = 'D LaManna to c for Zyska'
+
+
+                #2/16
+                # if 'HIBBITS pinch ran for SCHROEDER.' in play:
+                #     play = 'HIBBITS pinch hit for SCHROEDER.'
+                # if 'FIELDS,J. to rf' in play:
+                #     play = 'Winikur to rf'
+
+
+                if 'Dropped foul ball' in play: #need to change this for errors
+                    play = 'No Play'
+                    skip = True
                 event_txt = play.split(":")[0]
                 runners_txt = play.split(": ")[1:]
 
@@ -675,6 +684,19 @@ class PbpspiderSpider(scrapy.Spider):
                     print("runnertxt: " + str(runners_txt))
 
                     # EVENT_TX
+                    if 'balk' in play:
+                        play = play.replace('advanced to second:', 'advanced to second on a balk')
+                        play = play.replace('advanced to third', 'advanced to third on a balk')
+
+                    if 'caught stealing, picked off' in play:
+                        play = play.replace(', picked off','')
+
+                    if 'caught stealing' in play and 'stole' in play:
+                        play = play.replace('stole', '')
+
+                    if 'caught stealing' in play and 'advanced' in play and inn_outs%3 == 2:
+                        play.replace('advanced to', '')
+
                     event = re.search(r'([sdth][a-z]{3}[rl]ed *((to [a-z]* *[a-z]*)*|(up [a-z]* [a-z]*)|(down [a-z]* [a-z]* [a-z]* *[a-z]*)|(through [a-z]* [a-z]* [a-z]*)))|([a-z]*ed out( to [0-9a-z]{1,2})*)|(popped up( to [0-9a-z]{1,2}))|(infield fly( to [0-9a-z]{1,2}))|(?<!, )out at first|(struck out *[a-z]*)|(reached[ on]*.*((error by [0-9a-z]{1,2})|fielder\'s choice))|reached on catcher\'s interference|walked|(hit by pitch)|((\w* into \w* play ([0-9a-z]{1,2})*)( to [0-9a-z]{1,2})*)|(out on batter\'s interference)', play)
                     if not event is None:
                         event = event.group()
@@ -699,6 +721,7 @@ class PbpspiderSpider(scrapy.Spider):
                             print("runnertxt: " + str(runners_txt))
                             batter_event_fl = False
                             print("Batter Event False")
+
 
                     if 'error' in event:
                         err_type = re.search(r'(?<=a )[a-z]*(?= error)', event)
@@ -956,159 +979,7 @@ class PbpspiderSpider(scrapy.Spider):
                     print('\n\n')
                     if event_fl:
                         play_info.append(playout)
-            # ERR_CT -- fielding or throwing?
-            # ERR1_FLD_CD
-            # ERR1_CD
-            # ERR2_FLD_CD
-            # ERR2_CD
-            # ERR3_FLD_CD
-            # ERR3_CD
-            # BAT_DEST_ID
-            # RUN1_DEST_ID
-            # RUN2_DEST_ID
-            # RUN3_DEST_ID
-            # BAT_PLAY_TX
-            # RUN1_PLAY_TX  - this is for a double play or fc
-            # RUN2_PLAY_TX
-            # RUN3_PLAY_TX
-            # RUN1_SB_FL
-            # RUN2_SB_FL
-            # RUN3_SB_FL
-            # RUN1_CS_FL
-            # RUN2_CS_FL
-            # RUN3_CS_FL
-            # RUN1_PK_FL
-            # RUN2_PK_FL
-            # RUN3_PK_FL
-            # RUN1_RESP_PIT_ID
-            # RUN2_RESP_PIT_ID
-            # RUN3_RESP_PIT_ID
-            # GAME_NEW_FL
-            # GAME_END_FL
-            # PR_RUN1_FL
-            # PR_RUN2_FL
-            # PR_RUN3_FL
-            # REMOVED_FOR_PR_RUN1_ID
-            # REMOVED_FOR_PR_RUN2_ID
-            # REMOVED_FOR_PR_RUN3_ID
-            # REMOVED_FOR_PH_BAT_ID
-            # REMOVED_FOR_PH_BAT_FLD_CD
-            # PO1_FLD_CD
-            # PO2_FLD_CD
-            # PO3_FLD_CD
-            # ASS1_FLD_CD
-            # ASS2_FLD_CD
-            # ASS3_FLD_CD
-            # ASS5_FLD_CD
-            # EVENT_ID
-            #column at end for full text
 
-
-
-
-
-
-            #GameID
-            #HomeID
-            #AwayID
-            #Inning
-            #BatterID
-            #inn_half
-            #outs
-            #balls
-            #strikes
-            # PITCH_SEQ_TX
-            # AWAY_SCORE_CT
-            # HOME_SCORE_CT
-            # BAT_ID
-            # BAT_HAND_CD
-            # RESP_BAT_ID
-            # RESP_BAT_HAND_CD
-            # PIT_ID
-            # PIT_HAND_CD
-            # RESP_PIT_ID
-            # RESP_PIT_HAND_CD
-            # POS2_FLD_ID
-            # POS3_FLD_ID
-            # POS4_FLD_ID
-            # POS5_FLD_ID
-            # POS6_FLD_ID
-            # POS7_FLD_ID
-            # POS8_FLD_ID
-            # POS9_FLD_ID
-            # BASE1_RUN_ID
-            # BASE2_RUN_ID
-            # BASE3_RUN_ID
-            # EVENT_TX
-            # LEADOFF_FL
-            # PH_FL
-            # BAT_FLD_CD
-            # BAT_LINEUP_ID
-            # EVENT_CD
-            # BAT_EVENT_FL
-            # AB_FL
-            # H_FL
-            # SH_FL
-            # SF_FL
-            # EVENT_OUTS_CT
-            # DP_FL
-            # TP_FL
-            # RBI_CT
-            # WP_FL
-            # PB_FL
-            # FLD_CD
-            # BATTEDBALL_CD
-            # BUNT_FL
-            # FOUL_FL
-            # BATTEDBALL_LOC_TX
-            # ERR_CT
-            # ERR1_FLD_CD
-            # ERR1_CD
-            # ERR2_FLD_CD
-            # ERR2_CD
-            # ERR3_FLD_CD
-            # ERR3_CD
-            # BAT_DEST_ID
-            # RUN1_DEST_ID
-            # RUN2_DEST_ID
-            # RUN3_DEST_ID
-            # BAT_PLAY_TX
-            # RUN1_PLAY_TX
-            # RUN2_PLAY_TX
-            # RUN3_PLAY_TX
-            # RUN1_SB_FL
-            # RUN2_SB_FL
-            # RUN3_SB_FL
-            # RUN1_CS_FL
-            # RUN2_CS_FL
-            # RUN3_CS_FL
-            # RUN1_PK_FL
-            # RUN2_PK_FL
-            # RUN3_PK_FL
-            # RUN1_RESP_PIT_ID
-            # RUN2_RESP_PIT_ID
-            # RUN3_RESP_PIT_ID
-            # GAME_NEW_FL
-            # GAME_END_FL
-            # PR_RUN1_FL
-            # PR_RUN2_FL
-            # PR_RUN3_FL
-            # REMOVED_FOR_PR_RUN1_ID
-            # REMOVED_FOR_PR_RUN2_ID
-            # REMOVED_FOR_PR_RUN3_ID
-            # REMOVED_FOR_PH_BAT_ID
-            # REMOVED_FOR_PH_BAT_FLD_CD
-            # PO1_FLD_CD
-            # PO2_FLD_CD
-            # PO3_FLD_CD
-            # ASS1_FLD_CD
-            # ASS2_FLD_CD
-            # ASS3_FLD_CD
-            # ASS5_FLD_CD
-            # EVENT_ID
-
-
-#                    df=pd.DataFrame(play_info,columns=['Date','GameID', 'Team', 'Batter', 'Event', 'RBI', 'Count', 'EventNo', 'AB'])
         df=pd.DataFrame(play_info, columns=['GameID', 'HomeID', 'AwayID', 'Inning', 'inn_half', 'outs', 'balls', 'strikes', 'seq', 'away_score', 'home_score', 'batter', 'pitcher',
         'pos2_id', 'pos3_id', 'pos4_id', 'pos5_id', 'pos6_id', 'pos7_id', 'pos8_id', 'pos9_id',
         'run_1st', 'run_2nd', 'run_3rd', 'event_abb', 'leadoff_fl', 'ph_fl', 'batter_pos', 'order', 'event_cd',
@@ -1116,3 +987,107 @@ class PbpspiderSpider(scrapy.Spider):
         'rbi', 'wp_fl', 'pb_fl', 'fld_cd', 'bunt_fl', 'batter_dest', 'runner1_dest', 'runner2_dest', 'runner3_dest', 'run1_sb', 'run2_sb', 'run3_sb', 'run1_cs', 'run2_cs', 'run3_cs', 'run1_pk', 'run2_pk', 'run3_pk', 'pr1', 'pr2', 'pr3', 'event_no', 'pbptext']
 )
         df.to_csv('.././pbp/' + date +'.csv', mode='a', index=False, header=False)
+
+
+
+
+#game_id
+#home_abb
+#home_id
+#away_abb
+#away_id
+#inning
+#inn_half
+#outs
+#balls
+#strikes
+#pitch_seq
+#away_score
+#home_score
+#batter
+#batter_id
+#bat_hand
+#resp_bat_id
+#resp_bat_hand
+# PIT_ID
+# PIT_HAND_CD
+# RESP_PIT_ID
+# RESP_PIT_HAND_CD
+# POS2_FLD_ID
+# POS3_FLD_ID
+# POS4_FLD_ID
+# POS5_FLD_ID
+# POS6_FLD_ID
+# POS7_FLD_ID
+# POS8_FLD_ID
+# POS9_FLD_ID
+# BASE1_RUN_ID
+# BASE2_RUN_ID
+# BASE3_RUN_ID
+# EVENT_TX
+# LEADOFF_FL
+# PH_FL
+# BAT_FLD_CD
+# BAT_LINEUP_ID
+# EVENT_CD
+# BAT_EVENT_FL
+# AB_FL
+# H_FL
+# SH_FL
+# SF_FL
+# EVENT_OUTS_CT
+# DP_FL
+# TP_FL
+# RBI_CT
+# WP_FL
+# PB_FL
+# FLD_CD
+# BATTEDBALL_CD
+# BUNT_FL
+# FOUL_FL
+# BATTEDBALL_LOC_TX
+# ERR_CT
+# ERR1_FLD_CD
+# ERR1_CD
+# ERR2_FLD_CD
+# ERR2_CD
+# ERR3_FLD_CD
+# ERR3_CD
+# BAT_DEST_ID
+# RUN1_DEST_ID
+# RUN2_DEST_ID
+# RUN3_DEST_ID
+# BAT_PLAY_TX
+# RUN1_PLAY_TX
+# RUN2_PLAY_TX
+# RUN3_PLAY_TX
+# RUN1_SB_FL
+# RUN2_SB_FL
+# RUN3_SB_FL
+# RUN1_CS_FL
+# RUN2_CS_FL
+# RUN3_CS_FL
+# RUN1_PK_FL
+# RUN2_PK_FL
+# RUN3_PK_FL
+# RUN1_RESP_PIT_ID
+# RUN2_RESP_PIT_ID
+# RUN3_RESP_PIT_ID
+# GAME_NEW_FL
+# GAME_END_FL
+# PR_RUN1_FL
+# PR_RUN2_FL
+# PR_RUN3_FL
+# REMOVED_FOR_PR_RUN1_ID
+# REMOVED_FOR_PR_RUN2_ID
+# REMOVED_FOR_PR_RUN3_ID
+# REMOVED_FOR_PH_BAT_ID
+# REMOVED_FOR_PH_BAT_FLD_CD
+# PO1_FLD_CD
+# PO2_FLD_CD
+# PO3_FLD_CD
+# ASS1_FLD_CD
+# ASS2_FLD_CD
+# ASS3_FLD_CD
+# ASS5_FLD_CD
+# EVENT_ID
