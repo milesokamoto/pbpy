@@ -5,6 +5,9 @@ Created on Fri Jul 4 9:30:10 2019
 @author: Miles Okamoto
 
 @todo:
+-fix reset play to start over with custom input
+-change runners[] if a pinch runner
+-eventually index stats.ncaa pbp names to roster names to player ids
 
 """
 import scrapy
@@ -96,7 +99,7 @@ base_codes = {
     'scored': 4,
     'out': 0
 }
-def lineups(team: str, response) -> list:
+def get_lineups(team: str, response) -> list:
     """
     Parameters
     ----------
@@ -169,7 +172,7 @@ def get_name(s: str) -> str:
     if not name is None:
         return name.group()
     else:
-        return input('enter name: ')
+        return input('Enter player name: ')
 
 def get_sub_name(s: str, type: str) -> str:
     """
@@ -230,24 +233,12 @@ def get_pos(s: str) -> str:
     s : str
         string containing substitution text
     """
-    return (re.search(r'(?<= to )[0-9a-z]{1,2}', s).group()).upper()
-
-def parse_pbp(response, inn, line, output, inn_outs):
-    event_outs = 0 #keeping track of outs to know if left or right column contains the next play
-    outs = inn_outs%3
-    pbp_text = get_pbp(response, inn_half)
-    sub = is_sub(pbp_txt)
-    if sub:
-        batter_event_fl = False
-
+    if 'hit' in s[1]:
+        return 'PH'
+    elif 'ran' in s[1]:
+        return 'PR'
     else:
-        play_list = pbp_text.split(":")
-        parse_play(play_list, lineups)
-
-    for
-
-def parse_play(plays: list, lineups: list):
-    pass
+        return (re.search(r'(?<= to )[0-9a-z]{1,2}', s).group()).upper()
 
 def parse_name(name: str) -> str:
     """
@@ -282,9 +273,29 @@ def parse_name(name: str) -> str:
         name = name + ','
     return name
 
+def find_name(name: str, list: list) -> str:
+    """
+    finds player's full name in given list and return as string
+
+    Parameters
+    ----------
+    name : str
+        name from pbp text
+    list : list
+        list of names to match
+    Returns
+    -------
+    str
+        full name of player as found in box score
+    """
+    full = next((s for s in list if name.lower() in s.lower()), None)
+        if full is None:
+            full = input('Input name of player or "reset play" to input new play: ') ##implement "reset play"
+    return full
+
 def sub(s: list, lu: df, subs: list) -> list:
     """
-
+    takes list representing substitution and changes lineup to reflect changes
 
     Parameters
     ----------
@@ -298,151 +309,64 @@ def sub(s: list, lu: df, subs: list) -> list:
     Returns
     -------
     list
-        new list of lineups and subs
+        new lineup
 
     """
     if '/' in s[0]:
         s[0] = lu[lu['position']=='P'].iloc[0]['name']
         s[1] = ' to p'
 
-    if 'pinch' in s:
-        subtype = 'off'
-        get_subs(lineups, subtype)
-        if 'hit' in sub_txt:
-            pos = 'PH'
-            sub_in = get_sub_name(s, pos)
-        elif 'ran' in sub_txt:
-            pos = 'PR'
-            sub_in = get_sub_name(s, pos)
-        #Replace DH could be offensive
-        #####IF PH for DH not replaced, they become DH
-
+    if 'pinch' in s[1]:
+        subtype = 'OFF'
     else:
         subtype = 'DEF'
-        sub_in = get_sub_name(s, subtype)
-        pos = get_pos(s)
 
-    #fix formatting to match lineup
-    sub_name = parse_sub(sub_in)
+    sublists = get_subs(lineups, subtype)
+    lu = sublists[0]
+    subs = sublists[1]
+    pos = get_pos(s[1])
+    sub_in_name = parse_name(s[0])
     #distinguish between positional changes and defensive subs
-    if not ' for ' in s:
-        sublist = lu['name']
+    if s[2] is None:
+        inlist = lu['name']
     else:
-        sublist = lu['name']
-        subfull = next((s for s in sublist if sub_name.lower() in s.lower()), None)
-        if subfull is None:
-            sublist = subs
+        inlist = subs
+        outlist = lu['name']
+        sub_out_name = parse_name(s[2])
+        sublist = None
 
-    #check if replacement is in either lineup or subs list
-    subfull = next((s for s in sublist if sub_name.lower() in s.lower()), None)
+    sub_in_full = find_name(sub_in_name, inlist)
+    # if sub_in_full == 'team':
+    #     if subtype == 'OFF':
+    #         sublists = get_subs(lineups, 'DEF')
+    #         if s[2] is None:
+    #             inlist = lu['name']
+    #         else:
+    #             inlist = subs
+    #             outlist = lu['name']
+    #             sub_out_name = parse_name(s[2])
+    #             sublist = None
+    #     else:
+    #         sublists = get_subs(lineups, 'OFF')
+    #         if s[2] is None:
+    #             inlist = lu['name']
+    #         else:
+    #             inlist = subs
+    #             outlist = lu['name']
+    #             sub_out_name = parse_name(s[2])
+    #     sub_in_full = find_name(sub_in_name, inlist)
 
-    #if not, try the first 4 letters of the name for a match
-    if subfull is None:
-        subfull = next((s for s in sublist if sub_name[0:3].title() in s.title()), None)
+    if s[2]:
+        sub_out_full = find_name(sub_out_name, outlist)
 
-    if subfull is None and pos == 'P':
-        sublist = subs
-        subfull = next((s for s in sublist if sub_name.lower() in s.lower()), None)
-        if subfull is None:
-            subfull = next((s for s in sublist if sub_name[0:3].title() in s.title()), None)
-
-        if subfull is None:
-        if subtype == 'def':
-            subtype = 'off'
-            ph_fl = True
-            if inn_half == 0:
-                lu = away_lineup
-                subs = away_subs
-            else:
-                lu = home_lineup
-                subs = home_subs
-            if not ' for ' in sub_txt:
-                sublist = lu['name']
-            else:
-                sublist = subs
-            subfull = next((s for s in sublist if sub_name.lower() in s.lower()), None)
-            if subfull is None:
-                subfull = next((s for s in sublist if sub_name[0:3].title() in s.title()), None)
-
-        else:
-            subtype = 'def'
-            if inn_half == 1:
-                lu = away_lineup
-                subs = away_subs
-            else:
-                lu = home_lineup
-                subs = home_subs
-            if not 'for' in sub_txt:
-                sublist = lu['name']
-            else:
-                sublist = subs
-            subfull = next((s for s in sublist if sub_name.lower() in s.lower()), None)
-            if subfull is None:
-                subfull = next((s for s in sublist if sub_name[0:3].title() in s.title()), None)
-
-    #find replaced player
-    if ' for ' in sub_txt:
-        subout = re.search(r"(?<= for )([A-Z]{1}[A-Za-z. ]*[-\'A-Za-z]*[, [A-Za-z.]*]* *)*(?=.)", sub_txt).group()
-        sub_out_name = parse_sub(subout)
-
-        outfull = next((s for s in lu['name'] if subout.lower() in s.lower()), None)
-        if outfull is None:
-            outfull = next((s for s in lu['name'] if subout[0:3].title() in s.title()), None)
-            if outfull is None:
-                if subtype == 'def':
-                    subtype = 'off'
-                    ph_fl = True
-                    if inn_half == 0:
-                        lu = away_lineup
-                        subs = away_subs
-                    else:
-                        lu = home_lineup
-                        subs = home_subs
-                    outfull = next((s for s in lu['name'] if subout.lower() in s.lower()), None)
-                    if subfull is None:
-                        subfull = next((s for s in sublist if sub_name[0:3].title() in s.title()), None)
-                else:
-                    subtype = 'def'
-                    if inn_half == 1:
-                        lu = away_lineup
-                        subs= away_subs
-                    else:
-                        lu = home_lineup
-                        subs = home_subs
-                    outfull = next((s for s in lu['name'] if subout.lower() in s.lower()), None)
-                    if subfull is None:
-                        subfull = next((s for s in sublist if sub_name[0:3].title() in s.title()), None)
-                if subfull is None:
-                    subfull = ''
-                if outfull is None:
-                    outfull = ''
-        if len(lu.index[lu['name'] == outfull].tolist()) > 0:
-            print(lu.index[lu['name'] == outfull].tolist()[0])
-            lu.iloc[lu.index[lu['name'] == outfull].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == outfull].tolist()[0]]['order'], subfull, pos]
+    if len(lu.index[lu['name'] == sub_out_full].tolist()) > 0:
+        lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]]['order'], sub_in_full, pos]
         if pos == 'P':
-            lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]]['order'], subfull, pos]
-    else:
-        if pos == 'P':
-            if len(lu[lu['order'] == 'P']['order'].tolist()) == 0:
-                print('adding pitcher')
-                lu.loc[9] = ['P', subfull, pos]
-            else:
-                if len(lu.index[lu['name'] == subfull].tolist()) > 1:
-                    lu = lu.drop([9])
-                    lu.iloc[lu.index[lu['name'] == subfull].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == subfull].tolist()[0]]['order'], subfull, pos]
-                else:
-                    lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]]['order'], subfull, pos]
-
-        else:
-            if len(lu.index[lu['name'] == subfull].tolist()) > 0:
-                lu.iloc[lu.index[lu['name'] == subfull].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == subfull].tolist()[0]]['order'], subfull, pos]
-        print(lu)
-    if (inn_half == 0 and subtype == 'off') or (inn_half == 1 and subtype == 'def'):
-        away_lineup = lu
-    else:
-        home_lineup = lu
-    if pos == 'PR':
-        runners[runners.index(outfull)] = subfull
+            if len(lu.index[lu['order'] == 'P'].tolist()) > 0:
+                lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]]['order'], subfull, pos]
+            elif len(lu[lu['order'] == 'P']['order'].tolist()) == 0:
+                lu.loc[9] = ['P', sub_in_full, 'P']
+    return lu
 
 def is_sub(s: str) -> list:
     """
@@ -494,13 +418,7 @@ def get_pbp(response, inn_half: int) -> str:
 
     elif inn_half == 1: #right side for bottom half
         play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
-        if not play is None:
-            if 'No play' in play:
-                play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
-        if not play is None:
-            order = store_hm_order
-            lineup = home_lineup
-        else:
+        if play is None:
             play = "No Play"
     play = play.replace('3a', ':').replace(';', ':').replace('a dropped fly', 'an error').replace('a muffed throw', 'an error') #replace with input if both out at first and fielders choice
     if 'out at first' in play and 'fielder\'s choice' in play:
@@ -546,23 +464,48 @@ if 'D LaManna to c for E Copeland' in play:
 # if 'FIELDS,J. to rf' in play:
 #     play = 'Winikur to rf'
 
+def event_type(s):
+    pass
 
+def bat_parse(s, batter):
+    pass
 
+def run_parse(s, runners):
+    pass
 
+def advance_runners(runners):
+    pass
 
+def def_parse(s):
+    pass
 
-    player = re.search(r'(?:(?:[a-z]* (?![a-z]))*[A-Z][A-Za-z\'\.\,-]*)*', event_txt)
-    if not player is None:
-        player = player.group() #this used more to filter out -use lineups to id batters
+def compile():
+    pass
 
-    #########TEST IF PLAY IS SUBSTITUTION##########
+def reset():
+    return [inning, inn_half, outs, runners, play]
 
+def parse_play(plays: list, lineups: list):
+    pass
 
+def parse_pbp(inn, line, output, inn_outs):
+    event_outs = 0 #keeping track of outs to know if left or right column contains the next play
+    outs = inn_outs%3
+    pbp_text = get_pbp(response, inn_half)
+    sub = is_sub(pbp_txt)
+    if sub:
+        batter_event_fl = False
 
-
-    ###############PARSE PLAY###################
     else:
-        batter = lineup['name'].iloc[order-1]
+        play_list = pbp_text.split(":")
+        parse_play(play_list, lineups)
+
+    for
+
+    return play_info
+    ###############PARSE PLAY###################
+
+batter = lineup['name'].iloc[order-1]
 
         #BAT_ID
         runners[0] = batter
@@ -903,6 +846,8 @@ if 'D LaManna to c for E Copeland' in play:
         print('\n\n')
         if event_fl:
             play_info.append(playout)
+
+
 
 class PbpspiderSpider(scrapy.Spider):
     name = 'pbpspider'
