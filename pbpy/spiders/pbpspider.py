@@ -184,7 +184,7 @@ def scrape_lineups(team: str, response) -> list:
             end = True
     return [pd.DataFrame(lineup, columns = ['order', 'name', 'position']), subs] #done
 
-def get_pbp(response, inn_half: int, line: int, inn: int) -> list:
+def get_pbp(response, inn_half: int, inn: int, line: int) -> list:
     """
     extracts pbp text from appropriate part of page
 
@@ -328,7 +328,7 @@ def get_pos(s: str) -> str:
     elif 'ran' in s[1]:
         return 'PR'
     else:
-        return (re.search(r'(?<= to )[0-9a-z]{1,2}', s).group()).upper()
+        return (re.search(r'(?<=to )[0-9a-z]{1,2}', s).group()).upper()
 
 def find_name(name: str, list: list) -> str:
     """
@@ -346,11 +346,11 @@ def find_name(name: str, list: list) -> str:
         full name of player as found in box score
     """
     full = next((s for s in list if name.lower() in s.lower()), None)
-        if full is None:
-            full = input('Input name of player or "reset play" to input new play: ') ##implement "reset play"
+    if full is None:
+        full = input('Input name of player: ') ##implement "reset play"
     return full
 
-def sub(s: list, lineups: list) -> list:
+def make_sub(s: list, lineups: list, inn_half: int) -> list:
     """
     takes list representing substitution and changes lineup to reflect changes
 
@@ -369,18 +369,15 @@ def sub(s: list, lineups: list) -> list:
         new lineups
 
     """
-    if '/' in s[0]:
-        s[0] = lu[lu['position']=='P'].iloc[0]['name']
-        s[1] = ' to p'
-
     if 'pinch' in s[1]:
         subtype = 'OFF'
     else:
         subtype = 'DEF'
 
-    sublists = get_sub_lists(lineups, subtype)
-    lu = sublists[0]
-    subs = sublists[1]
+    [lu, subs, team] = get_sub_lists(lineups, subtype)
+    if '/' in s[0]:
+        s[0] = lu[lu['position']=='P'].iloc[0]['name']
+        s[1] = ' to p'
     pos = get_pos(s[1])
     sub_in_name = parse_name(s[0])
     #distinguish between positional changes and defensive subs
@@ -391,20 +388,23 @@ def sub(s: list, lineups: list) -> list:
         outlist = lu['name']
         sub_out_name = parse_name(s[2])
         sublist = None
-
     sub_in_full = find_name(sub_in_name, inlist)
-
     if s[2]:
         sub_out_full = find_name(sub_out_name, outlist)
-
+    else:
+        sub_out_full = ''
     if len(lu.index[lu['name'] == sub_out_full].tolist()) > 0:
         lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]]['order'], sub_in_full, pos]
         if pos == 'P':
             if len(lu.index[lu['order'] == 'P'].tolist()) > 0:
-                lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]]['order'], subfull, pos]
+                lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]]['order'], sub_in_full, pos]
             elif len(lu[lu['order'] == 'P']['order'].tolist()) == 0:
                 lu.loc[9] = ['P', sub_in_full, 'P']
-    if sublists[3] == 'home':
+    else:
+        if len(lu.index[lu['name'] == sub_in_full].tolist()) > 0:
+            lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]]['order'], sub_in_full, pos]
+
+    if team == 'home':
         lineups[0] = lu
     else:
         lineups[3] = lu
@@ -428,11 +428,11 @@ def is_sub(s: str) -> list:
     bool
         false if there is no substitution
     """
-    s = 'ELLIS to cf.'
     subtest = re.search(r"^([A-Za-z,\. '-]*?(?= [a-z])|\/) (pinch (?:hit|ran)|to [0-9a-z]{1,2})* *(?:for ([A-Za-z,\. '-]*?)\.$)*", s)
     if not subtest is None:
-        return [subtest.group(1), subtest.group(2), subtest.group(3)]
-    else:
+        subtest = [subtest.group(1), subtest.group(2), subtest.group(3)]
+        if not subtest[1] is None:
+            return subtest
         return False
 
 def correct_play(play, outs):
@@ -446,22 +446,22 @@ def correct_play(play, outs):
     play = play.replace(', advanced', '; advanced').replace(', scored', '; scored')
     return play
 
-if 'Dropped foul ball' in play: #need to change this for errors
-    play = 'No Play'
-    skip = True
-# play = play.replace('for WILLIAMS, C.', '.')
-#2/15
-if 'Allen out at second c to 2b.' in play:
-    play = 'Allen out at second c to 2b, caught stealing.'
-if 'D LaManna to c for E Copeland' in play:
-    play = 'D LaManna to c for Zyska'
+# if 'Dropped foul ball' in play: #need to change this for errors
+#     play = 'No Play'
+#     skip = True
+# # play = play.replace('for WILLIAMS, C.', '.')
+# #2/15
+# if 'Allen out at second c to 2b.' in play:
+#     play = 'Allen out at second c to 2b, caught stealing.'
+# if 'D LaManna to c for E Copeland' in play:
+#     play = 'D LaManna to c for Zyska'
 #2/16
 # if 'HIBBITS pinch ran for SCHROEDER.' in play:
 #     play = 'HIBBITS pinch hit for SCHROEDER.'
 # if 'FIELDS,J. to rf' in play:
 #     play = 'Winikur to rf'
 
-def get_batter(lineup: df, order: int) -> str:
+def get_batter(lineup, order: int) -> str:
     """
     returns current batter based on position in the batting order
 
@@ -474,9 +474,9 @@ def get_batter(lineup: df, order: int) -> str:
     str
         full name of the player up to bat
     """
-    return lineup['name'].iloc[order-1]
+    return [lineup['name'].iloc[order-1], lineup['position'].iloc[order-1]]
 
-def get_lineups(inn_half, lineups) -> list:
+def get_off_lineups(inn_half, lineups) -> list:
     """
     returns corresponding team lineup and substitutions
     Parameters
@@ -490,16 +490,35 @@ def get_lineups(inn_half, lineups) -> list:
         1: bottom half of inning
     """
     if inn_half == 0:
-        if not play is None:
-            order = lineups[5]
-            lineup = lineups[3]
+        order = lineups[5]
+        lineup = lineups[3]
     elif inn_half == 1:
-        if not play is None:
-            order = lineups[2]
-            lineup = lineups[0]
+        order = lineups[2]
+        lineup = lineups[0]
     return [order, lineup]
 
-def event_type(s: str, batter: str, runners: df, lineup: df):
+def get_def_lineups(inn_half, lineups) -> list:
+    """
+    returns corresponding team lineup and substitutions
+    Parameters
+    ----------
+    lineups : list
+        a list containing home and away lineups and subs:
+        [home_lineup, home_subs, store_hm_order,
+        away_lineup, away_subs, store_aw_order]
+    inn_half : int
+        0: top half of inning
+        1: bottom half of inning
+    """
+    if inn_half == 1:
+        order = lineups[5]
+        lineup = lineups[3]
+    elif inn_half == 0:
+        order = lineups[2]
+        lineup = lineups[0]
+    return [order, lineup]
+
+def get_event_type(s: str, batter: str, runners, lineup):
     """
     returns 'BAT' or 'RUN' based on whether the first name in the first
     index of the play by play list matches the current batter
@@ -518,7 +537,7 @@ def event_type(s: str, batter: str, runners: df, lineup: df):
     else:
         return 'RUN'
 
-def parse_bat(s, batter): #s is index 0 of split play
+def parse_bat(s, batter, runners): #s is index 0 of split play
     event = s.split(';')[0]
     short_event = re.search(r'([sdth][a-z]{3}[rl]ed)|([a-z]*ed out)|out at first|popped up|infield fly|(struck out *[a-z]*)|error|(fielder\'s choice)|walked|(hit by pitch)|(\w* into \w* play)|((batter\'s|catcher\'s) interference)', s)
     if not short_event is None and short_event != '':
@@ -536,32 +555,37 @@ def parse_bat(s, batter): #s is index 0 of split play
                 elif event_cd ==  23: #HR
                     dest = 4
                 elif event_cd == 3: #K
-                    if 'reached first' in event_txt:
+                    if 'reached first' in s:
                         dest = 1
-                else: #out
-                    dest = 0
+                    else: #out
+                        dest = 0
+                elif event_cd == 2:
+                    dest = 1
         batter_adv = s.split('; ')[1:]
-        for adv in batter_adv:
-            re.search(r'(advanced to [a-z]*)|((scored) on (the throw)|(advanced on an error by [a-z0-9]{1,2}))|(out at [a-z]* [0-9a-z]{1,2}(?: to [0-9a-z]{1,2})*)', adv)
-        if not batter_adv is None:
-            batter_adv = batter_adv.group()
-            b_outcome = re.search(r"(advanced to \w*|scored|out at \w*)(?!.*(advanced|scored|out))", batter_adv).group()
+        if not batter_adv == []:
+            for adv in batter_adv:
+                adv_txt = re.search(r'(advanced to [a-z]*)|((scored) on (the throw)|(advanced on an error by [a-z0-9]{1,2}))|(out at [a-z]* [0-9a-z]{1,2}(?: to [0-9a-z]{1,2})*)', adv)
+                if not adv_txt is None:
+                    adv_txt = adv_txt.group()
+            #parse adv_txt, add to list -- add adv_event_cd somewhere
+            #Ex: Groshans, J. struck out swinging, reached first on a passed ball, advanced to second (3-2 FBBBFFS): Karre, R. advanced to third on a passed ball, scored, unearned.
+            b_outcome = re.search(r"(advanced to \w*|scored|out at \w*)(?!.*(advanced|scored|out))", s).group()
+            if 'advanced' in b_outcome:
+                dest = base_codes[re.search(r'(?<=advanced to )\w*', b_outcome).group()]
+            if 'out at' in b_outcome:
+                dest = 0
+            elif 'scored' in b_outcome:
+                dest = 4
         else:
             b_outcome = ''
             batter_adv = ''
-        if 'advanced' in b_outcome:
-            dest = base_codes[re.search(r'(?<=advanced to )\w*', b_outcome).group()]
-        if 'out at' in b_outcome:
-            dest = 0
-        elif 'scored' in b_outcome:
-            dest = 4
-        #Add if batter strikes out and reaches on pb/error/etc
+        runners.loc[0, 'dest'] = dest
     else:
         fixed = input('Type corrected play text: ')
-        parse_bat(fixed, batter)
-    return [event_cd, dest, parse_def(event, event_cd)]
-#SB2.1-3(E2/TH)
-def parse_error(s: str) -> list:
+        parse_bat(fixed, batter, runners)
+    return [event_cd, runners] #parse_def(event, event_cd)
+
+#def parse_error(s: str) -> list:
     """
     returns the position charged with the error and error type
 
@@ -581,7 +605,7 @@ def parse_error(s: str) -> list:
         err_type = err_type.group()
     else:
         err_type = 'fielding'
-    if 'throwing' in err_type':
+    if 'throwing' in err_type:
         type = 'T'
     else:
         type = 'F'
@@ -589,17 +613,30 @@ def parse_error(s: str) -> list:
     err_fld_cd = fielder_codes[err_by]
     return [err_fld_cd, type]
 
-def event_flags(s, event_cd):
+def event_flags(s, event_cd, event_outs, batter_of_inn, runners):
+    leadoff_fl = False
+    ab_fl = False
+    hit_fl = False
+    event_fl = False
+    sf_fl = False
+    sh_fl = False
+    bunt_fl = False
+    wp_fl = False
+    pb_fl = False
+    dp_fl = False
+    tp_fl = False
+    [run1_sb_fl, run2_sb_fl, run3_sb_fl] = [False, False, False]
+    [run1_cs_fl, run2_cs_fl, run3_cs_fl] = [False, False, False]
+    [run1_pk_fl, run2_pk_fl, run3_pk_fl] = [False, False, False]
+
+    if batter_of_inn == 1:
+        leadoff_fl = True
     if event_cd in {2,3,18,19,20,21,22,23}:
         ab_fl = True
     if event_cd in {20,21,22,23}:
         hit_fl = True
-    if not event_cd in {2,3,14,15,16,17,18,19,20,21,22,23}:
-         batter_event_fl = False
     if event_cd in range(1,25):
         event_fl = True
-    if event_cd in {20,21,22,23}:
-        hit_fl = True
     if 'SF' in s:
         sf_fl = True
     if 'SAC' in s:
@@ -615,12 +652,43 @@ def event_flags(s, event_cd):
     if event_outs == 3:
         tp_fl = True
 
+    run1_ev_cd = int(runners.loc[1,'event_cd'])
+    run2_ev_cd = int(runners.loc[2,'event_cd'])
+    run3_ev_cd = int(runners.loc[3,'event_cd'])
+    if run1_ev_cd == 4:
+        run1_sb_fl = True
+    elif
+        run1_ev_cd == 6:
+            run1_cs_fl = True
+    elif
+        run1_ev_cd == 8:
+            run1_pk_fl = True
+    if run2_ev_cd == 4:
+        run2_sb_fl = True
+    elif
+        run2_ev_cd == 6:
+            run2_cs_fl = True
+    elif
+        run2_ev_cd == 8:
+            run2_pk_fl = True
+    if run3_ev_cd == 4:
+        run3_sb_fl = True
+    elif
+        run3_ev_cd == 6:
+            run3_cs_fl = True
+    elif
+        run3_ev_cd == 8:
+            run3_pk_fl = True
+    return [ab_fl, hit_fl, event_fl, sf_fl, sh_fl, bunt_fl, wp_fl, pb_fl, dp_fl, tp_fl, run1_sb_fl, run2_sb_fl, run3_sb_fl, run1_cs_fl, run2_cs_fl, run3_cs_fl, run1_cs_fl, run2_cs_fl, run3_cs_fl]
+
 def sub_flags():
     pass
 
-def parse_run(s: str, runners: df, runners_dest: list):
+def parse_run(s: str, runners):
     runner = parse_name(get_name(s))
     runner_full = find_name(runner, runners.loc[:,'name'])
+    runner_base = runners.index[runners['name'] == runner_full].tolist()[0]
+    # run_list = s.split('; ')
     run_event = re.search(r'stole [a-z]*|advanced to \w* on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|advanced to \w* on an error by p, failed pickoff attempt|scored on (?:a )*(wild pitch|passed ball|balk|defensive indifference)|out at .*(picked off|caught stealing)', s)
     if not run_event is None:
         run_event = run_event.group()
@@ -631,33 +699,34 @@ def parse_run(s: str, runners: df, runners_dest: list):
         run_short_event = run_short_event.group()
     if run_short_event in codes:
         run_abb = codes[run_short_event]
-        if run_abb in event_codes and event_cd == '':
+        if run_abb in event_codes:
             run_event_cd = event_codes[run_abb]
         else:
             run_event_cd = input('Enter runner event code: ')
 
     runner_outcome = re.search(r"(stole \w*|advanced to \w*|scored|out at \w*)(?!.*(advanced|scored|out))", s)
-        if not runner_outcome is None:
-            runner_outcome = runner_outcome.group()
-        else:
-            runner_outcome = ''
-        if 'advanced' in runner_outcome:
-            dest = base_codes[re.search(r'(?<=advanced to )\w*', runner_outcome).group()]
-        elif 'scored' in runner_outcome:
-            dest = 4
-            if 'unearned' in s:
-                runners.loc['name' == runner_full]['resp_pit'] = ''
-        elif 'stole' in runner_outcome:
-            dest = base_codes[re.search(r'(?<=stole )\w*', runner_outcome).group()]
-            run_event_abb = run_event_abb + '/' + str(base_codes[re.search(r'(?<=stole )\w*', runner_outcome).group()])
-        elif 'out' in runner_outcome:
-            dest = 0
-        else:
-            dest = input('Input destination for runner ' + runner_full + ": ")
-        runners.loc['name' == runner_full]['dest'] = dest
+    if not runner_outcome is None:
+        runner_outcome = runner_outcome.group()
+    else:
+        runner_outcome = ''
+    if 'advanced' in runner_outcome:
+        dest = base_codes[re.search(r'(?<=advanced to )\w*', runner_outcome).group()]
+    elif 'scored' in runner_outcome:
+        dest = 4
+        if 'unearned' in s:
+            runners.loc[runner_base, 'resp_pit'] = ''
+    elif 'stole' in runner_outcome:
+        dest = base_codes[re.search(r'(?<=stole )\w*', runner_outcome).group()]
+        run_event_abb = run_event_abb + '/' + str(base_codes[re.search(r'(?<=stole )\w*', runner_outcome).group()])
+    elif 'out' in runner_outcome:
+        dest = 0
+    else:
+        dest = input('Input destination for runner ' + runner_full + ": ")
+    runners.loc[runner_base, 'dest'] = dest
+    runners.loc[runner_base, 'event_cd'] = run_event_cd
     return [runners, runner_full, run_event_cd]
 
-def advance_runners(runners: df):
+def advance_runners(runners, score, inn_half):
     """
     moves runners after play corresponding to destinations
 
@@ -668,31 +737,31 @@ def advance_runners(runners: df):
     -------
 
     """
-    runners_dest = runners.loc[:, 'dest']
-    runners_list = runners.loc[:, 'name']
-    temprunners = ['','','','']
+    # runners = pd.DataFrame([[0,'Trout, Mike','Jansen, Kenley','2','','21'], [1,'Calhoun, Kole','Kershaw, Clayton','0','94',''], [2,'','','','',''], [3,'La Stella, Tommy','Kershaw, Clayton','4','','']], columns = ['base', 'name', 'resp_pit', 'dest', 'play','event_cd'])
+    event_outs = 0
+    [home_score, away_score] = score
+    new_runners = pd.DataFrame([[0,'','','','',''], [1,'','','','',''], [2,'','','','',''], [3,'','','','','']], columns = ['base', 'name', 'resp_pit', 'dest', 'play','event_cd'])
     for base in range(0,4):
-        br = runners_list[3-base]
+        br = runners.loc[3-base, 'name']
+        pit = runners.loc[3-base, 'resp_pit']
         if  br != '':
-            if runners_dest[3-base] == '':
-                runners_dest[3-base] = 3-base
-            dest = runners_dest[3-base]
+            if runners.loc[3-base, 'dest'] == '':
+                runners.loc[3-base, 'dest'] = 3-base
+            dest = int(runners.loc[3-base, 'dest'])
             if dest > 0 and dest < 4:
-                temprunners[dest] = br
+                new_runners.loc[dest, 'name'] = br
+                new_runners.loc[dest, 'resp_pit'] = pit
             if dest != 3-base and dest != 5:
-                temprunners[3-base] = ''
-                runners[3-base] = ''
+                new_runners.loc[3-base, 'name'] = ''
             if dest == 4:
                 if inn_half == 0:
                     away_score += 1
                 else:
                     home_score += 1
             if dest == 0:
-                outs += 1
                 event_outs += 1
-    runners.loc[:, 'name'] = temprunners
-    runners.loc[:, 'dest'] = ['','','','']
-    return runners
+    runners = new_runners
+    return [runners, [home_score, away_score], event_outs]
 
 def get_out_loc(s, type):
     if type in ['F', 'L', 'P']:
@@ -702,16 +771,21 @@ def get_out_loc(s, type):
         else:
             out_location = input('Enter out location: ')
     elif type == 'FC':
+
     elif type == 'DP':
+
     elif type == 'TP':
+
     elif type == 'G':
 
     return out_location
 
 def parse_def(s, event_cd):
-    if event_cd in {20,21,22,23}
+    if event_cd in {20,21,22,23}:
         loc = re.search(r'(to [a-z]*(?: *[a-z]*)*|up [a-z]* [a-z]*|down [a-z]* [a-z]* [a-z0-9]* *[a-z]*|through [a-z]* [a-z]* [a-z]*)', s)
         bb_loc = loc_codes[loc]
+    elif event_cd == 19:
+        out_loc =
     elif event_cd == 18:
         error = parse_error(s)
     elif event_cd == 2:
@@ -726,7 +800,6 @@ def parse_def(s, event_cd):
                     fld_list.append(fld.group(g))
 
         else:
-            out_loc = get_out_loc(s)
             if 'flied' in s:
                 type = 'F'
             elif 'popped' in s:
@@ -741,24 +814,24 @@ def parse_def(s, event_cd):
                 else:
                     type = 'P'
                 foul_fl = True
-
+            out_loc = get_out_loc(s, type)
+            if foul_fl = True
+            out_loc = out_loc + 'F'
         else:
 
     elif event cd == 3:
 
-
-
 def get_pitches(s): #input from play
     p = re.search(r'\(.+?\)', s)
     if p is not None:
-        return pitches.group()
+        return p.group()
     else:
         return ''
 
-def get_count(pitches): #input from pitches()
-    s = re.search(r'(?<=-)[0-2]', pitches)
-    b = re.search(r'[0-3](?=-)', pitches)
-    seq = re.search(r'[A-Z]*(?=\))', pitches) #add an X as necessary to output file --- S11>B.MF2*BX for if we have when in the count a steal happened or pb
+def get_count(p): #input from pitches()
+    s = re.search(r'(?<=-)[0-2]', p)
+    b = re.search(r'[0-3](?=-)', p)
+    seq = re.search(r'[A-Z]*(?=\))', p) #add an X as necessary to output file --- S11>B.MF2*BX for if we have when in the count a steal happened or pb
     if not s is None and not b is None:
         if not seq is None:
             return [balls.group(), strikes.group(), seq.group()]
@@ -784,7 +857,7 @@ def get_rbi(s: str) -> int:
     if 'RBI' in s:
         return int(re.search(r'[1-4]*(?= RBI)', s).group())
 
-def get_defense(lu: df) -> list: #lineup input from get_lineups
+def get_defense(inn_half, lineups) -> list: #lineup input from get_lineups
     """
     returns list of names in order of positions
 
@@ -798,110 +871,229 @@ def get_defense(lu: df) -> list: #lineup input from get_lineups
     list
         names of players in defensive positional order: [P,C,1B,2B,3B,SS,LF,CF,RF]
     """
-    return [
-        pitcher = lu[lu['position'] == 'P'].iloc[0]['name']
-        pos2_id = lu[lu['position'] == 'C'].iloc[0]['name']
-        pos3_id = lu[lu['position'] == '1B'].iloc[0]['name']
-        pos4_id = lu[lu['position'] == '2B'].iloc[0]['name']
-        pos5_id = lu[lu['position'] == '3B'].iloc[0]['name']
-        pos6_id = lu[lu['position'] == 'SS'].iloc[0]['name']
-        pos7_id = lu[lu['position'] == 'LF'].iloc[0]['name']
-        pos8_id = lu[lu['position'] == 'CF'].iloc[0]['name']
-        pos9_id = lu[lu['position'] == 'RF'].iloc[0]['name']
+    lu = get_def_lineups(inn_half, lineups)[1]
+    return [lu[lu['position'] == 'P'].iloc[0]['name'],
+        lu[lu['position'] == 'C'].iloc[0]['name'],
+        lu[lu['position'] == '1B'].iloc[0]['name'],
+        lu[lu['position'] == '2B'].iloc[0]['name'],
+        lu[lu['position'] == '3B'].iloc[0]['name'],
+        lu[lu['position'] == 'SS'].iloc[0]['name'],
+        lu[lu['position'] == 'LF'].iloc[0]['name'],
+        lu[lu['position'] == 'CF'].iloc[0]['name'],
+        lu[lu['position'] == 'RF'].iloc[0]['name']
     ]
 
 def parse_pbp(play_list, lineups, inn_half):
-    [order, lu] = get_lineups(inn_half, lineups)
-    batter = get_batter(lu, order)
+    [order, lu] = get_off_lineups(inn_half, lineups)
+    [batter, bat_pos] = get_batter(lu, order)
+    defense = get_defense(inn_half, lineups)
     runners.loc[0, 'name'] = batter
+    runners.loc[0, 'resp_pit'] = defense[0]
     batter_event_fl = False
     for play in play_list:
-        event_type = event_type(play, batter, runners, lu)
+        event_type = event_type(play, batter, runners, lu.loc[:,'name'])
         if event_type == 'BAT':
-            [] = parse_bat(play, batter)
+            [event_cd, runners] = parse_bat(play, batter, runners)
             batter_event_fl = True
         else:
-            [] = parse_run(play, runners)
+            [runners, runner_full, run_event_cd] = parse_run(play, runners)
             if not batter_event_fl:
                 event_cd = run_event_cd
     if not batter_event_fl:
-        runners_dest[0] = 5
+        runners.loc[0, 'dest'] = 5
+    return [runners, event_cd, batter_event_fl, batter, bat_pos, order, defense]
+
+def inc_bat_order(lineups, inn_half):
+    if inn_half == 1:
+        lineups[2] += 1
+        if lineups[2] == 10:
+            lineups[2] = 1
+    else:
+        lineups[5] += 1
+        if lineups[5] == 10:
+            lineups[5] = 1
+    return lineups
+
+
+#TESTS:
+# home_lineup = pd.DataFrame([[1, 'Kennedy, Eric', 'LF'], [2, 'Ellis, Duke', 'CF'], [3, 'Ford, Lance', '2B'],
+# [4, 'Zubia, Zach', 'DH'], [5, 'McCann, Michael', 'C'], [6, 'Todd, Austin', 'RF'],
+# [7, 'Reynolds, Ryan', '3B'], [8, 'Shaw, Tate', '1B'], [9, 'Hibbeler, Masen', 'SS'], ['P', 'Elder, Bryce', 'P']], columns = ['order', 'name', 'position'])
+# home_subs = ['Fields, Kamron', 'Quintanilla, Cole']
+# away_lineup = pd.DataFrame([[1, 'Vujovich, Jordan', 'LF'], [2, 'Treadaway, Tanner', 'CF'], [3, 'Ware, Brylie', '3B'],
+# [4, 'Lindsly, Brady', 'DH'], [5, 'Mitchell, Justin', 'C'], [6, 'Hardman, Tyler', '1B'],
+# [7, 'Zaragoza, Brandon', 'SS'], [8, 'Harlan, Brady', 'RF'], [9, 'McKenna, Conor', '2B'], ['P', 'Abram, Ben', 'P']], columns = ['order', 'name', 'position'])
+# away_subs = ['Smith, Ledgend', 'Olds, Wyatt']
+# lineups = [home_lineup, home_subs, 1, away_lineup, away_subs, 1]
+#
+# runners = pd.DataFrame([[0,'','','','',''], [1,'','','','',''], [2,'','','','',''], [3,'','','','','']], columns = ['base', 'name', 'resp_pit', 'dest', 'play','event_cd']) #play is the play made on the runner if out e.g. 43 for 2b to 1b
+#
+# state = [0,0,1,0,0,runners]
+# [away_score, home_score, inn, inn_half, outs, runners] = state
+#
+# runners.loc[2,'resp_pit'] = 'Elder, Bryce'
+# runners
+#
+# lineups
+# sub = is_sub('McCann to c.')
+# pbp_txt = ''
+# lineups = make_sub(sub, lineups, inn_half)
+# lineups
+# pbp_txt = 'Vujovich, J. struck out swinging, reached first on a passed ball, advanced to second (3-2 FBBBFFS): McKenna, C. advanced to third on a passed ball, scored, unearned.'
+# sub = is_sub(pbp_txt)
+# play_list = pbp_txt.split(": ")
+# play_list
+#
+# out = parse_pbp(play_list, lineups, inn_half)
+# [order, lu] = get_off_lineups(inn_half, lineups)
+# lu
+# event_type = get_event_type(play_list[0], get_batter(lu, order), runners, lu.loc[:,'name'])
+# event_type
+# parse_bat(play_list[0], get_batter(lu, order), runners)
+# s = play_list[0]
+# s
+# parse_run(s, runners)
 
 
 def parse_play(line, state, meta, lineups, event_no, response):
-    event_outs = 0 #keeping track of outs to know if left or right column contains the next play
-    [away_score, home_score, inn, inn_half, inn_outs, runners] = state
+    [home_score, away_score, inn, inn_half, outs, runners, batter_of_inn] = state
+    score = [home_score, away_score]
 
-    [game_id, home_abb, away_abb] = meta
+    [game_id, home_abb, away_abb, ump] = meta
 
-    [pbp_txt, line, end] = get_pbp(response, inn_half, line, inn)
+    [pbp_txt, line, end] = get_pbp(response, inn_half, inn, line)
     if end:
         return [True] #other stuff maybe?
+    [balls, strikes, seq] = get_count(pbp_txt)
 
     sub = is_sub(pbp_txt)
     if sub:
         batter_event_fl = False
-        lineups = sub(sub, lineups)
+        lineups = make_sub(sub, lineups)
     else:
-        pbp_txt = correct_play(pbp_txt, inn_outs)
-        play_list = pbp_txt.split(":")
-        out = parse_pbp(play_list, lineups, inn_half)
+        pbp_txt = correct_play(pbp_txt, outs)
+        play_list = pbp_txt.split(": ")
+        [runners, event_cd, batter_event_fl, batter, bat_pos, order, defense] = parse_pbp(play_list, lineups, inn_half)
+        [pos]
         #add - find positions of hitter and runners (ph/pr tag)
-
         if batter_event_fl: #from return of parse play
-            order += 1
-            if order == 10:
-                order = 1
+            lineups = inc_bat_order(lineups, inn_half)
 
 
-    runners[0] = batter
-    batter_pos = lineup['position'].iloc[order-1]
-    hit_fl = False
-    ab_fl = False
-    batter_event_fl = True
-    runner_event_fl = False
-    event_fl = False
-    event_abb = ''
-    event_cd = ''
-    wp_fl = False
-    pb_fl = False
-    sh_fl = False
-    sf_fl = False
-    event_outs = 0
-    dp_fl = False
-    tp_fl = False
-    bunt_fl = False
-    run_abb = ''
-    run_short_event = ''
-    runner_outcome = ''
-    short_event = ''
-    run1_sb = False
-    run2_sb = False
-    run3_sb = False
-    run1_cs = False
-    run2_cs = False
-    run3_cs = False
-    run1_pk = False
-    run2_pk = False
-    run3_pk = False
-    pr1 = False
-    pr2 = False
-    pr3 = False
-    runners_dest = ['','','','']
-    skip = False
-    sub_name = ''
-    subout = ''
-    subfull = ''
-    outfull = ''
-    pos = ''
-    line += 1 #go to next play
-    play_out = [lineups, event_outs, line, event_fl, [date, home_abb, away_abb, inning,
+
+        # game_id
+        # home_abb
+        # away_abb
+        # inning
+        # inn_half
+        # inn_outs
+        # balls
+        # strikes
+        # seq
+        # away_score
+        # home_score
+        # batter
+        # BAT_HAND_CD
+        # RESP_BAT_ID
+        # RESP_BAT_HAND_CD
+        # pitcher
+        # PIT_HAND_CD
+        # RESP_PIT_ID
+        # RESP_PIT_HAND_CD
+        [pitcher, pos2_id, pos3_id, pos4_id, pos5_id, pos6_id, pos7_id, pos8_id, pos9_id] = defense
+        # pos2_id
+        # pos3_id
+        # pos4_id
+        # pos5_id
+        # pos6_id
+        # pos7_id
+        # pos8_id
+        # pos9_id
+        base1_run = runners.loc[1,'name']
+        base2_run = runners.loc[2,'name']
+        base3_run = runners.loc[3,'name']
+        # EVENT_TX
+        # LEADOFF_FL
+        if bat_pos == 'PH'
+        batter_pos = fielder_codes[bat_pos]
+        # order
+        # event_cd
+        # bat_event_fl
+        # ab_fl
+        # h_fl
+        # sh_fl
+        # sf_fl
+        # event_outs
+        # dp_fl
+        # tp_fl
+        rbi = get_rbi(pbp_txt)
+        # wp_fl
+        # pb_fl
+        # FLD_CD
+        # BATTEDBALL_CD
+        # bunt_fl
+        # foul_fl
+        # BATTEDBALL_LOC_TX
+        # ERR_CT
+        # ERR1_FLD_CD
+        # ERR1_CD
+        # ERR2_FLD_CD
+        # ERR2_CD
+        # ERR3_FLD_CD
+        # ERR3_CD
+        bat_dest = runners.loc[0,'dest']
+        run1_dest = runners.loc[1,'dest']
+        run2_dest = runners.loc[2,'dest']
+        run3_dest = runners.loc[3,'dest']
+        # BAT_PLAY_TX
+        # RUN1_PLAY_TX
+        # RUN2_PLAY_TX
+        # RUN3_PLAY_TX
+        # run1_sb_fl
+        # run2_sb_fl
+        # run3_sb_fl
+        # run1_cs_fl
+        # run2_cs_fl
+        # run3_cs_fl
+        # run1_pk_fl
+        # run2_pk_fl
+        # run3_pk_fl
+        run1_resp_pit = runners.loc[1, 'resp_pit']
+        run2_resp_pit = runners.loc[2, 'resp_pit']
+        run3_resp_pit = runners.loc[3, 'resp_pit']
+        # GAME_NEW_FL
+        # GAME_END_FL
+        # PR_RUN1_FL -- add column to runners
+        # PR_RUN2_FL
+        # PR_RUN3_FL
+        # REMOVED_FOR_PR_RUN1_ID
+        # REMOVED_FOR_PR_RUN2_ID
+        # REMOVED_FOR_PR_RUN3_ID
+        # REMOVED_FOR_PH_BAT_ID
+        # REMOVED_FOR_PH_BAT_FLD_CD
+        # PO1_FLD_CD
+        # PO2_FLD_CD
+        # PO3_FLD_CD
+        # ASS1_FLD_CD
+        # ASS2_FLD_CD
+        # ASS3_FLD_CD
+        # ASS4_FLD_CD
+        # ASS5_FLD_CD
+        # EVENT_ID
+
+
+
+    [new_runners, score, event_outs] = advance_runners(runners, score)
+    inn_outs = outs + event_outs
+    [leadoff_fl, ab_fl, hit_fl, event_fl, sf_fl, sh_fl, bunt_fl, wp_fl, pb_fl, dp_fl, tp_fl, run1_sb_fl, run2_sb_fl, run3_sb_fl, run1_cs_fl, run2_cs_fl, run3_cs_fl, run1_pk_fl, run2_pk_fl, run3_pk_fl] = event_flags(pbp_txt, event_cd, event_outs, batter_of_inn, runners)
+
+    play_out = [lineups, event_outs, line, batter_event_fl, event_fl, inn_outs, score, new_runners, end, [game_id, home_abb, away_abb, inning,
     inn_half, outs, balls, strikes, seq, away_score, home_score, batter, pitcher,
     pos2_id, pos3_id, pos4_id, pos5_id, pos6_id, pos7_id, pos8_id, pos9_id,
-    run_1st, run_2nd, run_3rd, event_abb, leadoff_fl, ph_fl, batter_pos, order, event_cd,
+    base1_run, base2_run, base3_run, event_abb, leadoff_fl, ph_fl, batter_pos, order, event_cd,
     batter_event_fl, ab_fl, hit_fl, sh_fl, sf_fl, event_outs, dp_fl, tp_fl,
-    rbi, wp_fl, pb_fl, fld_cd, bunt_fl, runners_dest[0], runners_dest[1], runners_dest[2], runners_dest[3], run1_sb, run2_sb, run3_sb, run1_cs, run2_cs, run3_cs, run1_pk, run2_pk, run3_pk, pr1, pr2, pr3, event_no, play]]
-    runners = advance_runners(runners)
+    rbi, wp_fl, pb_fl, bunt_fl, bat_dest, run1_dest, run2_dest, run3_dest, run1_resp_pit, run2_resp_pit, run3_resp_pit,
+    run1_sb, run2_sb, run3_sb, run1_cs, run2_cs, run3_cs, run1_pk, run2_pk, run3_pk, event_no, pbp_txt]]
     return play_out
 
 
@@ -974,6 +1166,7 @@ class PbpspiderSpider(scrapy.Spider):
         last = innings[0:len(innings)-9] #numeric value for last listed inning
         away = response.xpath("//table[@class='mytable'][1]/tbody/tr[2]/td[1]/a/text()").get() #away team
         home = response.xpath("//table[@class='mytable'][1]/tbody/tr[3]/td[1]/a/text()").get() #home team
+        ump = re.search(r'(?<=hp:)\W*(\w* \w*)', response.xpath("//table[4]/tbody/tr/td[2]/text()[1]").get()).group(1)
         date = response.xpath("//div[@id='contentarea']/table[3]/tbody/tr[1]/td[2]/text()").get()[9:19]
         date = date.replace('/', '')
         if len(teamindex[teamindex['school'] == home]) < 1:
@@ -988,35 +1181,43 @@ class PbpspiderSpider(scrapy.Spider):
         end = False
         game_id = date + away_abb + home_abb
         lineups = [home_lineup, home_subs, store_hm_order, away_lineup, away_subs, store_aw_order]
-        meta = [game_id, home_abb, away_abb]
+        meta = [game_id, home_abb, away_abb, ump]
         ###LOOP THROUGH INNINGS###
-        event_no = 0
+        event_no = 1
         for inn in range(1, int(last)+1):
             line = 1
             for inn_half in range(0,2)):
+                batter_of_inn = 0
                 outs = 0
                 runners = pd.DataFrame([[0,'','','','',''], [1,'','','','',''], [2,'','','','',''], [3,'','','','','']],
                 columns = ['base', 'name', 'resp_pit', 'dest', 'play','event_cd'])
                 while outs < 3:
-                    state = [away_score, home_score, inn, inn_half, inn_outs, runners]
-                    play_out = parse_play(line, state, meta, lineups, event_no, response)[0]
-                    end = play_out[X]
+                    state = [home_score, away_score, inn, inn_half, outs, runners, batter_of_inn]
+                    play_out = parse_play(line, state, meta, lineups, event_no, response)
+                    # lineups, event_outs, line, batter_event_fl, event_fl, inn_outs, score, new_runners, end,
+                    end = play_out[8]
                     if end:
                         break
-                    state = play_out[X]
-                    lineups = play_out[X]
-                    line += 1
-                    if play_out[X]:
-                        play_info.append(play_out)
+                    [home_score, away_score] = play_out[6]
+                    outs = play_out[5]
+                    lineups = play_out[0]
+                    if play_out[3]:
+                        batter_of_inn += 1
+                    line = play_out[2]
+                    if play_out[4]:
+                        play_info.append(play_out[9])
                         event_no += 1
+                    runners = play_out[7]
                 if end:
                     break
 
-        df=pd.DataFrame(play_info, columns=['GameID', 'HomeID', 'AwayID', 'Inning', 'inn_half', 'outs', 'balls', 'strikes', 'seq', 'away_score', 'home_score', 'batter', 'pitcher',
+        df=pd.DataFrame(play_info, columns=['game_id', 'home_abb', 'away_abb', 'inning',
+        'inn_half', 'outs', 'balls', 'strikes', 'seq', 'away_score', 'home_score', 'batter', 'pitcher',
         'pos2_id', 'pos3_id', 'pos4_id', 'pos5_id', 'pos6_id', 'pos7_id', 'pos8_id', 'pos9_id',
-        'run_1st', 'run_2nd', 'run_3rd', 'event_abb', 'leadoff_fl', 'ph_fl', 'batter_pos', 'order', 'event_cd',
+        'base1_run', 'base2_run', 'base3_run', 'event_abb', 'leadoff_fl', 'ph_fl', 'batter_pos', 'order', 'event_cd',
         'batter_event_fl', 'ab_fl', 'hit_fl', 'sh_fl', 'sf_fl', 'event_outs', 'dp_fl', 'tp_fl',
-        'rbi', 'wp_fl', 'pb_fl', 'fld_cd', 'bunt_fl', 'batter_dest', 'runner1_dest', 'runner2_dest', 'runner3_dest', 'run1_sb', 'run2_sb', 'run3_sb', 'run1_cs', 'run2_cs', 'run3_cs', 'run1_pk', 'run2_pk', 'run3_pk', 'pr1', 'pr2', 'pr3', 'event_no', 'pbptext'])
+        'rbi', 'wp_fl', 'pb_fl', 'bunt_fl', 'bat_dest', 'run1_dest', 'run2_dest', 'run3_dest', 'run1_resp_pit', 'run2_resp_pit', 'run3_resp_pit',
+        'run1_sb', 'run2_sb', 'run3_sb', 'run1_cs', 'run2_cs', 'run3_cs', 'run1_pk', 'run2_pk', 'run3_pk', 'event_no', 'pbp_text'])
 
         df.to_csv('.././pbp/' + date +'.csv', mode='a', index=False, header=False)
 
