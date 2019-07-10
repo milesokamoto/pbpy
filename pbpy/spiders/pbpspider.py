@@ -227,7 +227,7 @@ def get_pbp(response, inn_half: int, inn: int, line: int) -> list:
         end = False
     play = play.replace('3a', ':').replace(';', ':').replace('a dropped fly', 'an error').replace('a muffed throw', 'an error') #replace with input if both out at first and fielders choice
     if 'out at first' in play and 'fielder\'s choice' in play:
-        play = input('Enter corrected play text: ')
+        play = input('play: ' + play + '\nEnter corrected play text: ')
     return [play, line, end] #done
 
 def get_name(s: str) -> str:
@@ -242,7 +242,7 @@ def get_name(s: str) -> str:
     if not name is None:
         return name.group()
     else:
-        return input('Enter player name: ') #done
+        return input('play: ' + s + '\nEnter player name: ') #done
 
 def parse_name(name: str) -> str:
     """
@@ -347,7 +347,7 @@ def find_name(name: str, list: list) -> str:
     """
     full = next((s for s in list if name.lower() in s.lower()), None)
     if full is None:
-        full = input('Input name of player: ') ##implement "reset play"
+        full = input('name: ' + name + '\nlist: ' + str(list) + '\nInput name of player: ') ##implement "reset play"
     return full
 
 def make_sub(s: list, lineups: list, inn_half: int) -> list:
@@ -489,10 +489,10 @@ def get_off_lineups(inn_half, lineups) -> list:
         0: top half of inning
         1: bottom half of inning
     """
-    if inn_half == 0:
+    if inn_half == 1:
         order = lineups[5]
         lineup = lineups[3]
-    elif inn_half == 1:
+    elif inn_half == 0:
         order = lineups[2]
         lineup = lineups[0]
     return [order, lineup]
@@ -581,7 +581,7 @@ def parse_bat(s, batter, runners): #s is index 0 of split play
             batter_adv = ''
         runners.loc[0, 'dest'] = dest
     else:
-        fixed = input('Type corrected play text: ')
+        fixed = input('play: ' + s + '\nType corrected play text: ')
         parse_bat(fixed, batter, runners)
     return [event_cd, runners] #parse_def(event, event_cd)
 
@@ -652,32 +652,26 @@ def event_flags(s, event_cd, event_outs, batter_of_inn, runners):
     if event_outs == 3:
         tp_fl = True
 
-    run1_ev_cd = int(runners.loc[1,'event_cd'])
-    run2_ev_cd = int(runners.loc[2,'event_cd'])
-    run3_ev_cd = int(runners.loc[3,'event_cd'])
-    if run1_ev_cd == 4:
+    run1_ev_cd = runners.loc[1,'event_cd']
+    run2_ev_cd = runners.loc[2,'event_cd']
+    run3_ev_cd = runners.loc[3,'event_cd']
+    if run1_ev_cd == '4':
         run1_sb_fl = True
-    elif
-        run1_ev_cd == 6:
+    elif run1_ev_cd == '6':
             run1_cs_fl = True
-    elif
-        run1_ev_cd == 8:
+    elif run1_ev_cd == '8':
             run1_pk_fl = True
-    if run2_ev_cd == 4:
+    if run2_ev_cd == '4':
         run2_sb_fl = True
-    elif
-        run2_ev_cd == 6:
+    elif run2_ev_cd == '6':
             run2_cs_fl = True
-    elif
-        run2_ev_cd == 8:
+    elif run2_ev_cd == '8':
             run2_pk_fl = True
-    if run3_ev_cd == 4:
+    if run3_ev_cd == '4':
         run3_sb_fl = True
-    elif
-        run3_ev_cd == 6:
+    elif run3_ev_cd == '6':
             run3_cs_fl = True
-    elif
-        run3_ev_cd == 8:
+    elif run3_ev_cd == '8':
             run3_pk_fl = True
     return [ab_fl, hit_fl, event_fl, sf_fl, sh_fl, bunt_fl, wp_fl, pb_fl, dp_fl, tp_fl, run1_sb_fl, run2_sb_fl, run3_sb_fl, run1_cs_fl, run2_cs_fl, run3_cs_fl, run1_cs_fl, run2_cs_fl, run3_cs_fl]
 
@@ -693,7 +687,7 @@ def parse_run(s: str, runners):
     if not run_event is None:
         run_event = run_event.group()
     else:
-        run_event = input('Input correct runner text: ')
+        run_event = input('play: ' + s + '\nInput correct runner text: ')
     run_short_event = re.search(r'stole|wild pitch|passed ball|balk|defensive indifference|picked off|caught stealing|error', run_event)
     if not run_short_event is None:
         run_short_event = run_short_event.group()
@@ -702,7 +696,7 @@ def parse_run(s: str, runners):
         if run_abb in event_codes:
             run_event_cd = event_codes[run_abb]
         else:
-            run_event_cd = input('Enter runner event code: ')
+            run_event_cd = input('play: ' + s + '\nEnter runner event code: ')
 
     runner_outcome = re.search(r"(stole \w*|advanced to \w*|scored|out at \w*)(?!.*(advanced|scored|out))", s)
     if not runner_outcome is None:
@@ -721,7 +715,7 @@ def parse_run(s: str, runners):
     elif 'out' in runner_outcome:
         dest = 0
     else:
-        dest = input('Input destination for runner ' + runner_full + ": ")
+        dest = input('play: ' + s + '\nInput destination for runner ' + runner_full + ": ")
     runners.loc[runner_base, 'dest'] = dest
     runners.loc[runner_base, 'event_cd'] = run_event_cd
     return [runners, runner_full, run_event_cd]
@@ -763,63 +757,63 @@ def advance_runners(runners, score, inn_half):
     runners = new_runners
     return [runners, [home_score, away_score], event_outs]
 
-def get_out_loc(s, type):
-    if type in ['F', 'L', 'P']:
-        out_location = re.search(r'(?<=out to )[0-9a-z]{1,2}', s)
-        if not out_location is None:
-            out_location = out_location.group()
-        else:
-            out_location = input('Enter out location: ')
-    elif type == 'FC':
-
-    elif type == 'DP':
-
-    elif type == 'TP':
-
-    elif type == 'G':
-
-    return out_location
-
-def parse_def(s, event_cd):
-    if event_cd in {20,21,22,23}:
-        loc = re.search(r'(to [a-z]*(?: *[a-z]*)*|up [a-z]* [a-z]*|down [a-z]* [a-z]* [a-z0-9]* *[a-z]*|through [a-z]* [a-z]* [a-z]*)', s)
-        bb_loc = loc_codes[loc]
-    elif event_cd == 19:
-        out_loc =
-    elif event_cd == 18:
-        error = parse_error(s)
-    elif event_cd == 2:
-        if 'double play' in s:
-        elif 'triple play' in s:
-        elif 'grounded' in s:
-        elif 'out at first' in s: #1b to p or 2b to p etc
-            fld = re.search(r'(?:out at (?:first|second|third|home) )([a-z0-9]{1,2})(?:(?: to )([a-z0-9]{1,2}))?(?:(?: to )([a-z0-9]{1,2}))?(?:(?: to )([a-z0-9]{1,2}))?(?:(?: to )([a-z0-9]{1,2}))?')
-            fld_list = []
-            for g in range(1,6):
-                if not fld.group(g) is None:
-                    fld_list.append(fld.group(g))
-
-        else:
-            if 'flied' in s:
-                type = 'F'
-            elif 'popped' in s:
-                type = 'P'
-            elif 'grounded' in s:
-                type = 'G'
-            elif 'lined' in s:
-                type = 'L'
-            elif 'fouled' in s:
-                if out_location == 7 or out_location == 9:
-                    type = 'F'
-                else:
-                    type = 'P'
-                foul_fl = True
-            out_loc = get_out_loc(s, type)
-            if foul_fl = True
-            out_loc = out_loc + 'F'
-        else:
-
-    elif event cd == 3:
+# def get_out_loc(s, type):
+#     if type in ['F', 'L', 'P']:
+#         out_location = re.search(r'(?<=out to )[0-9a-z]{1,2}', s)
+#         if not out_location is None:
+#             out_location = out_location.group()
+#         else:
+#             out_location = input('Enter out location: ')
+#     elif type == 'FC':
+#
+#     elif type == 'DP':
+#
+#     elif type == 'TP':
+#
+#     elif type == 'G':
+#
+#     return out_location
+#
+# def parse_def(s, event_cd):
+#     if event_cd in {20,21,22,23}:
+#         loc = re.search(r'(to [a-z]*(?: *[a-z]*)*|up [a-z]* [a-z]*|down [a-z]* [a-z]* [a-z0-9]* *[a-z]*|through [a-z]* [a-z]* [a-z]*)', s)
+#         bb_loc = loc_codes[loc]
+#     elif event_cd == 19:
+#         out_loc =
+#     elif event_cd == 18:
+#         error = parse_error(s)
+#     elif event_cd == 2:
+#         if 'double play' in s:
+#         elif 'triple play' in s:
+#         elif 'grounded' in s:
+#         elif 'out at first' in s: #1b to p or 2b to p etc
+#             fld = re.search(r'(?:out at (?:first|second|third|home) )([a-z0-9]{1,2})(?:(?: to )([a-z0-9]{1,2}))?(?:(?: to )([a-z0-9]{1,2}))?(?:(?: to )([a-z0-9]{1,2}))?(?:(?: to )([a-z0-9]{1,2}))?')
+#             fld_list = []
+#             for g in range(1,6):
+#                 if not fld.group(g) is None:
+#                     fld_list.append(fld.group(g))
+#
+#         else:
+#             if 'flied' in s:
+#                 type = 'F'
+#             elif 'popped' in s:
+#                 type = 'P'
+#             elif 'grounded' in s:
+#                 type = 'G'
+#             elif 'lined' in s:
+#                 type = 'L'
+#             elif 'fouled' in s:
+#                 if out_location == 7 or out_location == 9:
+#                     type = 'F'
+#                 else:
+#                     type = 'P'
+#                 foul_fl = True
+#             out_loc = get_out_loc(s, type)
+#             if foul_fl = True
+#             out_loc = out_loc + 'F'
+#         else:
+#
+#     elif event cd == 3:
 
 def get_pitches(s): #input from play
     p = re.search(r'\(.+?\)', s)
@@ -834,11 +828,11 @@ def get_count(p): #input from pitches()
     seq = re.search(r'[A-Z]*(?=\))', p) #add an X as necessary to output file --- S11>B.MF2*BX for if we have when in the count a steal happened or pb
     if not s is None and not b is None:
         if not seq is None:
-            return [balls.group(), strikes.group(), seq.group()]
+            return [b.group(), s.group(), seq.group()]
         else:
-            return [balls.group(), strikes.group(), None]
+            return [b.group(), s.group(), None]
     else:
-        return ''
+        return ['','','']
 
 def get_rbi(s: str) -> int:
     """
@@ -883,7 +877,7 @@ def get_defense(inn_half, lineups) -> list: #lineup input from get_lineups
         lu[lu['position'] == 'RF'].iloc[0]['name']
     ]
 
-def parse_pbp(play_list, lineups, inn_half):
+def parse_pbp(play_list, lineups, inn_half, runners):
     [order, lu] = get_off_lineups(inn_half, lineups)
     [batter, bat_pos] = get_batter(lu, order)
     defense = get_defense(inn_half, lineups)
@@ -891,7 +885,7 @@ def parse_pbp(play_list, lineups, inn_half):
     runners.loc[0, 'resp_pit'] = defense[0]
     batter_event_fl = False
     for play in play_list:
-        event_type = event_type(play, batter, runners, lu.loc[:,'name'])
+        event_type = get_event_type(play, batter, runners, lu.loc[:,'name'])
         if event_type == 'BAT':
             [event_cd, runners] = parse_bat(play, batter, runners)
             batter_event_fl = True
@@ -973,8 +967,8 @@ def parse_play(line, state, meta, lineups, event_no, response):
     else:
         pbp_txt = correct_play(pbp_txt, outs)
         play_list = pbp_txt.split(": ")
-        [runners, event_cd, batter_event_fl, batter, bat_pos, order, defense] = parse_pbp(play_list, lineups, inn_half)
-        [pos]
+        [runners, event_cd, batter_event_fl, batter, bat_pos, order, defense] = parse_pbp(play_list, lineups, inn_half, runners)
+        # [pos]
         #add - find positions of hitter and runners (ph/pr tag)
         if batter_event_fl: #from return of parse play
             lineups = inc_bat_order(lineups, inn_half)
@@ -1014,7 +1008,8 @@ def parse_play(line, state, meta, lineups, event_no, response):
         base3_run = runners.loc[3,'name']
         # EVENT_TX
         # LEADOFF_FL
-        if bat_pos == 'PH'
+        if bat_pos == 'PH':
+            ph_fl =  True
         batter_pos = fielder_codes[bat_pos]
         # order
         # event_cd
@@ -1083,17 +1078,18 @@ def parse_play(line, state, meta, lineups, event_no, response):
 
 
 
-    [new_runners, score, event_outs] = advance_runners(runners, score)
+    [new_runners, score, event_outs] = advance_runners(runners, score, inn_half)
     inn_outs = outs + event_outs
     [leadoff_fl, ab_fl, hit_fl, event_fl, sf_fl, sh_fl, bunt_fl, wp_fl, pb_fl, dp_fl, tp_fl, run1_sb_fl, run2_sb_fl, run3_sb_fl, run1_cs_fl, run2_cs_fl, run3_cs_fl, run1_pk_fl, run2_pk_fl, run3_pk_fl] = event_flags(pbp_txt, event_cd, event_outs, batter_of_inn, runners)
 
-    play_out = [lineups, event_outs, line, batter_event_fl, event_fl, inn_outs, score, new_runners, end, [game_id, home_abb, away_abb, inning,
+    play_out = [end, lineups, event_outs, line, batter_event_fl, event_fl, inn_outs, score, new_runners, [game_id, home_abb, away_abb, inning,
     inn_half, outs, balls, strikes, seq, away_score, home_score, batter, pitcher,
     pos2_id, pos3_id, pos4_id, pos5_id, pos6_id, pos7_id, pos8_id, pos9_id,
     base1_run, base2_run, base3_run, event_abb, leadoff_fl, ph_fl, batter_pos, order, event_cd,
     batter_event_fl, ab_fl, hit_fl, sh_fl, sf_fl, event_outs, dp_fl, tp_fl,
     rbi, wp_fl, pb_fl, bunt_fl, bat_dest, run1_dest, run2_dest, run3_dest, run1_resp_pit, run2_resp_pit, run3_resp_pit,
     run1_sb, run2_sb, run3_sb, run1_cs, run2_cs, run3_cs, run1_pk, run2_pk, run3_pk, event_no, pbp_txt]]
+
     return play_out
 
 
@@ -1135,8 +1131,8 @@ class PbpspiderSpider(scrapy.Spider):
         )
 
     def lineups(self, response):
-        h = scrape_lineups(home, response)
-        a = scrape_lineups(away, response)
+        h = scrape_lineups('home', response)
+        a = scrape_lineups('away', response)
         home_lineup = h[0]
         away_lineup = a[0]
         home_subs = h[1]
@@ -1159,14 +1155,18 @@ class PbpspiderSpider(scrapy.Spider):
         away_score = 0
         home_score = 0
 
-        store_home_order = 1
-        store_away_order = 1
+        store_hm_order = 1
+        store_aw_order = 1
 
         innings = response.xpath("//tr[@class='heading']/td[1]/a/text()").getall()[-1] #last listed inning
         last = innings[0:len(innings)-9] #numeric value for last listed inning
         away = response.xpath("//table[@class='mytable'][1]/tbody/tr[2]/td[1]/a/text()").get() #away team
         home = response.xpath("//table[@class='mytable'][1]/tbody/tr[3]/td[1]/a/text()").get() #home team
-        ump = re.search(r'(?<=hp:)\W*(\w* \w*)', response.xpath("//table[4]/tbody/tr/td[2]/text()[1]").get()).group(1)
+        ump = re.search(r'(?<=hp:)\W*(\w* \w*)', response.xpath("//table[4]/tbody/tr/td[2]/text()[1]").get())
+        if not ump is None:
+            ump = ump.group(1)
+        else:
+            ump = ''
         date = response.xpath("//div[@id='contentarea']/table[3]/tbody/tr[1]/td[2]/text()").get()[9:19]
         date = date.replace('/', '')
         if len(teamindex[teamindex['school'] == home]) < 1:
@@ -1181,33 +1181,37 @@ class PbpspiderSpider(scrapy.Spider):
         end = False
         game_id = date + away_abb + home_abb
         lineups = [home_lineup, home_subs, store_hm_order, away_lineup, away_subs, store_aw_order]
+        print(str(lineups))
         meta = [game_id, home_abb, away_abb, ump]
         ###LOOP THROUGH INNINGS###
         event_no = 1
         for inn in range(1, int(last)+1):
-            line = 1
-            for inn_half in range(0,2)):
+            line = 2
+            for inn_half in range(0,2):
                 batter_of_inn = 0
                 outs = 0
                 runners = pd.DataFrame([[0,'','','','',''], [1,'','','','',''], [2,'','','','',''], [3,'','','','','']],
                 columns = ['base', 'name', 'resp_pit', 'dest', 'play','event_cd'])
                 while outs < 3:
                     state = [home_score, away_score, inn, inn_half, outs, runners, batter_of_inn]
+                    print(str(state))
                     play_out = parse_play(line, state, meta, lineups, event_no, response)
+                    print(get_pbp(response, inn_half, inn, line))
+                    print(play_out)
                     # lineups, event_outs, line, batter_event_fl, event_fl, inn_outs, score, new_runners, end,
-                    end = play_out[8]
+                    end = play_out[0]
                     if end:
                         break
-                    [home_score, away_score] = play_out[6]
-                    outs = play_out[5]
-                    lineups = play_out[0]
-                    if play_out[3]:
-                        batter_of_inn += 1
-                    line = play_out[2]
+                    [home_score, away_score] = play_out[7]
+                    outs = play_out[6]
+                    lineups = play_out[1]
                     if play_out[4]:
+                        batter_of_inn += 1
+                    line = play_out[3]
+                    if play_out[5]:
                         play_info.append(play_out[9])
                         event_no += 1
-                    runners = play_out[7]
+                    runners = play_out[8]
                 if end:
                     break
 
