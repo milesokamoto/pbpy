@@ -208,7 +208,7 @@ def get_pbp(response, inn_half: int, inn: int, line: int) -> list:
     if inn_half == 0:
         play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][1]/text()").get()
         if not play is None:
-            if 'No play' in play or ('failed pickoff attempt.' in play and not 'advanced' in play):
+            if 'No play' in play or 'Review' in play or 'review' in play or ('failed pickoff attempt.' in play and not 'advanced' in play):
                 line += 1
                 return get_pbp(response, inn_half, inn, line)
         else:
@@ -217,7 +217,7 @@ def get_pbp(response, inn_half: int, inn: int, line: int) -> list:
     elif inn_half == 1: #right side for bottom half
         play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
         if not play is None:
-            if 'No play' in play or ('failed pickoff attempt.' in play and not 'advanced' in play):
+            if 'No play' in play or 'Review' in play or 'review' in play or ('failed pickoff attempt.' in play and not 'advanced' in play):
                 line += 1
                 return get_pbp(response, inn_half, inn, line)
         else:
@@ -272,7 +272,7 @@ def parse_name(name: str) -> str:
             name = name.replace(' ', ', ')
     if ',' in name and not ', ' in name:
         name = name.replace(',', ', ')
-    if 'De La ' in name or 'van ' in name and not ',' in name:
+    if 'De La ' in name or 'van ' in name or 'Van ' in name or 'De Seda' in name and not ',' in name:
         name = name + ','
     if ' ' in name and not ',' in name:
         name_temp =  ', ' + name.split(' ')[0]
@@ -376,8 +376,11 @@ def make_sub(s: list, lineups: list, inn_half: int, runners) -> list:
         new lineups
 
     """
-    if 'pinch' in s[1] or 'to dh' in s[1]:
+
+    if 'pinch' in s[1]:
         subtype = 'OFF'
+    elif 'to dh' in s[1]:
+        subtype = input(lineups[0] + lineups[3] + '\n OFF or DEF? ')
     else:
         subtype = 'DEF'
 
@@ -387,29 +390,57 @@ def make_sub(s: list, lineups: list, inn_half: int, runners) -> list:
         s[1] = ' to p'
     pos = get_pos(s[1])
     sub_in_name = parse_name(s[0])
-    #distinguish between positional changes and defensive subs
-    if s[2] is None:
-        inlist = lu['name']
-    else:
-        inlist = subs
-        outlist = lu['name']
-        sub_out_name = parse_name(s[2])
-        sublist = None
     sub_in_full = find_name(sub_in_name, inlist)
     if s[2]:
         sub_out_full = find_name(sub_out_name, outlist)
     else:
         sub_out_full = ''
-    if len(lu.index[lu['name'] == sub_out_full].tolist()) > 0:
-        lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]]['order'], sub_in_full, pos]
+    if not s[2] is None:
+        w = input('subbing in someone')
+        inlist = subs
+        outlist = lu['name']
+        sub_out_name = parse_name(s[2])
+        sublist = None
+        if len(lu.index[lu['name'] == sub_out_full].tolist()) > 0:
+            lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]]['order'], sub_in_full, pos]
         if pos == 'P':
-            if len(lu.index[lu['order'] == 'P'].tolist()) > 0:
-                lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]]['order'], sub_in_full, pos]
-            elif len(lu[lu['order'] == 'P']['order'].tolist()) == 0:
-                lu.loc[9] = ['P', sub_in_full, 'P']
+            lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]]['order'], sub_in_full, pos]
     else:
-        if len(lu.index[lu['name'] == sub_in_full].tolist()) > 0:
-            lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]]['order'], sub_in_full, pos]
+        w = input('postition change')
+        if pos == 'P':
+            if input(lu + '\nIs new pitcher in the lineup? (y/n): ') == 'n':
+                inlist = subs
+            else:
+                inlist = lu['name']
+            if len(lu[lu['order'] == 'P']['order'].tolist()) == 0:
+                lu.loc[9] = ['P', sub_in_full, pos]
+            else:
+                if len(lu.index[lu['name'] == sub_in_full].tolist()) > 1:
+                    lu = lu.drop([9])
+                    lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]]['order'], sub_in_full, pos]
+                else:
+                    lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]]['order'], sub_in_full, pos]
+        else:
+            inlist = lu['name']
+            if len(lu.index[lu['name'] == sub_in_full].tolist()) > 0:
+                lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]]['order'], sub_in_full, pos]
+
+####
+    # if len(lu.index[lu['name'] == sub_out_full].tolist()) > 0:
+    #     lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]]['order'], sub_in_full, pos]
+    #     if pos == 'P':
+    #         if len(lu.index[lu['order'] == 'P'].tolist()) > 0:
+    #             lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]]['order'], sub_in_full, pos]
+    #         elif len(lu[lu['order'] == 'P']['order'].tolist()) == 0:
+    #             lu.loc[9] = ['P', sub_in_full, 'P']
+    # else:
+    #     if pos == 'P':
+    #         if len(lu.index[lu['order'] == 'P'].tolist()) > 0:
+    #             lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]]['order'], sub_in_full, pos]
+    #         elif len(lu[lu['order'] == 'P']['order'].tolist()) == 0:
+    #             lu.loc[9] = ['P', sub_in_full, 'P']
+    #     elif len(lu.index[lu['name'] == sub_in_full].tolist()) > 0:
+    #         lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]]['order'], sub_in_full, pos]
 
     if team == 'home':
         lineups[0] = lu
@@ -453,8 +484,10 @@ def correct_play(play, outs):
         play = play.replace('stole', '')
     if 'caught stealing' in play and 'advanced' in play and outs %3 == 2:
         play = play.replace('advanced to', '')
-    play = play.replace(', RBI', '1 RBI')
-    play = play.replace(', advanced', '; advanced').replace(', scored', '; scored')
+    if 'Mervis, M. struck out (1-2): Lux, D. out at second c to ss.' in play:
+        play = 'Mervis, M. struck out swinging (1-2): Lux, D. out at second c to ss, caught stealing.'
+    play = play.replace(', RBI', ', 1 RBI')
+    play = play.replace(', advanced', '; advanced').replace(', scored', '; scored').replace(', out at', '; out at')
     return play
 
 # if 'Dropped foul ball' in play: #need to change this for errors
@@ -899,6 +932,8 @@ def parse_pbp(play_list, lineups, inn_half, runners):
         batter_event_fl = False
         for play in play_list:
             print(play)
+            print(batter)
+            print(runners.loc[:,'name':'dest'])
             event_type = get_event_type(play, batter, runners, lu.loc[:,'name'])
             if event_type == 'BAT':
                 [event_cd, runners] = parse_bat(play, batter, runners)
