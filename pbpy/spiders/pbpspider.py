@@ -180,6 +180,16 @@ def scrape_lineups(team: str, response) -> list:
                 name = testname.replace('\n', '').replace('     ', '').replace(' ,', ',')
                 i += 1
                 subs.append(name)
+        elif order < 9:
+            lineup = []
+            while not end:
+                name = input(team + ': \n' + str(lineup) + '\nname: ')
+                pos = input('position: ')
+                order = input('order: ')
+                if name == '':
+                    end = True
+                else:
+                    lineup.append([order, name, pos])
         else:
             end = True
     return [pd.DataFrame(lineup, columns = ['order', 'name', 'position']), subs] #done
@@ -213,6 +223,7 @@ def get_pbp(response, inn_half: int, inn: int, line: int) -> list:
                 return get_pbp(response, inn_half, inn, line)
         else:
             play = "No Play"
+            # play = input('Enter play or type "No Play" if none: ')
 
     elif inn_half == 1: #right side for bottom half
         play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
@@ -222,6 +233,7 @@ def get_pbp(response, inn_half: int, inn: int, line: int) -> list:
                 return get_pbp(response, inn_half, inn, line)
         if play is None:
             play = "No Play"
+            # play = input('Enter play or type "No Play" if none: ')
     if play == 'No Play':
         end = True
     else:
@@ -354,10 +366,10 @@ def find_name(name: str, list: list) -> str:
     """
     full = next((s for s in list if name.lower() in s.lower()), None)
     if full is None:
-        full = input('name: ' + name + '\nlist: \n' + str(list) + '\nInput name of player or "switch" if lineups are incorrect, or reset to input corrected play: ') ##implement "reset play"
+        full = input('name: ' + name + '\nlist: \n' + str(list) + '\nInput name of player ("switch" if lineups are incorrect, "reset" to input corrected play, or "skip" to skip play): ') ##implement "reset play"
     return full
 
-def make_sub(s: list, lineups: list, inn_half: int, runners) -> list:
+def make_sub(s: list, lineups: list, inn_half: int, runners, err) -> list:
     """
     takes list representing substitution and changes lineup to reflect changes
 
@@ -403,14 +415,16 @@ def make_sub(s: list, lineups: list, inn_half: int, runners) -> list:
             inlist = lu['name']
     sub_in_name = parse_name(s[0])
     sub_in_full = find_name(sub_in_name, inlist)
-    if sub_in_full = 'reset':
-        make_sub([input('Name: '), input('position ("to X"/"Pinch hit for"): '), input('exiting player (or blank): ')], lineups, inn_half, runners)
+    if sub_in_full == 'skip':
+        return [lineups, runners]
+    elif sub_in_full == 'reset':
+        return make_sub([input('Name: '), input('position ("to X"/"Pinch hit for"): '), input('exiting player (or blank): ')], lineups, inn_half, runners, True)
     elif sub_in_full == 'switch':
         if inn_half == 0:
             inn_half = 1
         else:
             inn_half = 0
-        return make_sub(s, lineups, inn_half, runners)
+        return make_sub(s, lineups, inn_half, runners, True)
 
     if s[2]:
         sub_out_full = find_name(sub_out_name, outlist)
@@ -440,7 +454,6 @@ def make_sub(s: list, lineups: list, inn_half: int, runners) -> list:
             if len(lu.index[lu['name'] == sub_in_full].tolist()) > 0:
                 lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]]['order'], sub_in_full, pos]
 
-####
     # if len(lu.index[lu['name'] == sub_out_full].tolist()) > 0:
     #     lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]]['order'], sub_in_full, pos]
     #     if pos == 'P':
@@ -461,7 +474,15 @@ def make_sub(s: list, lineups: list, inn_half: int, runners) -> list:
         lineups[0] = lu
     else:
         lineups[3] = lu
-    return [lineups, runners]
+    if err:
+        if input('done? (y/n): ') == 'y':
+            return [lineups, runners]
+        else:
+            print(str(lineups))
+            print(str(runners))
+            return make_sub([input('Name: '), input('position ("to X"/"Pinch hit for"): '), input('exiting player (or blank): ')], lineups, inn_half, runners, True)
+    else:
+        return [lineups, runners]
 
 def is_sub(s: str) -> list:
     """
@@ -501,14 +522,9 @@ def correct_play(play, outs):
     # if 'Mervis, M. struck out (1-2): Lux, D. out at second c to ss.' in play:
     #     play = 'Mervis, M. struck out swinging (1-2): Lux, D. out at second c to ss, caught stealing.'
     #6/03 - 2 winkels in uconn lineup
-    play = play.replace('WINKEL ', 'WINKEL, C. ')
-    play = play.replace('Hadley, Nate', 'Hadley, Nathan')
-    play = play.replace('BattenfieldP', 'Battenfield, Peyton')
-    play = play.replace('Schwellenbac', 'Schwellenbach, Spencer')
-    play = play.replace('FEDKO ', 'Fedko, Christian ')
-    play = play.replace('DELEASE, Michael', 'Delease, Mike')
-    play = play.replace('Czerniejewsk ', 'Czerniejewski, Brad ')
-    play = play.replace('Vincelli-Sim', 'Vincelli-Simard')
+    play = play.replace('WINKEL ', 'WINKEL, C. ').replace('Hadley, Nate', 'Hadley, Nathan').replace('BattenfieldP', 'Battenfield, Peyton')
+    play = play.replace('Schwellenbac', 'Schwellenbach, Spencer').replace('FEDKO ', 'Fedko, Christian ').replace('DELEASE, Michael', 'Delease, Mike')
+    play = play.replace('Czerniejewsk ', 'Czerniejewski, Brad ').replace('Vincelli-Sim ', 'Vincelli-Simard ').replace('J.C. Keys', 'Keys, J.C.').replace('Vander Kooi', 'Vander Kooi, Boyd')
 
     play = play.replace(', RBI', ', 1 RBI')
     play = play.replace(', advanced', '; advanced').replace(', scored', '; scored').replace(', out at', '; out at')
@@ -654,33 +670,33 @@ def parse_bat(s, batter, runners): #s is index 0 of split play
         parse_bat(fixed, batter, runners)
 
 
-#def parse_error(s: str) -> list:
-    """
-    returns the position charged with the error and error type
-
-    Parameters
-    ----------
-    s : str
-        string containing play by play text containing an error
-
-    Returns
-    -------
-    list
-        list containing [code of fielder charged with error, error type - T: Throwing, F: Fielding]
-
-    """
-    err_type = re.search(r'(?<=a )[a-z]*(?= error)', s)
-    if not err_type is None:
-        err_type = err_type.group()
-    else:
-        err_type = 'fielding'
-    if 'throwing' in err_type:
-        type = 'T'
-    else:
-        type = 'F'
-    err_by = (re.search(r'(?<=error by) [0-9a-z]{1,2}', s).group()).upper()
-    err_fld_cd = fielder_codes[err_by]
-    return [err_fld_cd, type]
+# def parse_error(s: str) -> list:
+#     """
+#     returns the position charged with the error and error type
+#
+#     Parameters
+#     ----------
+#     s : str
+#         string containing play by play text containing an error
+#
+#     Returns
+#     -------
+#     list
+#         list containing [code of fielder charged with error, error type - T: Throwing, F: Fielding]
+#
+#     """
+#     err_type = re.search(r'(?<=a )[a-z]*(?= error)', s)
+#     if not err_type is None:
+#         err_type = err_type.group()
+#     else:
+#         err_type = 'fielding'
+#     if 'throwing' in err_type:
+#         type = 'T'
+#     else:
+#         type = 'F'
+#     err_by = (re.search(r'(?<=error by) [0-9a-z]{1,2}', s).group()).upper()
+#     err_fld_cd = fielder_codes[err_by]
+#     return [err_fld_cd, type]
 
 def event_flags(s, event_cd, event_outs, batter_of_inn, runners):
     leadoff_fl = False
@@ -1021,7 +1037,6 @@ def inc_bat_order(lineups, inn_half):
 # s
 # parse_run(s, runners)
 
-
 def parse_play(line, state, meta, lineups, event_no, response):
     try:
         [home_score, away_score, inn, inn_half, outs, runners, batter_of_inn] = state
@@ -1035,13 +1050,14 @@ def parse_play(line, state, meta, lineups, event_no, response):
         [balls, strikes, seq] = get_count(pbp_txt)
 
         sub = is_sub(pbp_txt)
+        pbp_txt = correct_play(pbp_txt, outs)
         if sub:
             batter_event_fl = False
             event_fl = False
-            [lineups, runners] = make_sub(sub, lineups, inn_half, runners)
-            return[end, lineups, 0, line+1, batter_event_fl, event_fl, outs, score, runners, [], 'SUB']
+            [lineups, runners] = make_sub(sub, lineups, inn_half, runners, False)
+            line += 1
+            return[end, lineups, 0, line, batter_event_fl, event_fl, outs, score, runners, [], 'SUB']
         else:
-            pbp_txt = correct_play(pbp_txt, outs)
             play_list = pbp_txt.split(": ")
             [runners, event_cd, batter_event_fl, batter, bat_pos, order, defense] = parse_pbp(play_list, lineups, inn_half, runners)
             # [pos]
@@ -1181,8 +1197,8 @@ class PbpspiderSpider(scrapy.Spider):
         )
 
     def game_page(self, response):
-        # links = response.xpath("//div[@id='contentarea']/table/tbody/tr/td[1]/a[@class='skipMask']/@href").getall()
-        links = ['https://stats.ncaa.org/contests/1733672/box_score']
+        links = response.xpath("//div[@id='contentarea']/table/tbody/tr/td[1]/a[@class='skipMask']/@href").getall()
+        # links = ['https://stats.ncaa.org/contests/1733690/box_score']
         for link in links:
             abs_url = response.urljoin(link)
             yield SplashRequest(
@@ -1230,8 +1246,11 @@ class PbpspiderSpider(scrapy.Spider):
         store_hm_order = 1
         store_aw_order = 1
 
-        innings = response.xpath("//tr[@class='heading']/td[1]/a/text()").getall()[-1] #last listed inning
-        last = innings[0:len(innings)-9] #numeric value for last listed inning
+        try:
+            innings = response.xpath("//tr[@class='heading']/td[1]/a/text()").getall()[-1] #last listed inning
+            last = innings[0:len(innings)-9] #numeric value for last listed inning
+        except:
+            last = int(input('Input number of innings: '))
         away = response.xpath("//table[@class='mytable'][1]/tbody/tr[2]/td[1]/a/text()").get() #away team
         home = response.xpath("//table[@class='mytable'][1]/tbody/tr[3]/td[1]/a/text()").get() #home team
         ump = re.search(r'(?<=hp:)\W*(\w* \w*)', response.xpath("//table[4]/tbody/tr/td[2]/text()[1]").get())
