@@ -223,10 +223,11 @@ def get_pbp(response, inn_half: int, inn: int, line: int) -> list:
     str
         Play by play text
     """
+    block = ['no play', 'dropped foul', 'review', 'review', 'delay', 'resume', 'resume', 'challenge', 'warning', 'mound', 'eject', 'coach', 'suspended', 'upheld', 'reversed', 'liner', 'diving', 'attempt', 'lightning']
     if inn_half == 0:
         play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][1]/text()").get()
         if not play is None:
-            if 'No play' in play or 'Dropped foul' in play or 'Review' in play or 'delay' in play or 'resume' in play or 'challenge' in play or 'Resume' in play or 'review' in play or 'Mound' in play or 'mound' in play or ('failed pickoff attempt.' in play and not 'advanced' in play):
+            if any([x in play.lower() for x in block]) or ('failed pickoff attempt.' in play and not 'advanced' in play):
                 line += 1
                 return get_pbp(response, inn_half, inn, line)
         else:
@@ -236,7 +237,7 @@ def get_pbp(response, inn_half: int, inn: int, line: int) -> list:
     elif inn_half == 1: #right side for bottom half
         play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
         if not play is None:
-           if 'No play' in play or 'Dropped foul' in play or 'Review' in play or 'delay' in play or  'challenge' in play or 'review' in play or 'resume' in play or 'Resume' in play or 'Mound' in play or 'mound' in play or ('failed pickoff attempt.' in play and not 'advanced' in play):
+          if any([x in play.lower() for x in block]) or ('failed pickoff attempt.' in play and not 'advanced' in play):
                 line += 1
                 return get_pbp(response, inn_half, inn, line)
         if play is None:
@@ -415,26 +416,27 @@ def make_sub(s: list, lineups: list, inn_half: int, runners, err) -> list:
             subtype = 'DEF'
     else:
         subtype = 'DEF'
-
     [lu, subs, team] = get_sub_lists(lineups, subtype, inn_half)
     if '/' in s[0]:
         s[0] = lu[lu['position']=='P'].iloc[0]['name']
-        s[1] = ' to p'
-    pos = get_pos(s[1])
+        s[1] = 'to p'
+        s[2] = None
 
+    pos = get_pos(s[1])
+    sub_in_name = parse_name(s[0])
     if not s[2] is None:
         inlist = subs
         outlist = lu['name']
         sub_out_name = parse_name(s[2])
     else:
         if pos == 'P':
-            # if input(str(lu) + '\nIs new pitcher in the lineup? (y/n): ') == 'n':
-            inlist = subs
-            sub_in_name = parse_name(s[0])
-            sub_in_full = find_name(sub_in_name, inlist, err)
-            if sub_in_full == 'switch':
+            print('PITCHER')
+            if len(lu[lu['position'] == 'P']['order'].tolist()) == 0:
+                inlist = subs
+            else:
                 inlist = lu['name']
-    sub_in_name = parse_name(s[0])
+        else:
+            inlist = lu['name']
     sub_in_full = find_name(sub_in_name, inlist, err)
     if sub_in_full == 'skip':
         return [lineups, runners]
@@ -447,21 +449,29 @@ def make_sub(s: list, lineups: list, inn_half: int, runners, err) -> list:
         else:
             half = 0
         return make_sub(s, lineups, half, runners, True)
-
     if s[2]:
-        sub_out_full = find_name(sub_out_name, outlist, err)
+        if len(lu.index[lu['name'] == 'X'].tolist()) > 0:
+            sub_out_full = 'X'
+        else:
+            sub_out_full = find_name(sub_out_name, outlist, err)
     else:
         sub_out_full = ''
-    if not s[2] is None:
+    if not s[2] is None and len(lu.index[lu['name'] == sub_in_full].tolist()) == 0:
         if len(lu.index[lu['name'] == sub_out_full].tolist()) > 0:
             lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]]['order'], sub_in_full, pos]
         if pos == 'PR':
             runners.iloc[runners.index[runners['name'] == sub_out_full].tolist()[0]] = [runners.iloc[runners.index[runners['name'] == sub_out_full].tolist()[0]]['base'],
             sub_in_full, runners.iloc[runners.index[runners['name'] == sub_out_full].tolist()[0]]['resp_pit'], '','','']
         if pos == 'P':
-            lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['order'] == 'P'].tolist()[0]]['order'], sub_in_full, pos]
-            if len(lu[lu['order'] == 'P']['order'].tolist()) == 0:
+            lu.iloc[lu.index[lu['position'] == 'P'].tolist()[0]] = [lu.iloc[lu.index[lu['position'] == 'P'].tolist()[0]]['order'], sub_in_full, pos]
+            if len(lu[lu['order'] == 'P']['order'].tolist()) > 0:
                 lu.loc[9] = ['P', sub_in_full, pos]
+
+
+
+    elif len(lu.index[lu['name'] == sub_in_full].tolist()) > 0 and not s[2] is None:
+        lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_in_full].tolist()[0]]['order'], 'X', pos]
+        lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]] = [lu.iloc[lu.index[lu['name'] == sub_out_full].tolist()[0]]['order'], sub_in_full, pos]
     else:
         if pos == 'P':
             if len(lu[lu['order'] == 'P']['order'].tolist()) == 0:
@@ -524,6 +534,7 @@ def is_sub(s: str) -> list:
     bool
         false if there is no substitution
     """
+    s = s.replace('/ ', '/ to x')
     subtest = re.search(r"^([A-Za-zñ,\. '-]*?(?= [a-z])|\/) (pinch (?:hit|ran)|to [0-9a-z]{1,2})* *(?:for ([A-Za-zñ,\. '-]*?)\.$)*", s)
     if not subtest is None:
         subtest = [subtest.group(1), subtest.group(2), subtest.group(3)]
@@ -538,9 +549,9 @@ def correct_play(play, outs):
     if 'caught stealing, picked off' in play:
         play = play.replace(', picked off','')
     if 'caught stealing' in play and 'stole' in play:
-        play = play.replace('stole', '')
+        play = play.replace('stole', 'advanced to')
     if 'caught stealing' in play and 'advanced' in play and outs %3 == 2:
-        play = play.replace('advanced to', '')
+        play = play.replace('advanced to', 'no advance')
     #
 
     # 5/18
@@ -566,26 +577,11 @@ def correct_play(play, outs):
     play = play.replace('ARMBRUSTMACH', 'Ambrustmacher').replace('SchauweckerC', 'Schauwecker, C').replace('ELLIOTT,D', 'Elliot, Davis').replace('ILLING, H.', 'Iling, Hunter').replace('Fitzpatrck', 'Fitzpatrick').replace('R. Hebert', 'Herbert, Rhett')
     play = play.replace('StankiewiczD', 'Stankiewicz, D').replace('SOUTHERLAND,', 'Southerland').replace('Baillie, D', 'Baille, Davis').replace('HANCHEY,Trn.', 'Hanchey, Trent').replace('VANDERWEIDE', 'Van Der Weide, Trey')
     play = play.replace('Tywon Mackey', 'Tyon, JR').replace('LeForestier,', 'LeForestier').replace('Maury Jr., A', 'Maury, A').replace('Ohl,Riley', 'Ohi, Riley').replace('Barrrett', 'Barrett').replace('Livnat', 'Livant')
-    play = play.replace('Pawloski', 'Pawlowski').replace('YOUNGBRANDT,', 'YOUNGBRANDT').replace('SCHOEHN', 'Schoen').replace('SCHREIER, J', 'Screier, J').replace('Ohl', 'Ohi')
+    play = play.replace('Pawloski', 'Pawlowski').replace('YOUNGBRANDT,', 'YOUNGBRANDT').replace('SCHOEHN', 'Schoen').replace('SCHREIER, J', 'Screier, J').replace('Ohl', 'Ohi').replace('Breyden Echk', 'Eckhout, Breyden')
 
     play = play.replace(', RBI', ', 1 RBI')
     play = play.replace(', advanced', '; advanced').replace(', scored', '; scored').replace(', out at', '; out at')
     return play
-
-# if 'Dropped foul ball' in play: #need to change this for errors
-#     play = 'No Play'
-#     skip = True
-# # play = play.replace('for WILLIAMS, C.', '.')
-# #2/15
-# if 'Allen out at second c to 2b.' in play:
-#     play = 'Allen out at second c to 2b, caught stealing.'
-# if 'D LaManna to c for E Copeland' in play:
-#     play = 'D LaManna to c for Zyska'
-#2/16
-# if 'HIBBITS pinch ran for SCHROEDER.' in play:
-#     play = 'HIBBITS pinch hit for SCHROEDER.'
-# if 'FIELDS,J. to rf' in play:
-#     play = 'Winikur to rf'
 
 def get_batter(lineup, order: int) -> str:
     """
@@ -668,7 +664,6 @@ def parse_bat(s, batter, runners): #s is index 0 of split play
     short_event = re.search(r'([sdth][a-z]{3}[rl]ed)|([a-z]*ed out)|out at first|popped up|infield fly|(struck out *[a-z]*)|error|(fielder\'s choice)|walked|(hit by pitch)|(\w* into \w* play)|((batter\'s|catcher\'s) interference)', s)
     if not short_event is None and short_event != '':
         short_event = short_event.group()
-        # print(short_event)
         if short_event in codes:
             event_abb = codes[short_event]
             if event_abb in event_codes:
@@ -707,7 +702,6 @@ def parse_bat(s, batter, runners): #s is index 0 of split play
             b_outcome = ''
             batter_adv = ''
         runners.loc[0, 'dest'] = dest
-        # print(str(runners))
         return [event_cd, runners] #parse_def(event, event_cd)
     else:
         # fixed = input('play: ' + s + '\nType corrected play text: ')
@@ -866,22 +860,29 @@ def advance_runners(runners, score, inn_half):
     -------
 
     """
-    # runners = pd.DataFrame([[0,'Trout, Mike','Jansen, Kenley','2','','21'], [1,'Calhoun, Kole','Kershaw, Clayton','0','94',''], [2,'','','','',''], [3,'La Stella, Tommy','Kershaw, Clayton','4','','']], columns = ['base', 'name', 'resp_pit', 'dest', 'play','event_cd'])
+    # runners = pd.DataFrame([[0,'Trout, Mike','Jansen, Kenley','1','','21'], [1,'','','','',''], [2,'Calhoun, Kole','Kershaw, Clayton','','94',''], [3,'La Stella, Tommy','Kershaw, Clayton','4','','']], columns = ['base', 'name', 'resp_pit', 'dest', 'play','event_cd'])
+    # inn_half = 0
+    # away_score =0
+    # home_score=0
     event_outs = 0
     [home_score, away_score] = score
-    new_runners = pd.DataFrame([[0,'','','','',''], [1,'','','','',''], [2,'','','','',''], [3,'','','','','']], columns = ['base', 'name', 'resp_pit', 'dest', 'play','event_cd'])
+    new_runners = pd.DataFrame([[0,'','','','',''], [1,'','','','',''], [2,'','','','',''], [3,'','','','','']],
+        columns = ['base', 'name', 'resp_pit', 'dest', 'play','event_cd'])
     for base in range(0,4):
-        br = runners.loc[3-base, 'name']
-        pit = runners.loc[3-base, 'resp_pit']
+        br = runners.loc[base, 'name']
+        pit = runners.loc[base, 'resp_pit']
         if  br != '':
-            if runners.loc[3-base, 'dest'] == '':
-                runners.loc[3-base, 'dest'] = 3-base
-            dest = int(runners.loc[3-base, 'dest'])
+            dest = runners.loc[base, 'dest']
+            if dest == '':
+                dest = int(runners.loc[base, 'base'])
+                if str(dest) in runners.loc[:,'dest']:
+                    dest += 1
+            else:
+                dest = int(dest)
+            runners.loc[base, 'dest'] = dest
             if dest > 0 and dest < 4:
                 new_runners.loc[dest, 'name'] = br
                 new_runners.loc[dest, 'resp_pit'] = pit
-            if dest != 3-base and dest != 5:
-                new_runners.loc[3-base, 'name'] = ''
             if dest == 4:
                 if inn_half == 0:
                     away_score += 1
@@ -1090,9 +1091,7 @@ def parse_play(line, state, meta, lineups, event_no, response):
     try:
         [home_score, away_score, inn, inn_half, outs, runners, batter_of_inn] = state
         score = [home_score, away_score]
-
         [game_id, home_abb, away_abb, ump] = meta
-
         [pbp_txt, line, end] = get_pbp(response, inn_half, inn, line)
         if end:
             return [True] #other stuff maybe?
@@ -1239,8 +1238,9 @@ class PbpspiderSpider(scrapy.Spider):
     allowed_domains = ["stats.ncaa.org"]
 
     def start_requests(self):
-        for n in range(int((date.today()-date(2019,2,15)).days)):
-            d = date(2019,2,15) + timedelta(n)
+        urls = []
+        for n in range(int((date(2019,6,26)-date(2019,6,1)).days)):
+            d = date(2019,6,1) + timedelta(n)
             d = str(d)
             urls.append("https://stats.ncaa.org/season_divisions/16800/scoreboards?game_date=" + d[5:7] + "%2F" + d[8:10] + "%2F" + d[0:4])
         for url in urls:
@@ -1255,7 +1255,7 @@ class PbpspiderSpider(scrapy.Spider):
 
     def game_page(self, response):
         links = response.xpath("//div[@id='contentarea']/table/tbody/tr/td[1]/a[@class='skipMask']/@href").getall()
-        # links = ['https://stats.ncaa.org/contests/1731508/box_score']
+        # links = ['https://stats.ncaa.org/game/play_by_play/4748699']
         for link in links:
             abs_url = response.urljoin(link)
             yield SplashRequest(
@@ -1350,20 +1350,18 @@ class PbpspiderSpider(scrapy.Spider):
                         else:
                             h = 'bottom '
                         print(home_abb + ': ' + str(state[0]) + ' ' + away_abb + ': ' + str(state[1]) + ' inning: ' + h + str(inn) + ' outs: ' + str(outs))
-                        # print(get_pbp(response, inn_half, inn, line)[0])
                         try:
                             if get_pbp(response, inn_half, inn, line)[2]:
                                 break
                             play_out = parse_play(line, state, meta, lineups, event_no, response)
                         # lineups, event_outs, line, batter_event_fl, event_fl, inn_outs, score, new_runners, end,
-                        # print(play_out[8])
-                        # print(play_out[4])
                         except:
+                            input('')
                             errors.append(game_id)
                             trunc = True
                             break
                         end = play_out[0]
-                        if end:
+                        if end or trunc:
                             break
                         [home_score, away_score] = play_out[7]
                         outs = play_out[6]
@@ -1377,7 +1375,8 @@ class PbpspiderSpider(scrapy.Spider):
                         runners = play_out[8]
                     except:
                         line+=1
-                        continue
+                        break
+                        # continue
         if not trunc:
             complete.append(game_id)
             df=pd.DataFrame(play_info, columns=['game_id', 'home_abb', 'away_abb', 'inning',
