@@ -186,17 +186,18 @@ def scrape_lineups(team: str, response) -> list:
                 i += 1
                 subs.append(name)
         elif order < 10 or (order < 11 and dh):
-            lineup = []
-            while not end:
-                name = input(team + ': \n' + str(lineup) + '\nname: ')
-                pos = input('position: ')
-                order = input('order: ')
-                if name == '':
-                    end = True
-                elif name == 'clear':
-                    lineup = []
-                else:
-                    lineup.append([order, name, pos])
+            raise TypeError('Lineup error')
+            # lineup = []
+            # while not end:
+            #     name = input(team + ': \n' + str(lineup) + '\nname: ')
+            #     pos = input('position: ')
+            #     order = input('order: ')
+            #     if name == '':
+            #         end = True
+            #     elif name == 'clear':
+            #         lineup = []
+            #     else:
+            #         lineup.append([order, name, pos])
         else:
             end = True
     return [pd.DataFrame(lineup, columns = ['order', 'name', 'position']), subs] #done
@@ -225,7 +226,7 @@ def get_pbp(response, inn_half: int, inn: int, line: int) -> list:
     if inn_half == 0:
         play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][1]/text()").get()
         if not play is None:
-            if 'No play' in play or 'Dropped foul' in play or 'Review' in play or 'delay' in play or 'resumes' in play or 'challenge' in play or 'review' in play or 'ound visit' in play or 'visit to mound' in play or ('failed pickoff attempt.' in play and not 'advanced' in play):
+            if 'No play' in play or 'Dropped foul' in play or 'Review' in play or 'delay' in play or 'resume' in play or 'challenge' in play or 'Resume' in play or 'review' in play or 'Mound' in play or 'mound' in play or ('failed pickoff attempt.' in play and not 'advanced' in play):
                 line += 1
                 return get_pbp(response, inn_half, inn, line)
         else:
@@ -235,7 +236,7 @@ def get_pbp(response, inn_half: int, inn: int, line: int) -> list:
     elif inn_half == 1: #right side for bottom half
         play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
         if not play is None:
-           if 'No play' in play or 'Dropped foul' in play or 'Review' in play or 'delay' in play or  'challenge' in play or 'review' in play or 'resumes' in play or 'ound visit' in play or 'visit to mound' in play or ('failed pickoff attempt.' in play and not 'advanced' in play):
+           if 'No play' in play or 'Dropped foul' in play or 'Review' in play or 'delay' in play or  'challenge' in play or 'review' in play or 'resume' in play or 'Resume' in play or 'Mound' in play or 'mound' in play or ('failed pickoff attempt.' in play and not 'advanced' in play):
                 line += 1
                 return get_pbp(response, inn_half, inn, line)
         if play is None:
@@ -243,11 +244,13 @@ def get_pbp(response, inn_half: int, inn: int, line: int) -> list:
             # play = input('Enter play or type "No Play" if none: ')
     if play == 'No Play':
         end = True
+        if inn < 7:
+            raise NameError('no play given')
     else:
         end = False
     play = play.replace('3a', ':').replace(';', ':').replace('a dropped fly', 'an error').replace('a muffed throw', 'an error') #replace with input if both out at first and fielders choice
-    if 'out at first' in play and 'fielder\'s choice' in play.split(':')[0]:
-        play = input('play: ' + play + '\nEnter corrected play text: ')
+    # if 'out at first' in play and 'fielder\'s choice' in play.split(':')[0]:
+    #     play = input('play: ' + play + '\nEnter corrected play text: ')
     return [play, line, end] #done
 
 def get_name(s: str) -> str:
@@ -262,11 +265,12 @@ def get_name(s: str) -> str:
     if not name is None:
         return name.group()
     else:
-        input = input('play: ' + s + '\nEnter player name: ')
-        if input == 'skip':
-            return None
-        else:
-            return input
+        # input = input('play: ' + s + '\nEnter player name: ')
+        # if input == 'skip':
+        #     return None
+        # else:
+        #     return input
+        raise NameError("Couldn't find name")
 
 def parse_name(name: str) -> str:
     """
@@ -377,7 +381,8 @@ def find_name(name: str, list: list, err) -> str:
     if full is None:
         full = next((s for s in list if name.split(',')[0].lower() in s.lower()), None)
     if full is None and err:
-        full = input('name: ' + name + '\nlist: \n' + str(list) + '\nInput name of player ("switch" if lineups are incorrect, "reset" to input corrected play, or "skip" to skip play): ') ##implement "reset play"
+        raise NameError('Couldn\'t find name')
+        # full = input('name: ' + name + '\nlist: \n' + str(list) + '\nInput name of player ("switch" if lineups are incorrect, "reset" to input corrected play, or "skip" to skip play): ') ##implement "reset play"
     elif full is None:
         full = 'switch'
     return full
@@ -423,12 +428,12 @@ def make_sub(s: list, lineups: list, inn_half: int, runners, err) -> list:
         sub_out_name = parse_name(s[2])
     else:
         if pos == 'P':
-            if input(str(lu) + '\nIs new pitcher in the lineup? (y/n): ') == 'n':
-                inlist = subs
-            else:
+            # if input(str(lu) + '\nIs new pitcher in the lineup? (y/n): ') == 'n':
+            inlist = subs
+            sub_in_name = parse_name(s[0])
+            sub_in_full = find_name(sub_in_name, inlist, err)
+            if sub_in_full == 'switch':
                 inlist = lu['name']
-        else:
-            inlist = lu['name']
     sub_in_name = parse_name(s[0])
     sub_in_full = find_name(sub_in_name, inlist, err)
     if sub_in_full == 'skip':
@@ -526,7 +531,8 @@ def is_sub(s: str) -> list:
             return subtest
         return False
     else:
-        is_sub(input('play: ' + s + '\n Type substitution text: '))
+        raise TypeError('No sub')
+        # is_sub(input('play: ' + s + '\n Type substitution text: '))
 
 def correct_play(play, outs):
     if 'caught stealing, picked off' in play:
@@ -704,8 +710,9 @@ def parse_bat(s, batter, runners): #s is index 0 of split play
         # print(str(runners))
         return [event_cd, runners] #parse_def(event, event_cd)
     else:
-        fixed = input('play: ' + s + '\nType corrected play text: ')
-        parse_bat(fixed, batter, runners)
+        # fixed = input('play: ' + s + '\nType corrected play text: ')
+        # parse_bat(fixed, batter, runners)
+        raise NameError(s)
 
 
 # def parse_error(s: str) -> list:
@@ -817,10 +824,11 @@ def parse_run(s: str, runners):
             if run_abb in event_codes:
                 run_event_cd = event_codes[run_abb]
             else:
-                run_event_cd = input('play: ' + s + '\nEnter runner event code: ')
+                raise TypeError('No running event')
+                # run_event_cd = input('play: ' + s + '\nEnter runner event code: ')
     else:
         run_event_cd = ''
-    runner_outcome = re.search(r"(stole \w*|advanced to \w*|scored|out at \w*|out on double play)(?!.*(advanced|scored|out))", s)
+    runner_outcome = re.search(r"(stole \w*|advanced to \w*|scored|out at \w*|out on double play|no advance)(?!.*(advanced|scored|out))", s)
     if not runner_outcome is None:
         runner_outcome = runner_outcome.group()
     elif 'out on the play' in s:
@@ -829,6 +837,8 @@ def parse_run(s: str, runners):
         runner_outcome = ''
     if 'advanced' in runner_outcome: # add no advance
         dest = base_codes[re.search(r'(?<=advanced to )\w*', runner_outcome).group()]
+    elif 'no advance' in runner_outcome:
+        dest = runner_base
     elif 'scored' in runner_outcome:
         dest = 4
         if 'unearned' in s:
@@ -839,7 +849,8 @@ def parse_run(s: str, runners):
     elif 'out' in runner_outcome:
         dest = 0
     else:
-        dest = input('play: ' + s + '\nInput destination for runner ' + runner_full + ": ")
+        # dest = input('play: ' + s + '\nInput destination for runner ' + runner_full + ": ")
+        raise TypeError('No destination')
     runners.loc[runner_base, 'dest'] = dest
     runners.loc[runner_base, 'event_cd'] = run_event_cd
     return [runners, runner_full, run_event_cd] #eventually run_abb
@@ -1228,14 +1239,19 @@ class PbpspiderSpider(scrapy.Spider):
     allowed_domains = ["stats.ncaa.org"]
 
     def start_requests(self):
-        d = input('Enter date in format yyyy-mm-dd: ')
-        url = ("https://stats.ncaa.org/season_divisions/16800/scoreboards?game_date=" + d[5:7] + "%2F" + d[8:10] + "%2F" + d[0:4])
-        yield SplashRequest(
-            url = url,
-            callback = self.game_page,
-            endpoint='render.html',
-            args={'wait': .1},
-        )
+        for n in range(int((date.today()-date(2019,2,15)).days)):
+            d = date(2019,2,15) + timedelta(n)
+            d = str(d)
+            urls.append("https://stats.ncaa.org/season_divisions/16800/scoreboards?game_date=" + d[5:7] + "%2F" + d[8:10] + "%2F" + d[0:4])
+        for url in urls:
+        # d = input('Enter date in format yyyy-mm-dd: ')
+        # url = ("https://stats.ncaa.org/season_divisions/16800/scoreboards?game_date=" + d[5:7] + "%2F" + d[8:10] + "%2F" + d[0:4])
+            yield SplashRequest(
+                url = url,
+                callback = self.game_page,
+                endpoint='render.html',
+                args={'wait': .1},
+            )
 
     def game_page(self, response):
         links = response.xpath("//div[@id='contentarea']/table/tbody/tr/td[1]/a[@class='skipMask']/@href").getall()
@@ -1281,6 +1297,9 @@ class PbpspiderSpider(scrapy.Spider):
         home_subs = response.meta["home_subs"]
         away_subs = response.meta["away_subs"]
         play_info = []
+        errors = []
+        complete = []
+        trunc = False
         away_score = 0
         home_score = 0
 
@@ -1331,13 +1350,18 @@ class PbpspiderSpider(scrapy.Spider):
                         else:
                             h = 'bottom '
                         print(home_abb + ': ' + str(state[0]) + ' ' + away_abb + ': ' + str(state[1]) + ' inning: ' + h + str(inn) + ' outs: ' + str(outs))
-                        print(get_pbp(response, inn_half, inn, line)[0])
-                        if get_pbp(response, inn_half, inn, line)[2]:
-                            break
-                        play_out = parse_play(line, state, meta, lineups, event_no, response)
+                        # print(get_pbp(response, inn_half, inn, line)[0])
+                        try:
+                            if get_pbp(response, inn_half, inn, line)[2]:
+                                break
+                            play_out = parse_play(line, state, meta, lineups, event_no, response)
                         # lineups, event_outs, line, batter_event_fl, event_fl, inn_outs, score, new_runners, end,
                         # print(play_out[8])
                         # print(play_out[4])
+                        except:
+                            errors.append(game_id)
+                            trunc = True
+                            break
                         end = play_out[0]
                         if end:
                             break
@@ -1354,16 +1378,22 @@ class PbpspiderSpider(scrapy.Spider):
                     except:
                         line+=1
                         continue
+        if not trunc:
+            complete.append(game_id)
+            df=pd.DataFrame(play_info, columns=['game_id', 'home_abb', 'away_abb', 'inning',
+            'inn_half', 'outs', 'balls', 'strikes', 'seq', 'away_score', 'home_score', 'batter', 'pitcher',
+            'pos2_id', 'pos3_id', 'pos4_id', 'pos5_id', 'pos6_id', 'pos7_id', 'pos8_id', 'pos9_id',
+            'base1_run', 'base2_run', 'base3_run', 'event_abb', 'ph_fl', 'batter_pos', 'order', 'event_cd',
+            'batter_event_fl', 'ab_fl', 'hit_fl', 'sh_fl', 'sf_fl', 'event_outs', 'dp_fl', 'tp_fl',
+            'rbi', 'wp_fl', 'pb_fl', 'bunt_fl', 'bat_dest', 'run1_dest', 'run2_dest', 'run3_dest', 'run1_resp_pit', 'run2_resp_pit', 'run3_resp_pit',
+            'run1_sb', 'run2_sb', 'run3_sb', 'run1_cs', 'run2_cs', 'run3_cs', 'run1_pk', 'run2_pk', 'run3_pk', 'event_no', 'pbp_text'])
+            complete = pd.DataFrame(complete, columns = ['gameid'])
+            df.to_csv('.././pbp/' + date +'.csv', mode='a', index=False, header=False)
+            complete.to_csv('.././pbp/complete.csv', mode='a', index=False, header=False)
+        else:
+            error = pd.DataFrame(errors, columns=['gameid'])
+            error.to_csv('.././pbp/error.csv', mode='a', index=False, header=False)
 
-        df=pd.DataFrame(play_info, columns=['game_id', 'home_abb', 'away_abb', 'inning',
-        'inn_half', 'outs', 'balls', 'strikes', 'seq', 'away_score', 'home_score', 'batter', 'pitcher',
-        'pos2_id', 'pos3_id', 'pos4_id', 'pos5_id', 'pos6_id', 'pos7_id', 'pos8_id', 'pos9_id',
-        'base1_run', 'base2_run', 'base3_run', 'event_abb', 'ph_fl', 'batter_pos', 'order', 'event_cd',
-        'batter_event_fl', 'ab_fl', 'hit_fl', 'sh_fl', 'sf_fl', 'event_outs', 'dp_fl', 'tp_fl',
-        'rbi', 'wp_fl', 'pb_fl', 'bunt_fl', 'bat_dest', 'run1_dest', 'run2_dest', 'run3_dest', 'run1_resp_pit', 'run2_resp_pit', 'run3_resp_pit',
-        'run1_sb', 'run2_sb', 'run3_sb', 'run1_cs', 'run2_cs', 'run3_cs', 'run1_pk', 'run2_pk', 'run3_pk', 'event_no', 'pbp_text'])
-
-        df.to_csv('.././pbp/' + date +'.csv', mode='a', index=False, header=False)
 
 
 
