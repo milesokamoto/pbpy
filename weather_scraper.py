@@ -35,7 +35,7 @@ for days_back in range(max_days_back):
     except:
         print("Trouble loading data for %s" % date_string)
 
-data_file = open('my_weather_data.json', 'w')
+data_file = open('weatherdata' + stadium + '.json', 'w')
 data_file.seek(0)
 data_file.truncate()
 data_file.write(json.dumps(data))
