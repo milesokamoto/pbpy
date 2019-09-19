@@ -16,7 +16,7 @@ import pandas as pd
 from datetime import timedelta, date #build in script that runs everyday for yesterday
 import re
 
-teamindex = pd.read_csv('https://raw.githubusercontent.com/milesok/pbpy/master/teams.csv')
+teamindex = pd.read_csv('https://raw.githubusercontent.com/milesok/NCAA-Baseball-Analytics/master/data/teams.csv')
 codes = {
     'singled': '1B',
     'doubled': '2B',

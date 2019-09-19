@@ -16,7 +16,7 @@ import pandas as pd
 from datetime import timedelta, date #build in script that runs everyday for yesterday
 import re
 
-teamindex = pd.read_csv('https://raw.githubusercontent.com/milesok/pbpy/master/teams.csv')
+teamindex = pd.read_csv('https://raw.githubusercontent.com/milesok/NCAA-Baseball-Analytics/master/data/teams.csv')
 codes = {
     'singled': '1B',
     'doubled': '2B',
@@ -40,6 +40,7 @@ codes = {
     'fouled out': 'F', #when doing fielders, add f after fielder code
     'struck out looking': 'KL',
     'struck out swinging': 'KS',
+    'struck out': 'K',
     'struck out ': 'K',
     'hit by pitch': 'HBP',
     'walked': 'BB',
@@ -151,20 +152,23 @@ def scrape_lineups(team: str, response) -> list:
         testname = response.xpath("//table[@class='mytable']["+str(j)+"]/tbody/tr[@class='smtext'][" + str(i) + "]/td[1]/a/text()").get()
         if testname is None: #would happen if it's not a link
             testname = response.xpath("//table[@class='mytable']["+str(j)+"]/tbody/tr[@class='smtext'][" + str(i) + "]/td[1]/text()").get()
+        if testname == 'Nic, Anderson':
+            testname = 'Anderson, Nic'
         if not testname is None and not testname == 'Totals' :
-            testname = testname.replace('\xa0', ' ').replace('ñ', 'n') #replaces spaces in name field
+            testname = testname.replace('\xa0', ' ').replace('ñ', 'n').replace(' ,', ',') #replaces spaces in name field
             #for starting players
             if not "     " in testname: #filters out subs
                 name = testname.replace('\n', '') #remove temp line character
-                pos = response.xpath("//table[@class='mytable']["+str(j)+"]/tbody/tr[@class='smtext'][" + str(i) + "]/td[2]/text()").get()
-                if not pos is None:
-                    pos = pos.split('/')[0]
+                postxt = response.xpath("//table[@class='mytable']["+str(j)+"]/tbody/tr[@class='smtext'][" + str(i) + "]/td[2]/text()").get()
+                if not postxt is None:
+                    pos = postxt.split('/')[0]
+                if 'P' in postxt:
+                    subs.append(name)
                 if pos == "DH":
                     lineup.append([order, name, pos])
                     order += 1
                     dh = True
                 elif pos == "P":
-                    subs.append(name)
                     if order <= 9: #check if pitcher is hitting
                         lineup.append([order, name, pos])
                         order += 1
@@ -226,20 +230,21 @@ def get_pbp(response, inn_half: int, inn: int, line: int,last) -> list:
     block = ['no play', 'dropped foul', 'review', 'delay', 'resume', 'challenge', 'warning', 'mound', 'eject', 'coach',
     'suspended', 'upheld', 'umpire', 'reversed', 'exits', 'liner', 'runners', 'diving', 'attempt', 'outside', 'lightning', 'traveled',
     'entered', 'eliminated', 'pitching change', 'comebacker', 'diving', ' catch ', 'line drive', ' okay', 'inning', 'drops in', 'shallow',
-    'deep', ' hole ', 'nice play', 'grounder', 'fly ball', 'sliding', ' record', 'catch.', ' beat ', ' fence', ' wall.', ' wall ', 'left field:',
+    'deep', ' hole ', 'nice play', 'grounder', 'fly ball', 'sliding', ' record', 'catch.', ' beat ', ' fence', ' wall.', ' wall ',
     'chopped', ' hopped', ' earned', ' hop ', 'one-hopper', "batter's eye", 'squeeze', ' enters ', 'called', 'overturned', 'credit', 'corner',
-    'applied', 'argued', 'interfered', 'discussion', 'overslid', ' top ', 'pitch count', 'chopper', 'on the bases', ' after ', ' feet.', ' .']
+    'applied', 'argued', 'interfered', 'discussion', 'overslid', ' top ', 'pitch count', 'chopper', 'on the bases', ' after ', ' feet.', ' .',
+    'relieved', ' time ', 'nice ', 'foul tip', 'ground ball', 'bobbled', 'ruled out']
     if inn_half == 0:
         play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][1]/text()").get()
         if not play is None:
-            if any([x in play.lower() for x in block]) or ('failed pickoff attempt.' in play and not 'advanced' in play) or ('picked off' in play and not 'out at' in play) or play == '.' or play[0] == '(':
+            if any([x in play.lower() for x in block]) or 'Left Field:' in play or ('failed pickoff attempt.' in play and not 'advanced' in play) or ('picked off' in play and not 'out at' in play) or play == '.' or play[0] == '(':
             #6/01 add  or ('L. Barabino' in play and not ('to p for J. Freeman.' in play or 'M. Boyd to p for L. Barabino.' in play))
                 line += 1
                 return get_pbp(response, inn_half, inn, line,last)
         else:
             play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
             if not play is None:
-              if any([x in play.lower() for x in block]) or ('failed pickoff attempt.' in play and not 'advanced' in play) or ('picked off' in play and not 'out at' in play) or play == '.' or play[0] == '(':
+              if any([x in play.lower() for x in block]) or 'Left Field:' in play or ('failed pickoff attempt.' in play and not 'advanced' in play) or ('picked off' in play and not 'out at' in play) or play == '.' or play[0] == '(':
                     line += 1
                     return get_pbp(response, inn_half, inn, line,last)
             if play is None:
@@ -251,7 +256,7 @@ def get_pbp(response, inn_half: int, inn: int, line: int,last) -> list:
     elif inn_half == 1: #right side for bottom half
         play = response.xpath("//table[@class='mytable']["+str(inn+1)+"]/tbody/tr["+str(line)+"]/td[@class='smtext'][3]/text()").get()
         if not play is None:
-          if any([x in play.lower() for x in block]) or ('failed pickoff attempt.' in play and not 'advanced' in play) or ('picked off' in play and not 'out at' in play) or play == '.' or play[0] == '(':
+          if any([x in play.lower() for x in block]) or 'Left Field:' in play or ('failed pickoff attempt.' in play and not 'advanced' in play) or ('picked off' in play and not 'out at' in play) or play == '.' or play[0] == '(':
                 line += 1
                 return get_pbp(response, inn_half, inn, line,last)
         if play is None:
@@ -408,8 +413,8 @@ def find_name(name: str, list: list, switched) -> str:
     full = next((s for s in list if name.title() in s.title()), None)
     if full is None:
         full = next((s for s in list if name.replace(' Jr', '').replace('.','').title() in s.replace(' Jr.','').title()), None)
-    if full is None and len(name.split(',')[0]) > 8:
-        full = next((s for s in list if name.split(',')[0].title() in s.title()), None)
+    if full is None and len(name.split(',')[0]) > 6:
+        full = next((s for s in list if name.split(',')[0][:-2].title() in s.title()), None)
     if full is None and not switched:
         full = 'switch'
     elif full is None:
@@ -442,6 +447,8 @@ def make_sub(s: list, lineups: list, inn_half: int, runners, err) -> list:
     """
     if 'pinch' in s[1]:
         subtype = 'OFF'
+        if s[2] is None:
+            [order]
     elif 'to dh' in s[1]:
         if 'for' in s:
             subtype = 'OFF'
@@ -464,9 +471,9 @@ def make_sub(s: list, lineups: list, inn_half: int, runners, err) -> list:
     sub_in_name = parse_name(s[0])
     if not s[2] is None:
         sub_out_name = parse_name(s[2])
-        name = find_name(sub_in_name, lu['name'], False)
+        name = find_name(sub_in_name, subs, False)
         if name == 'switch':
-            name = find_name(sub_in_name, subs, err)
+            name = find_name(sub_in_name, lu['name'], err)
             if name == 'switch':
                 if inn_half == 0:
                     half = 1
@@ -498,28 +505,59 @@ def make_sub(s: list, lineups: list, inn_half: int, runners, err) -> list:
         inlist = subs
     sub_in_full = name
     if not s[2] is None:
-        sub_out_full = find_name(sub_out_name, outlist, False)
-        sub_out_index = lu.index[lu['name'] == sub_out_full].tolist()[0]
-        sub_out_order = lu.iloc[sub_out_index]['order']
-        if len(runners.index[runners['name'] == sub_out_full].tolist()) > 0:
+        try:
+            sub_out_full = find_name(sub_out_name, outlist, False)
+            sub_out_index = lu.index[lu['name'] == sub_out_full].tolist()[0]
+            sub_out_order = lu.iloc[sub_out_index]['order']
+            if len(runners.index[runners['name'] == sub_out_full].tolist()) > 0:
 
-            sub_out_run_index = runners.index[runners['name'] == sub_out_full].tolist()[0]
-            runners.iloc[sub_out_run_index] = [runners.iloc[sub_out_run_index]['base'], sub_in_full, runners.iloc[sub_out_run_index]['resp_pit'], '','','']
-        if len(lu.index[lu['name'] == sub_in_full].tolist()) > 0:
-            sub_in_index = lu.index[lu['name'] == sub_in_full].tolist()[0]
-            sub_in_order = lu.iloc[sub_in_index]['order']
-            lu.iloc[sub_in_index] = [sub_in_order, sub_in_full+'X', pos]
-            lu.iloc[sub_out_index] = [sub_out_order, sub_in_full, pos]
-            if pos == 'P':
-                if len(lu.index[lu['name'] == sub_in_full].tolist()) > 1:
-                    lu.drop([9])
-        else:
-            if len(lu.index[lu['name'] == sub_out_full + 'X'].tolist()) > 0:
-                sub_out_full = sub_out_full + 'X'
-                sub_out_index = lu.index[lu['name'] == sub_out_full].tolist()[0]
-                sub_out_order = lu.iloc[sub_out_index]['order']
-            lu.iloc[sub_out_index] = [sub_out_order, sub_in_full, pos]
-    else:
+                sub_out_run_index = runners.index[runners['name'] == sub_out_full].tolist()[0]
+                runners.iloc[sub_out_run_index] = [runners.iloc[sub_out_run_index]['base'], sub_in_full, runners.iloc[sub_out_run_index]['resp_pit'], '','','']
+            if len(lu.index[lu['name'] == sub_in_full].tolist()) > 0:
+                sub_in_index = lu.index[lu['name'] == sub_in_full].tolist()[0]
+                sub_in_order = lu.iloc[sub_in_index]['order']
+                lu.iloc[sub_in_index] = [sub_in_order, sub_in_full+'X', pos]
+                lu.iloc[sub_out_index] = [sub_out_order, sub_in_full, pos]
+                if pos == 'P':
+                    if len(lu.index[lu['name'] == sub_in_full].tolist()) > 1:
+                        lu.drop([9])
+            else:
+                if len(lu.index[lu['name'] == sub_out_full + 'X'].tolist()) > 0:
+                    sub_out_full = sub_out_full + 'X'
+                    sub_out_index = lu.index[lu['name'] == sub_out_full].tolist()[0]
+                    sub_out_order = lu.iloc[sub_out_index]['order']
+                lu.iloc[sub_out_index] = [sub_out_order, sub_in_full, pos]
+        except:
+            # sub_out_name = input('Input correct sub out name: ')
+            # if not sub_out_name == '':
+            #     sub_out_full = find_name(sub_out_name, outlist, False)
+            #     sub_out_index = lu.index[lu['name'] == sub_out_full].tolist()[0]
+            #     sub_out_order = lu.iloc[sub_out_index]['order']
+            #     if len(runners.index[runners['name'] == sub_out_full].tolist()) > 0:
+            #         print('runner sub')
+            #         sub_out_run_index = runners.index[runners['name'] == sub_out_full].tolist()[0]
+            #         runners.iloc[sub_out_run_index] = [runners.iloc[sub_out_run_index]['base'], sub_in_full, runners.iloc[sub_out_run_index]['resp_pit'], '','','']
+            #     if len(lu.index[lu['name'] == sub_in_full].tolist()) > 0:
+            #         sub_in_index = lu.index[lu['name'] == sub_in_full].tolist()[0]
+            #         sub_in_order = lu.iloc[sub_in_index]['order']
+            #         lu.iloc[sub_in_index] = [sub_in_order, sub_in_full+'X', pos]
+            #         lu.iloc[sub_out_index] = [sub_out_order, sub_in_full, pos]
+            #         if pos == 'P':
+            #             if len(lu.index[lu['name'] == sub_in_full].tolist()) > 1:
+            #                 lu.drop([9])
+            #     else:
+            #         print('TEST1')
+            #         if len(lu.index[lu['name'] == sub_out_full + 'X'].tolist()) > 0:
+            #             sub_out_full = sub_out_full + 'X'
+            #             sub_out_index = lu.index[lu['name'] == sub_out_full].tolist()[0]
+            #             sub_out_order = lu.iloc[sub_out_index]['order']
+            #         print('TEST')
+            #         print(str(sub_out_index))
+            #         print(str(sub_out_order))
+            #         lu.iloc[sub_out_index] = [sub_out_order, sub_in_full, pos]
+            # else:
+            s[2] = None
+    if s[2] is None:
         if pos == 'P':
             if len(lu.index[lu['name'] == sub_in_full].tolist()) == 0:
                 lu.loc[9] = ['P', sub_in_full, pos]
@@ -555,8 +593,12 @@ def make_sub(s: list, lineups: list, inn_half: int, runners, err) -> list:
 
     if team == 'home':
         lineups[0] = lu
+        if sub_out_full:
+            lineups[1].append(sub_out_full)
     else:
         lineups[3] = lu
+        if sub_out_full:
+            lineups[4].append(sub_out_full)
     # if err:
     #     if input(str(lineups)+'\ndone? (y/n): ') == 'y':
     #         return [lineups, runners]
@@ -596,7 +638,7 @@ def is_sub(s: str) -> list:
         raise TypeError('No sub')
         # is_sub(input('play: ' + s + '\n Type substitution text: '))
 
-def correct_play(play, outs):
+def correct_play(play, outs, teams):
     if 'caught stealing, picked off' in play:
         play = play.replace(', picked off','')
     if 'caught stealing' in play and 'stole' in play:
@@ -607,13 +649,46 @@ def correct_play(play, outs):
         fc = re.search(r"(out at first [a-z0-9]{1,2} to [a-z0-9]{1,2}, )reached on a fielder's choice", play)
         if not fc is None:
             play = play.replace(fc.group(1), '')
+    play = play.replace('did not advance', 'no advance')
     #
+    if 'MU' in teams and 'SHEPHERD' in play:
+        play = play.replace('SHEPHERD', 'Shepard')
+    if 'PEPP' in teams and 'Sandoval' in play:
+        play = play.replace('Sandoval', 'Sandoval-Estrada')
+    if 'GU' in teams and 'TROGRLIC' in play:
+        play = play.replace('TROGRLIC, N.', 'Trogrlic-Iverson, Nick')
+    if 'NMU' in teams and 'WIGGS, M.' in play:
+        play = play.replace('WIGGS, M.', 'Pietila-Wiggs, Micah')
+    if 'ARST' in teams and 'Vaughn' in play:
+        play = play.replace('Vaughn', 'Vaughan')
+    if 'GSU' in teams and 'Ramirez, III' in play:
+        play = play.replace('Ramirez, III', 'Ramirez, Rafael')
+    if 'AFA' in teams and 'Martinez III' in play:
+        play = play.replace('Martinez III', 'Martinez')
+    if 'IU' in teams and 'Van Pelt' in play:
+        play = play.replace('Van Pelt', 'Van Pelt, Tyler')
+    if 'COPP' in teams and 'McIlwain' in play:
+        play = play.replace('McIlwain', 'McILwain')
+
     play = play.replace('struck out, out at first', 'struck out swinging, out at first')
+    play = play.replace('struck out, reached first', 'struck out swinging, reached first')
+    play = play.replace('struck out, grounded out to c unassisted', 'struck out swinging, out at home')
+
+
+    #2/17
+    play = play.replace('Mona, Grant to 1b for Hoffman, Wya.', 'Mona, Grant to 1b.').replace('Hoffman, Wya to 2b for Mona, Grant.', 'Hoffman, Wya to 2b.')
+    play = play.replace('Arndt, P to ss for Dyer, D.', 'Arndt, P to ss').replace('Dyer, D to 3b for Arndt, P.', 'Dyer, D to 3b')
+    # 5/14
+    play = play.replace('Elwood, T.', 'Elwood, T. scored.')
     # 5/18
+    play = play.replace('N. Angelini N. Angelini, unearned', 'N. Angelini scored, unearned', )
     play = play.replace('Davis, R ', 'Davis, Ryan M. ').replace('Davis, Ry ', 'Davis, Ryan P. ')
+    play = play.replace('PAULEY, J.', 'PAULEY, J. scored.')
+    # play = play.replace('BECKER to 3b for FRANCZAK.', 'FRANCZAK to 3b.')
+    # play = play.replace('FRANCZAK to 3b for BECKER.', 'FRANCZAK to 3b.')
     # #5/24
     play = play.replace('Riopelle, B. pinch hit for Skeels, K..', 'Riopelle, B. pinch ran for Skeels, K..')
-    if ', unearned' in play and not 'scored, unearned' in play:
+    if ', unearned' in play and not 'scored, unearned' in play and not 'error, unearned' in play:
         play = play.replace(', unearned', ' scored, unearned')
     #5/22
     play = play.replace('USELMAN, Clayton .', '/ for USELMAN, Clayton.')
@@ -632,19 +707,28 @@ def correct_play(play, outs):
     play = play.replace('Schwellenbac', 'Schwellenbach, Spencer').replace('FEDKO ', 'Fedko, C ').replace('FEDKO.', 'Fedko, C.').replace('DELEASE, Michael', 'Delease, Mike').replace('Maniscalso', 'Maniscalco')
     play = play.replace('Czerniejewsk ', 'Czerniejewski, Brad ').replace('Vincelli-Sim ', 'Vincelli-Simard ').replace('Vincelli-Sim.', 'Vincelli-Simard.').replace('J.C. Keys', 'Keys, J.').replace('Vander Kooi', 'Vander Kooi, Boyd')
     play = play.replace('VAN SCOY', 'Van Scoy, Grant').replace('Van Scoy', 'Van Scoy, Grant').replace('Wilson, Jk', 'Wilson, Jack').replace('Zuberer, R', 'Zuberer III, Ray').replace('Holtgriev ', 'Holtgrieve ')
-    play = play.replace('GOOSSEN-BROW', 'Goossen-Brown').replace('Stoutenborou', 'Stoutenborough').replace('Tredaway', 'Treadaway').replace('Borgstrom', 'Borgstron').replace('Komonosky', 'Komonsky')
+    play = play.replace('GOOSSEN-BROW', 'Goossen-Brown').replace('Stoutenborou', 'Stoutenborough').replace('Tredaway', 'Treadaway').replace('Borgstrom', 'Borgstron').replace('Komonosky', 'Komonsky').replace('SMITH, PAT-W', 'Smith, Patrick')
     play = play.replace('D. Griff', 'Griffin, Davonn').replace('Reifsnide ', 'Reifsnider ').replace('Jeffries IV', 'Jeffries').replace('Jeffries, IV', 'Jeffries').replace('Rivera-Chiji', 'Rivera-Chijin').replace('ELGUEZABAL', 'Elguezabel')
     play = play.replace('Benavidez', 'Benevidez').replace('Herron,A.', 'Herron, Jr., Anthony').replace('Searle-Belan', 'Searle-Belanger').replace('Laweryson', 'Lawyerson').replace('DEPPERMANN', 'Depperman').replace('LIBUNAO', 'Libuano')
-    play = play.replace('OUELLETTE', 'Oullette').replace('ZILINSKY', 'Zillinski').replace('Bastian', 'Bastain').replace('Bengtson', 'Bengston').replace('TIBURICO, A', 'Tiburcio, Angel')
+    play = play.replace('OUELLETTE', 'Oullette').replace('ZILINSKY', 'Zillinski').replace('Bastian', 'Bastain').replace('Bengtson', 'Bengston').replace('TIBURICO, A', 'Tiburcio, Angel').replace('Navarro. M.', 'Navarro, M.')
     play = play.replace('DEL CASTILLO', 'Del Castillo').replace('SHEDLER', 'Shedler-McAvoy').replace('MCLINSKEY', 'McLiniskey').replace('Pavletich, Jacob', 'Pavletich, Jake').replace('Elguezaba', 'Elguezabel').replace('Palm, K', 'Plam, K')
     play = play.replace('ARMBRUSTMACH', 'Ambrustmacher').replace('SchauweckerC', 'Schauwecker, C').replace('ELLIOTT,D', 'Elliot, Davis').replace('ILLING, H.', 'Iling, Hunter').replace('Fitzpatrck', 'Fitzpatrick').replace('R. Hebert', 'Herbert, Rhett')
     play = play.replace('StankiewiczD', 'Stankiewicz, D').replace('SOUTHERLAND,', 'Southerland').replace('Baillie, D', 'Baille, Davis').replace('HANCHEY,Trn.', 'Hanchey, Trent').replace('VANDERWEIDE', 'Van Der Weide, Trey')
     play = play.replace('Tywon Mackey', 'Tyon, JR').replace('LeForestier,', 'LeForestier').replace('Maury Jr., A', 'Maury, A').replace('Ohl,Riley', 'Ohi, Riley').replace('Barrrett', 'Barrett').replace('Livnat', 'Livant')
     play = play.replace('Pawloski', 'Pawlowski').replace('SCHOEHN', 'Schoen').replace('SCHREIER, J', 'Screier, J').replace('Ohl', 'Ohi').replace('Breyden Echk', 'Eckhout, Breyden')
     play = play.replace('Grisanti', 'Gristanti').replace('Scott.J.', 'Scott, J.').replace('BURGE, Alexander', 'Burge, Alex').replace('R. Ranie', 'R. Raine').replace('C Washington', 'Washington').replace('ANDREWS, EJ', 'Andrews')
-    play = play.replace('RENSEL JR', 'Rensel').replace('Closner, O', 'Closner IV, Oliver').replace('STEPHENSON ', 'Stepenson ').replace('Chrysosto', 'Chrysostome').replace('MARSHALL JR', 'Marshall Jr.,').replace('Lagreco, J.P', 'Lagreco')
+    play = play.replace('RENSEL JR', 'Rensel').replace('Closner, O', 'Closner IV, Oliver').replace('STEPHENSON ', 'Stepenson ').replace('Chrysosto', 'Chrysostome').replace('MARSHALL JR', 'Marshall Jr., Derek').replace('Lagreco, J.P', 'Lagreco')
     play = play.replace('FUENTES III', 'Fuentes').replace('CHAMPION II', 'Champion').replace('Free, James', 'Free II, James').replace('Verlin, Nate', 'Verlin, Nathan').replace('Glover, Keat', 'Glover, Keaton').replace('BUBAN, Mitchell', 'Buban, Mitch')
-    play = play.replace('Tolman,E', 'Tolman , E').replace('SCHAEFFER JR', 'Schaeffer, CJ').replace('Crockett', 'Crocket').replace('Vander Wal', 'Vander Wal, Jake')
+    play = play.replace('SCHAEFFER JR', 'Schaeffer, CJ').replace('Crockett', 'Crocket').replace('Vander Wal', 'Vander Wal, Jake').replace('Funderbur ', 'Funderburg ').replace('Funderbur.', 'Funderburg.').replace('Thurber, Jar', 'Thurber, Jacob')
+    play = play.replace('Brock, R', 'Brock, Jr., Reggie').replace('Coss, J', 'Coss III, Jon').replace('COLEMAN, T.,', 'Coleman, T.').replace(',  ', ', ').replace('Achecar III', 'Achecar').replace('Matt Bondarc', 'Bondarchuk, Matt').replace('Thomas Debon', 'DeBonville, Thomas')
+    play = play.replace('Keil Krumwie', 'Krumwiede, Keil').replace('Parker Smejk', 'Smejkal, Parker').replace('Braden Roger', 'Rogers, Braden').replace('Tyler Daughe', 'Daugherty, Tyler').replace('JUNG-G.', 'Jung-Goldberg')
+    play = play.replace('D. clair', 'St. Clair, Daniel').replace('HUNT,AJ', 'Hunt').replace('AJ ', 'A ').replace('DJ ', 'D ').replace('CJ ', 'C ').replace('RJ ', 'R ').replace('MAISONET,D', 'Maisonet-Velez, Darnell').replace('O. Sclanan', 'Scanlan, O')
+    play = play.replace('DI VIETRO', 'Di Vietro, Nick').replace('Jarficur Par', 'Parker, Jarficur').replace('Sergio Espar', 'Esparza, Sergio').replace('Ricardo Sanc', 'Sanchez, Ricardo').replace('Andrew Szal', 'Szalkowski, Andrew').replace('Braelin Henc', 'Hence, Braelin')
+    play = play.replace('Austin Krzem', 'Krzeminski, Austin').replace('Jaques Palme', 'Palmer, Jaques').replace('Iza, S', 'Iza').replace('Woullard, L', 'Wollard, Luther').replace('ADDAMS', 'Adams, Haddon').replace('MEANEY,T.', 'Meany, Trevor')
+    play = play.replace('Casaleggio', 'Cassaleggio').replace('ANASTASIA', 'Anatasia, Michael').replace('JONES, Na.', 'Jones, Nate').replace('JONES, N.', 'Jones, Nick').replace('Brandon Simo', 'Simon, Brandon').replace('Dalton Acost.', 'Acosta, Dalton')
+    play = play.replace('Mark Dozier', 'Dozier, Mark').replace('SMITH, PAT-J', 'Smith, Patrick J.').replace('Grant Suponc', 'Suponchick, Grant').replace('McColloch', 'McCulloch').replace('Richie Holet', 'Holetz, Richie').replace('Andrew Brigh', 'Brighton, Andrew')
+    play = play.replace('Spencer Koel', 'Koelewyn, Spencer').replace('Ohisen, D', 'Ohlsen, D').replace('Hoffman, Wya', 'Hoffman, Wyatt').replace('De La Cruz ', 'De La Cruz, ').replace('De La Cruz.', 'De La Cruz,').replace('Wthrspoon,N.', 'Witherspoon, Nate')
+    play = play.replace('Seiler', 'Seller').replace('C. De La Paz', 'De La Paz, C.').replace('PAULEY, Jack', 'Pauley, Jake').replace('Parthasarthy', 'Parthasarathy').replace('Smith II', 'Smith II,')
 
     if not 'Scott' in play:
         play = play.replace('YOUNGBRANDT,', 'YOUNGBRANDT')
@@ -1072,7 +1156,8 @@ def get_defense(inn_half, lineups) -> list: #lineup input from get_lineups
         names of players in defensive positional order: [P,C,1B,2B,3B,SS,LF,CF,RF]
     """
     lu = get_def_lineups(inn_half, lineups)[1]
-    return [lu[lu['position'] == 'P'].iloc[0]['name'],
+    try:
+        return [lu[lu['position'] == 'P'].iloc[0]['name'],
         lu[lu['position'] == 'C'].iloc[0]['name'],
         lu[lu['position'] == '1B'].iloc[0]['name'],
         lu[lu['position'] == '2B'].iloc[0]['name'],
@@ -1082,6 +1167,8 @@ def get_defense(inn_half, lineups) -> list: #lineup input from get_lineups
         lu[lu['position'] == 'CF'].iloc[0]['name'],
         lu[lu['position'] == 'RF'].iloc[0]['name']
     ]
+    except:
+        return ['','','','','','','','','']
 
 def parse_pbp(play_list, lineups, inn_half, runners):
     try:
@@ -1157,7 +1244,7 @@ def inc_bat_order(lineups, inn_half):
 # s
 # parse_run(s, runners)
 
-def parse_play(line, state, meta, lineups, event_no, response,last):
+def parse_play(line, state, meta, lineups, event_no, response, last, teams):
     try:
         [home_score, away_score, inn, inn_half, outs, runners, batter_of_inn] = state
         score = [home_score, away_score]
@@ -1166,7 +1253,7 @@ def parse_play(line, state, meta, lineups, event_no, response,last):
         if end:
             return [True] #other stuff maybe?
         [balls, strikes, seq] = get_count(pbp_txt)
-        pbp_txt = correct_play(pbp_txt, outs)
+        pbp_txt = correct_play(pbp_txt, outs, teams)
         sub = is_sub(pbp_txt)
         if sub:
             try:
@@ -1315,7 +1402,7 @@ class PbpspiderSpider(scrapy.Spider):
         urls = []
         startdate = input('Enter start date in format yyyy-mm-dd: ')
         d1 = date(int(startdate[0:4]), int(startdate[5:7]), int(startdate[8:10]))
-        enddate = input('Enter end date in format yyyy-mm-dd:')
+        enddate = input('Enter end date in format yyyy-mm-dd: ')
         d2 = date(int(enddate[0:4]), int(enddate[5:7]), int(enddate[8:10])+1)
         for n in range(int((d2-d1).days)):
             d = d1 + timedelta(n)
@@ -1414,6 +1501,8 @@ class PbpspiderSpider(scrapy.Spider):
         meta = [game_id, home_abb, away_abb, ump]
         ###LOOP THROUGH INNINGS###
         event_no = 1
+        if game_id == '05162019MILYSU':
+            lineups[4].append('Scanlan, Oakland')
         for inn in range(1, int(last)+1):
             try:
                 line = 2
@@ -1427,14 +1516,16 @@ class PbpspiderSpider(scrapy.Spider):
                             state = [home_score, away_score, inn, inn_half, outs, runners, batter_of_inn]
                             if inn_half == 0:
                                 h = 'top '
+                                teams = [away_abb, home_abb]
                             else:
                                 h = 'bottom '
+                                teams = [home_abb, away_abb]
                             print(home_abb + ': ' + str(state[0]) + ' ' + away_abb + ': ' + str(state[1]) + ' inning: ' + h + str(inn) + ' outs: ' + str(outs))
                             print(get_pbp(response, inn_half, inn, line,last)[0])
                             try:
                                 if get_pbp(response, inn_half, inn, line,last)[2]:
                                     break
-                                play_out = parse_play(line, state, meta, lineups, event_no, response, last)
+                                play_out = parse_play(line, state, meta, lineups, event_no, response, last, teams)
                             # lineups, event_outs, line, batter_event_fl, event_fl, inn_outs, score, new_runners, end,
                             except:
                                 print("\n\n\nERROR\n\n\n")
@@ -1484,6 +1575,7 @@ class PbpspiderSpider(scrapy.Spider):
             'batter_event_fl', 'ab_fl', 'hit_fl', 'sh_fl', 'sf_fl', 'event_outs', 'dp_fl', 'tp_fl',
             'rbi', 'wp_fl', 'pb_fl', 'bunt_fl', 'bat_dest', 'run1_dest', 'run2_dest', 'run3_dest', 'run1_resp_pit', 'run2_resp_pit', 'run3_resp_pit',
             'run1_sb', 'run2_sb', 'run3_sb', 'run1_cs', 'run2_cs', 'run3_cs', 'run1_pk', 'run2_pk', 'run3_pk', 'event_no', 'pbp_text'])
+            df['game_id'] = game_id
             try:
                 pbp = pd.read_csv('.././pbp/' + date +'.csv')
                 df.to_csv('.././pbp/' + date +'.csv', mode='a', index=False, header=False)
