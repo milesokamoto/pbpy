@@ -6,6 +6,8 @@ class Game:
         self.id = id
         self.game = get_pbp(id)
         self.lineups = get_lineups(id)
+        self.runners = ['','','']
+        self.state = [0,0,0] #balls/strikes/outs
 
 def get_pbp(game_id) -> list:
     """
