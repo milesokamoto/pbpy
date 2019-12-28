@@ -8,7 +8,7 @@ class Play:
 
 
     def get_play_type(self, text):
-
+        
     def get_primary(self, text):
 
     def execute(self):

@@ -1,4 +1,5 @@
 import scrape
+import parse
 import pandas as pd
 
 class Game:
@@ -8,6 +9,12 @@ class Game:
         self.lineups = get_lineups(id)
         self.runners = ['','','']
         self.state = [0,0,0] #balls/strikes/outs
+        self.hm_order = 1
+        self.aw_order = 1
+
+    def parse_plays(self):
+        for half in self.game:
+            parse.parse_half(half)
 
 def get_pbp(game_id) -> list:
     """
@@ -65,11 +72,13 @@ def get_pbp(game_id) -> list:
                         none = 0
     return game
 
-
-
-
 def clean_plays(plays) -> list:
     new_plays = []
     for play in plays:
+        if 'fielder\'s choice' in play:
+            fc = re.search(r"(out at first [a-z0-9]{1,2} to [a-z0-9]{1,2}, )reached on a fielder's choice", play)
+            if not fc is None:
+                play = play.replace(fc.group(1), '')
+        play = play.replace('did not advance', 'no advance')
         new_plays.append(play.replace('3a', ':').replace(';', ':').replace('a dropped fly', 'an error').replace('a muffed throw', 'an error'))
     return new_plays

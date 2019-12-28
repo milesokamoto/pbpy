@@ -12,7 +12,7 @@ def get_name(s: str) -> str:
     if not name is None:
         return name.group()
 
-def match_name(df, name):
+def match_name(dict, name):
     max = 0
     for full, short in dict.items():
         if short != name:
