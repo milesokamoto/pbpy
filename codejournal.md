@@ -1,17 +1,31 @@
+#PbPy Code Journal
 
-### Prereqs
-This code requires docker running splash: run this command from powershell to start the server: **docker run -p 8050:8050 scrapinghub/splash**  
-To run the spider, navigate to the project directory and run **scrapy crawl ncaaspider2**
+### Dependencies
+Python 3.7+
+requests
+lxml
+pandas
 
+### Scraping table elements from stats page
+Used the requests library and lxml package to make an http request for the desired page and collect \<tr\> elements.
+*scrape.py*
 ```python
-import scrapy
-from scrapy_splash import SplashRequest
-import pandas as pd
-from datetime import timedelta, date #build in script that runs everyday for yesterday
-import re
+import requests
+import lxml.html as lh
+
+def get_table(url) -> list:
+    return lh.fromstring(requests.get(url).content).xpath('//tr')
+```
+
+
+
+
+
+
+
 
 teamindex = pd.read_csv('https://github.com/milesok/pbpy/blob/master/teams.csv')
-```
+
 
 ### Class definition
 ```python
@@ -149,7 +163,7 @@ def parsegame(self, response):
     home_lineup = response.meta["home_lineup"]
     home_subs = response.meta["home_subs"]
     away_subs = response.meta["away_subs"]
-    play_info = [] 
+    play_info = []
     away_score = 0
     home_score = 0
 
@@ -438,7 +452,7 @@ Find text for what happened on the play
         runners_dest[0] = 1
     else:
         runners_dest[0] = 0
-        
+
     for base in range(0,4):
         br = runners[3-base]
         if  br != '':
@@ -520,4 +534,3 @@ df.to_csv('\\pbp\\' + date +'.csv', mode='a', index=False, header=False)
 err=pd.DataFrame(problemnames, columns = ['names'])
 err.to_csv('\\errors\\err.csv', mode='a', index=False, header=False)
 ```
-
