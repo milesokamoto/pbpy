@@ -13,7 +13,6 @@ codes = {
     'flied into triple play': 'FITP',
     'popped up': 'O',
     'popped out': 'O',
-    'infield fly': 'O',  # label w/ flag?
     'popped into double play': 'O',
     'lined into double play': 'O',
     'lined into triple play': 'O',
@@ -53,7 +52,7 @@ mod_codes = {
     'flied into triple play': 'FTP',
     'popped up': 'P',
     'popped out': 'P',
-    'infield fly': 'P',  # label w/ flag?
+    'infield fly': 'IF',  # label w/ flag?
     'popped into double play': 'PDP',
     'lined into double play': 'LDP',
     'lined into triple play': 'LTP',

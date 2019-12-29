@@ -1,34 +1,19 @@
-import dict
-import names
 import re
+import play
+import sub
 
+def parse_half(half):
+    for play in half:
+        print(parse(play))
 
-def parse(text):
-    [event, code] = get_event(text)
-    primary = get_primary(text, event)
-    return [primary, code]
+def parse(s):
+    [type, text] = get_type(s)
+    if type == 's':
+        sub = sub.Sub(text)
+    elif type == 'p'
+        play = play.Play(text)
 
-
-def get_event(text):
-    return [[key, dict.codes[key]] for key in dict.codes.keys() if key in text][0]
-
-
-def get_loc(text):
-    return [dict.loc_codes[key] for key in dict.loc_codes.keys() if key in text][0]
-
-
-def get_primary(text, event):
-    return text.split(' ' + event)[0]
-
-
-def get_run(text):
-    return [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in text][0]
-
-
-def get_fielders(text, event):
-    return [dict.pos_codes[key] for key in dict.pos_codes.keys() if key in text.split(' ' + event)[1]]
-
-def get_type(text):
+def get_type(s): #  PLAY OR SUB -> BREAK DOWN INTO PARTS
     """
     checks whether play is a substitution, returns list
     containing name of player substituted in, sub type/position,
@@ -51,5 +36,9 @@ def get_type(text):
     if not subtest is None:
         subtest = [subtest.group(1), subtest.group(2), subtest.group(3)]
         if not subtest[1] is None:
-            return subtest
-        return False
+            return ['s', subtest]
+    return ['p', s.split(':')]
+
+
+half = ['McKENZIE reached on an error by 2b (3-2).', 'JANSEN grounded into double play 1b to ss to p (0-1): McKENZIE out on the play.', 'NISLE singled up the middle (0-1).', 'FASCIA flied out to lf (3-2).']
+parse_half(half)

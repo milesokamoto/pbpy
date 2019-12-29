@@ -1,12 +1,14 @@
 import scrape
 import parse
 import pandas as pd
+import re
+import lineup
 
 class Game:
     def __init__(self, id):
         self.id = id
         self.game = get_pbp(id)
-        self.lineups = get_lineups(id)
+        self.lineups = lineup.get_lineups(id)
         self.runners = ['','','']
         self.state = [0,0,0] #balls/strikes/outs
         self.hm_order = 1

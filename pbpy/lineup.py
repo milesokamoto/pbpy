@@ -1,6 +1,7 @@
 import scrape
 import pandas as pd
 
+
 def get_lineups(game_id):
     player = False
     pos = False
