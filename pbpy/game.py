@@ -7,16 +7,25 @@ import lineup
 class Game:
     def __init__(self, id):
         self.id = id
+        self.meta = get_info(id) #should be separate db table
         self.game = get_pbp(id)
-        self.lineups = lineup.get_lineups(id)
-        self.runners = ['','','']
+        self.play = 0
+        self.half = 0 # inning is div/2, top/bottom is even/odd
+        self.lineups = lineup.Lineups(id) # 2 lineup objects, 2 sub lists
+        self.runners = ['']*3
         self.state = [0,0,0] #balls/strikes/outs
         self.hm_order = 1
         self.aw_order = 1
+        self.score = [0,0]
+        self.defense = ['']*9
+        self.leadoff_fl = True
 
     def parse_plays(self):
         for half in self.game:
             parse.parse_half(half)
+
+    def output(self):
+        pass
 
 def get_pbp(game_id) -> list:
     """
