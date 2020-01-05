@@ -15,12 +15,11 @@ class Lineups:
         if '/' in sub.sub_in:
             if type(lu.loc['P'].tolist()) != str:
                 lu = lu[0:9]
-        lu.loc[sub.pos.upper(), 'name'] = sub_in
+        lu.loc[sub.pos.upper(), 'name'] = sub.sub_in
         if sub.team == 'a':
             self.a_lineup = lu
         elif sub.team == 'h':
             self.h_lineup = lu
-
 
 
     def all_names(self, team):
