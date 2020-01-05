@@ -5,6 +5,11 @@ class Sub:
         self.team = get_sub_team(text)
         [self.in, self.pos, self.out] = parse_sub(text)
 
+    def match_sub_names(self, names):
+        self.in = names.match_name(self.team, self.in)
+        if not self.out is None:
+            self.out = names.match_name(self.team, self.out)
+
 def parse_sub(s):
     s = s.replace('/ ', '/ to x')
     sub = re.search(r"^([A-Za-z,\. '-]*?(?= [a-z])|\/) (pinch (?:hit|ran)|to [0-9a-z]{1,2})* *(?:for ([A-Za-z,\. '-]*?)\.$)*", s)
