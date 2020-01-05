@@ -10,7 +10,7 @@ def parse(s):
     [type, text] = get_type(s)
     if type == 's':
         sub = sub.Sub(text)
-    elif type == 'p'
+    elif type == 'p':
         play = play.Play(text)
 
 def get_type(s): #  PLAY OR SUB -> BREAK DOWN INTO PARTS
