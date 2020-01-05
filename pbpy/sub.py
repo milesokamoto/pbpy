@@ -2,9 +2,10 @@ import re
 import names
 
 class Sub:
-    def __init__(self, text):
-        self.team = get_sub_team(text)
+    def __init__(self, game, text):
+        self.team = get_sub_team(game.half, get_sub_type(text))
         [self.sub_in, self.pos, self.sub_out] = parse_sub(text)
+        self.match_sub_names(game.names)
 
     def match_sub_names(self, names):
         self.sub_in = names.match_name(self.team, self.sub_in)
@@ -28,13 +29,25 @@ def parse_sub(s):
 
 def get_sub_type(s):
     if 'pinch' in s[1]:
-        subtype = 'OFF'
+        return 'o'
         # if s[2] is None:
         #     [order]
     elif 'to dh' in s[1]:
         if 'for' in s:
-            subtype = 'OFF'
+            return 'o'
         else:
-            subtype = 'DEF'
+            return 'd'
     else:
-        subtype = 'DEF'
+        return 'd'
+
+def get_sub_team(half, type):
+    if half %2 == 0:
+        if type == "o":
+            return 'a'
+        else:
+            return 'h'
+    else:
+        if type == 'o':
+            return 'h'
+        else:
+            return 'a'
