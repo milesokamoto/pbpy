@@ -15,8 +15,8 @@ class Game:
         self.lineups = lineup.Lineups(self.id) # 2 lineup objects, 2 sub lists
         self.runners = ['']*3
         self.state = [0,0,0] #balls/strikes/outs
-        self.hm_order = 1
-        self.aw_order = 1
+        self.h_order = 1
+        self.a_order = 1
         self.score = [0,0]
         self.defense = ['']*9
         self.leadoff_fl = True
@@ -24,7 +24,21 @@ class Game:
 
     def parse_plays(self):
         for half in self.game:
-            parse.parse_half(half)
+            parse.parse_half(self, half)
+
+    def execute(self, p):
+        [self.state, self.runners, self.h_order, self.a_order, self.score] = play.result(p, self) #TODO
+
+    def make_sub(self, s):
+        self.lineups.make_sub(s, self)
+        s.defense = self.get_defense()
+
+    def get_defense(self):
+        if half % 2 == 0:
+            team = 'h'
+        else:
+            team = 'a'
+        self.defense = lineups.get_defense(team) #TODO
 
     # def output(self):
     #     pass
