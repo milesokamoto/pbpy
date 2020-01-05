@@ -38,7 +38,3 @@ def get_type(s): #  PLAY OR SUB -> BREAK DOWN INTO PARTS
         if not subtest[1] is None:
             return ['s', subtest]
     return ['p', s.split(':')]
-
-
-half = ['McKENZIE reached on an error by 2b (3-2).', 'JANSEN grounded into double play 1b to ss to p (0-1): McKENZIE out on the play.', 'NISLE singled up the middle (0-1).', 'FASCIA flied out to lf (3-2).']
-parse_half(half)
