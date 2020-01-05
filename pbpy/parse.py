@@ -2,16 +2,18 @@ import re
 import play
 import sub
 
-def parse_half(half):
+def parse_half(g, half):
     for play in half:
-        print(parse(play))
+        parse(play)
 
-def parse(s):
+def parse(s, g):
     [type, text] = get_type(s)
     if type == 's':
-        sub = sub.Sub(text)
+        s = sub.Sub(text)
+        g.make_sub(g)
     elif type == 'p':
-        play = play.Play(text)
+        p = play.Play(text)
+        p.execute(g)
 
 def get_type(s): #  PLAY OR SUB -> BREAK DOWN INTO PARTS
     """
