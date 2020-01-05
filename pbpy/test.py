@@ -3,4 +3,7 @@ import names
 lu = lineup.Lineups(4803380)
 {name: '' for name in lu.all_names('h')}
 n = names.NameDict(lu)
+n.match_name('h', 'Mrtin')
 print(n.h_names)
+
+test = lu.a_lineup
