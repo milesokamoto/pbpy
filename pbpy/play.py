@@ -53,17 +53,3 @@ def get_play_type(self, text):
 
 def get_run_dest(self):
     pass
-
-
-test = ['McKENZIE reached on an error by 2b (3-2).', 'JANSEN grounded into double play 1b to ss to p (0-1): McKENZIE out on the play.', 'NISLE singled up the middle (0-1).', 'FASCIA flied out to lf (3-2).']
-t = Play(test[0])
-print(t.play)
-print(t.event)
-print(t.primary)
-get_event(test[0])
-
-# class BatPlay(Play):
-#
-#
-#
-# class RunPlay(Play):
