@@ -5,7 +5,7 @@ class Lineups:
     def __init__(self, game_id):
         [self.a_lineup, self.a_sub, self.h_lineup, self.h_sub] = get_lineups(game_id)
 
-    def make_sub(self, sub):
+    def make_sub(self, sub, names):
         if sub.team == 'a':
             lu = self.a_lineup
         elif sub.team == 'h':
@@ -15,6 +15,9 @@ class Lineups:
         if '/' in sub.in:
             if len(lu[lu['position'] == 'P']['name'].tolist()) > 1:
                 lu = lu[0:9]
+
+        if not sub.out is None:
+            sub_out_index = lu.index[lu['name'] == sub.out].tolist()[0]
 
 
     def all_names(self, team):
