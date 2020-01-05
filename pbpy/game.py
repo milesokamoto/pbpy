@@ -3,15 +3,16 @@ import parse
 import pandas as pd
 import re
 import lineup
+import names
 
 class Game:
     def __init__(self, id):
         self.id = id
-        self.meta = get_info(id) #should be separate db table
-        self.game = get_pbp(id)
+        # self.meta = get_info(id) #should be separate db table
+        self.game = get_pbp(self.id)
         self.play = 0
         self.half = 0 # inning is div/2, top/bottom is even/odd
-        self.lineups = lineup.Lineups(id) # 2 lineup objects, 2 sub lists
+        self.lineups = lineup.Lineups(self.id) # 2 lineup objects, 2 sub lists
         self.runners = ['']*3
         self.state = [0,0,0] #balls/strikes/outs
         self.hm_order = 1
@@ -19,13 +20,14 @@ class Game:
         self.score = [0,0]
         self.defense = ['']*9
         self.leadoff_fl = True
+        self.names = names.NameDict(self.lineups)
 
     def parse_plays(self):
         for half in self.game:
             parse.parse_half(half)
 
-    def output(self):
-        pass
+    # def output(self):
+    #     pass
 
 def get_pbp(game_id) -> list:
     """
@@ -86,10 +88,11 @@ def get_pbp(game_id) -> list:
 def clean_plays(plays) -> list:
     new_plays = []
     for play in plays:
-        if 'fielder\'s choice' in play:
-            fc = re.search(r"(out at first [a-z0-9]{1,2} to [a-z0-9]{1,2}, )reached on a fielder's choice", play)
-            if not fc is None:
-                play = play.replace(fc.group(1), '')
-        play = play.replace('did not advance', 'no advance')
-        new_plays.append(play.replace('3a', ':').replace(';', ':').replace('a dropped fly', 'an error').replace('a muffed throw', 'an error'))
+        if not 'No play.' in play:
+            if 'fielder\'s choice' in play:
+                fc = re.search(r"(out at first [a-z0-9]{1,2} to [a-z0-9]{1,2}, )reached on a fielder's choice", play)
+                if not fc is None:
+                    play = play.replace(fc.group(1), '')
+            play = play.replace('did not advance', 'no advance')
+            new_plays.append(play.replace('3a', ':').replace(';', ':').replace('a dropped fly', 'an error').replace('a muffed throw', 'an error'))
     return new_plays
