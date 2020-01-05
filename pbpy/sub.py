@@ -1,14 +1,15 @@
 import re
+import names
 
 class Sub:
     def __init__(self, text):
         self.team = get_sub_team(text)
-        [self.in, self.pos, self.out] = parse_sub(text)
+        [self.sub_in, self.pos, self.sub_out] = parse_sub(text)
 
     def match_sub_names(self, names):
-        self.in = names.match_name(self.team, self.in)
-        if not self.out is None:
-            self.out = names.match_name(self.team, self.out)
+        self.sub_in = names.match_name(self.team, self.sub_in)
+        if not self.sub_out is None:
+            self.sub_out = names.match_name(self.team, self.sub_out)
 
 def parse_sub(s):
     s = s.replace('/ ', '/ to x')

@@ -12,12 +12,12 @@ class Lineups:
             lu = self.h_lineup
         # else:
         #     raise()
-        if '/' in sub.in:
+        if '/' in sub.sub_in:
             if len(lu[lu['position'] == 'P']['name'].tolist()) > 1:
                 lu = lu[0:9]
 
-        if not sub.out is None:
-            sub_out_index = lu.index[lu['name'] == sub.out].tolist()[0]
+        if not sub.sub_out is None:
+            sub_out_index = lu.sub_index[lu['name'] == sub.sub_out].tolist()[0]
 
 
     def all_names(self, team):
