@@ -44,7 +44,7 @@ class Lineups:
             l = self.a_lineup
         for p in pos_list:
             d.append(l.loc[p].item())
-            return d
+        return d
 
 
 def get_lineups(game_id):
