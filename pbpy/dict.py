@@ -10,7 +10,7 @@ codes = {
     'homered': 'HR',
     'flied out': 'O',
     'flied into double play': 'O',
-    'flied into triple play': 'FITP',
+    'flied into triple play': 'O',
     'popped up': 'O',
     'popped out': 'O',
     'popped into double play': 'O',
@@ -134,18 +134,25 @@ base_codes = {
     'out': 0
 }
 run_codes = {
-    'reached first': 1,
-    'advanced to second': 2,
-    'stole second': 2,
-    'advanced to third': 3,
-    'stole third': 3,
-    'scored': 4,
-    'stole home': 4,
-    'out at first': 5,
-    'out at second': 6,
-    'out at third': 7,
-    'out at home': 8,
-    'out on the play': 10
+    'reached first': [1,1],
+    'reached on': [1,1],
+    'advanced to second': [2,1],
+    'stole second': [2,1],
+    'advanced to third': [3,1],
+    'stole third': [3,1],
+    'scored': [4,1],
+    'stole home': [4,1],
+    'grounded out':[1,0],
+    'grounded into double play':[1,0],
+    'grounded into triple play':[1,0],
+    'flied':[0,0],
+    'popped':[0,0],
+    'lined':[0,0],
+    'out at first': [1,0],
+    'out at second': [2,0],
+    'out at third': [3,0],
+    'out at home': [4,0],
+    'out on the play': [0,0]
 }
 loc_codes = {
     'to pitcher': 1,
