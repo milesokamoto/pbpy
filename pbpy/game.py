@@ -11,34 +11,43 @@ class Game:
         # self.meta = get_info(id) #should be separate db table
         self.game = get_pbp(self.id)
         self.play = 0
-        self.half = 0 # inning is div/2, top/bottom is even/odd
+        self.half = 0 # inning is trunc(div/2)+1, top/bottom is even/odd
         self.lineups = lineup.Lineups(self.id) # 2 lineup objects, 2 sub lists
         self.runners = ['']*3
-        self.state = [0,0,0] #balls/strikes/outs
-        self.h_order = 1
-        self.a_order = 1
+        self.outs = 0
+        self.count = [0, 0] #balls/strikes/outs
+        self.h_order = 0
+        self.a_order = 0
         self.score = [0,0]
-        self.defense = ['']*9
+        self.defense = self.get_defense()
         self.leadoff_fl = True
         self.names = names.NameDict(self.lineups)
+
+    def advance_half(self):
+        self.outs = 0
+        self.count = [0, 0]
+        self.half += 1
+        self.runners = ['']*3
+        self.get_defense()
 
     def parse_plays(self):
         for half in self.game:
             parse.parse_half(self, half)
 
-    def execute(self, p):
-        [self.state, self.runners, self.h_order, self.a_order, self.score] = play.result(p, self) #TODO
+    def parse_debug(self, half, play):
+        parsed = parse.parse(self.game[half][play], self)
+        return parsed
 
     def make_sub(self, s):
         self.lineups.make_sub(s, self)
         s.defense = self.get_defense()
 
     def get_defense(self):
-        if half % 2 == 0:
+        if self.half % 2 == 0:
             team = 'h'
         else:
             team = 'a'
-        self.defense = lineups.get_defense(team) #TODO
+        self.defense = self.lineups.get_defense(team) #TODO
 
     # def output(self):
     #     pass
