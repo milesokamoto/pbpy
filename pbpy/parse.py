@@ -5,15 +5,19 @@ import sub
 def parse_half(g, half):
     for play in half:
         parse(play)
+        g.play += 1
+    g.advance_half()
 
-def parse(s, g):
-    [type, text] = get_type(s)
+def parse(pbp_txt, g):
+    [type, txt] = get_type(pbp_txt)
     if type == 's':
-        s = sub.Sub(text)
-        g.make_sub(g)
+        s = sub.Sub(pbp_txt, g)
+        return s
+        # g.make_sub(s)
     elif type == 'p':
-        p = play.Play(text)
-        p.execute(g)
+        p = play.Play(pbp_txt, g)
+        return p
+        # p.execute(g)
 
 def get_type(s): #  PLAY OR SUB -> BREAK DOWN INTO PARTS
     """
