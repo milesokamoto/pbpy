@@ -22,20 +22,11 @@ class Play:
         for p in self.parts:
             if not p == '':
                 self.events.append(RunEvent(p))
-
-    def match_players(self):
-        for e in events:
-            e.player = self.game.names.match_name(self.off_team, e.player)
-
-    def execute(self):
         self.match_players()
 
-        if self.type == 'b':
-            if self.off_team == 'a':
-                self.game.a_order = (self.game.a_order + 1) % 9
-            else:
-                self.game.h_order = (self.game.h_order + 1) % 9
-
+    def match_players(self):
+        for e in self.events:
+            e.player = self.game.names.match_name(self.off_team, e.player)
 
 class BatEvent:
     def __init__(self, text):
@@ -45,6 +36,12 @@ class BatEvent:
         self.fielders = get_fielders(text, self.event)
         self.loc = self.get_loc()
         self.dest = self.get_bat_dest()
+        self.correct_fielders()
+
+    def correct_fielders(self):
+        if self.event == 'grounded out':
+            if len(self.fielders) == 1:
+                self.fielders.append(3)
 
     def get_loc(self):
         loc = [dict.loc_codes[key] for key in dict.loc_codes.keys() if key in self.text]
@@ -54,7 +51,7 @@ class BatEvent:
             return self.fielders[0]
 
     def get_bat_dest(self):
-        return [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in self.text][-1]
+        return [[dict.run_codes[key]] for key in dict.run_codes.keys() if key in self.text][-1]
 
 
 
@@ -63,16 +60,16 @@ class RunEvent:
         self.text = text
         [self.event, self.code] = get_event(self.text, 'r')
         self.player = get_primary(self.text, self.event)
-        self.start = self.get_run_start()
         self.end = self.get_run_dest()
-
-    def get_run_start(runner, game):
-        self.start = game.runners.match(runner) + 1
 
     def get_run_dest(self):
         return [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in self.text][-1]
 
 
+class Runner:
+    def __init__(self, name, g):
+        self.name = name
+        self.resp = g.defense[0]
 
 def get_event(text, type):
     if type == 'b':
