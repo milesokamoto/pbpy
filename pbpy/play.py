@@ -14,7 +14,8 @@ class Play:
         self.primary = self.game.names.match_name(self.off_team, get_primary(text, self.event))
         self.parts = self.text.split(':')
         self.events = []
-        if self.primary == self.game.lineups.get_batter(self.game):
+        self.batter = self.game.lineups.get_batter(self.game)
+        if self.primary == self.batter:
             self.events.append(BatEvent(self.parts.pop(0)))
             self.type = 'b'
         else:
@@ -51,7 +52,7 @@ class BatEvent:
             return self.fielders[0]
 
     def get_bat_dest(self):
-        return [[dict.run_codes[key]] for key in dict.run_codes.keys() if key in self.text][-1]
+        return [dict.run_codes[key] for key in dict.run_codes.keys() if key in self.text][-1]
 
 
 
@@ -63,7 +64,7 @@ class RunEvent:
         self.end = self.get_run_dest()
 
     def get_run_dest(self):
-        return [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in self.text][-1]
+        return [dict.run_codes[key] for key in dict.run_codes.keys() if key in self.text][-1]
 
 
 class Runner:
