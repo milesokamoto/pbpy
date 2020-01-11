@@ -4,6 +4,8 @@ import pandas as pd
 import re
 import lineup
 import names
+import output
+import play
 
 class Game:
     def __init__(self, id):
@@ -13,7 +15,8 @@ class Game:
         self.play = 0
         self.half = 0 # inning is (half/2)+1, top/bottom is even/odd
         self.lineups = lineup.Lineups(self.id) # 2 lineup objects, 2 sub lists
-        self.runners = ['']*3
+        self.runners = ['']*4
+        self.dest = ['']*4
         self.outs = 0
         self.count = [0, 0] #balls/strikes/outs
         self.h_order = 0
@@ -22,6 +25,7 @@ class Game:
         self.defense = self.get_defense()
         self.leadoff_fl = True
         self.names = names.NameDict(self.lineups)
+        self.out = []
 
     def advance_half(self):
         self.outs = 0
@@ -40,30 +44,34 @@ class Game:
         return parsed
 
     def execute_play(self, p):
-        for e in reverse(p.events):
-            if type(e) == play.BatEvent:
+        new_runners = ['']*4
+        for e in reversed(p.events):
+            if type(e) == play.RunEvent:
+                for i in range(1, len(g.runners)):
+                    if self.runners[i] != '':
+                        runner = self.runners[i]
+                        if runner.name == e.player:
+                            self.dest[i] = e.dest[1] if e.dest[1] == 0 else e.dest[0]
+            else:
                 r = play.Runner(e.player, self)
                 if e.code in ['E', 'INT']:
                     r.resp = ''
-                if e.dest[1] == 1:
-                    if e.dest[0] in [1,2,3]:
-                        self.runners[e.dest[0]-1] = r
-                    elif e.dest == 4:
-                        self.score[self.half % 2] += 1
-                else:
+                self.runners[0] = r
+                self.dest[0] = e.dest[1] if e.dest[1] == 0 else e.dest[0]
+        for i in range(0, 4):
+            if self.dest[i] != '':
+                if self.dest[i] in [1,2,3]:
+                    new_runners[self.dest[i]] = self.runners[i]
+                elif self.dest[i] == 4:
+                    self.score[self.half % 2] += 1
+                elif self.dest[i] == 0:
                     self.outs += 1
-            else:
-                for i in range(0, len(runners)):
-                    if self.runners[i] != '':
-                        runner = self.runners[i]
-                        self.runners[i] = ''
-                        if runner.name == e.player:
-                            if e.dest[1] == 0:
-                                self.outs += 1
-                            elif e.dest[0] in [1,2,3]:
-                                self.runners[e.dest[0]-1] = runner
-                            elif e.dest[0] == 4:
-                                self.score[self.half % 2] += 1
+
+        self.out.append(output.Output(self, p))
+
+        self.runners = new_runners
+        self.dest = ['']*4
+
         if p.type == 'b':
             if p.off_team == 'a':
                 self.a_order = (self.a_order + 1) % 9
