@@ -11,7 +11,7 @@ class Game:
         # self.meta = get_info(id) #should be separate db table
         self.game = get_pbp(self.id)
         self.play = 0
-        self.half = 0 # inning is trunc(div/2)+1, top/bottom is even/odd
+        self.half = 0 # inning is (half/2)+1, top/bottom is even/odd
         self.lineups = lineup.Lineups(self.id) # 2 lineup objects, 2 sub lists
         self.runners = ['']*3
         self.outs = 0
@@ -31,12 +31,45 @@ class Game:
         self.get_defense()
 
     def parse_plays(self):
+        game_plays = []
         for half in self.game:
-            parse.parse_half(self, half)
+            game_plays.append(parse.parse_half(self, half))
 
     def parse_debug(self, half, play):
         parsed = parse.parse(self.game[half][play], self)
         return parsed
+
+    def execute_play(self, p):
+        for e in reverse(p.events):
+            if type(e) == play.BatEvent:
+                r = play.Runner(e.player, self)
+                if e.code in ['E', 'INT']:
+                    r.resp = ''
+                if e.dest[1] == 1:
+                    if e.dest[0] in [1,2,3]:
+                        self.runners[e.dest[0]-1] = r
+                    elif e.dest == 4:
+                        self.score[self.half % 2] += 1
+                else:
+                    self.outs += 1
+            else:
+                for i in range(0, len(runners)):
+                    if self.runners[i] != '':
+                        runner = self.runners[i]
+                        self.runners[i] = ''
+                        if runner.name == e.player:
+                            if e.dest[1] == 0:
+                                self.outs += 1
+                            elif e.dest[0] in [1,2,3]:
+                                self.runners[e.dest[0]-1] = runner
+                            elif e.dest[0] == 4:
+                                self.score[self.half % 2] += 1
+        if p.type == 'b':
+            if p.off_team == 'a':
+                self.a_order = (self.a_order + 1) % 9
+            else:
+                self.h_order = (self.h_order + 1) % 9
+        self.play += 1
 
     def make_sub(self, s):
         self.lineups.make_sub(s, self)
@@ -47,7 +80,7 @@ class Game:
             team = 'h'
         else:
             team = 'a'
-        self.defense = self.lineups.get_defense(team) #TODO
+        return self.lineups.get_defense(team)
 
     # def output(self):
     #     pass
