@@ -45,9 +45,10 @@ class Game:
 
     def execute_play(self, p):
         new_runners = ['']*4
+        self.dest = ['']*4
         for e in reversed(p.events):
             if type(e) == play.RunEvent:
-                for i in range(1, len(g.runners)):
+                for i in range(1, len(self.runners)):
                     if self.runners[i] != '':
                         runner = self.runners[i]
                         if runner.name == e.player:
@@ -66,6 +67,9 @@ class Game:
                     self.score[self.half % 2] += 1
                 elif self.dest[i] == 0:
                     self.outs += 1
+            else:
+                if self.runners[i] != '':
+                    new_runners[i] = self.runners[i]
 
         self.out.append(output.Output(self, p))
 
