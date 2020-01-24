@@ -13,6 +13,8 @@ class Game:
         self.game = get_pbp(self.id)
         self.play = 0
         self.play_of_inn = 0
+        self.pbp_no = 0
+        self.inn_pbp_no = 0
         self.half = 0 # inning is (half/2)+1, top/bottom is even/odd
         self.lineups = lineup.Lineups(self.id) # 2 lineup objects, 2 sub lists
         self.runners = ['']*4
@@ -29,11 +31,13 @@ class Game:
         self.names = names.NameDict(self.lineups)
         self.output = []
         self.last_play = []
+        self.sub = []
 
     def advance_half(self):
         self.leadoff_fl = True
         self.outs = 0
         self.play_of_inn = 0
+        self.inn_pbp_no = 0
         self.count = [0, 0]
         self.half += 1
         self.runners = ['']*4
@@ -45,12 +49,18 @@ class Game:
 
     def parse_debug(self, half, play):
         while self.half < half:
-            parse.parse_half(self, self.game[half])
-            half += 1
-        while self.play_of_inn < play:
-            parsed = parse.parse(self.game[half][play], self)
-            play += 1
+            parse.parse_half(self, self.game[self.half])
+            print('parsing half ' + str(self.half))
+        while self.inn_pbp_no <= play:
+            parsed = parse.parse(self.game[self.half][self.inn_pbp_no], self)
+            print('parsing play ' + str(self.inn_pbp_no))
         return parsed
+
+    def parse_step(self):
+        parsed = parse.parse(self.game[self.half][self.inn_pbp_no + 1], self)
+        print('parsing play ' + str(self.inn_pbp_no+1))
+        return parsed
+
 
     def execute_play(self, p):
         self.last_play = p
@@ -96,6 +106,10 @@ class Game:
             else:
                 self.h_order = (self.h_order + 1) % 9
         self.play += 1
+        self.play_of_inn += 1
+        print('play no: ' + str(self.play))
+
+        self.sub = []
 
     def get_output(self, p):
         output = {'inning': round(self.half/2+.51),
@@ -108,15 +122,15 @@ class Game:
         'h_score': self.score[1],
         'batter': p.batter,
         'batter_order': self.a_order if self.half % 2 == 0 else self.h_order, #
-        'batter_pos': '', #
+        'batter_pos': self.lineups.a_lineup.iloc[self.a_order]['pos'] if self.half % 2 == 0 else  self.lineups.h_lineup.iloc[self.h_order]['pos'], #
         'batter_dest': self.dest[0],
-        'batter_play': '',
+        'batter_play': loc if type(self.last_play.events[0]) == 'play.BatEvent' else '',
         'pitcher': self.defense[0],
         'defense': self.defense[1:],
         'run_1': self.runners[1].name if self.runners[1] != '' else '',
         'run_1_resp': self.runners[1].resp if self.runners[1] != '' else '',
         'run_1_dest': self.dest[1] if self.runners[1] != '' else '',
-        'run_1_play': '',
+        'run_1_play': '', #defense
         'run_2': self.runners[2].name if self.runners[2] != '' else '',
         'run_2_resp': self.runners[2].resp if self.runners[2] != '' else '',
         'run_2_dest': self.dest[2] if self.runners[2] != '' else '',
@@ -125,10 +139,10 @@ class Game:
         'run_3_resp': self.runners[3].resp if self.runners[3] != '' else '',
         'run_3_dest': self.dest[3] if self.runners[3] != '' else '',
         'run_3_play': '',
-        'full_event': '', #
-        'leadoff_fl': 1 if self.play == 0 else 0,
-        'event_text': '',
-        'event_cd': 0, #
+        'full_event': p.event[0], #
+        'leadoff_fl': 1 if self.play_of_inn == 0 else 0,
+        'event_text': p.events[0].det_abb,
+        'event_cd': p.events[0].ev_code, #
         'bat_event_fl': 'T' if p.type == 'b' else 'F', #
         'sac_fl': 'T' if 'SAC' in p.text else 'F', #
         'event_outs': self.event_outs,
@@ -136,10 +150,11 @@ class Game:
         'fielder': '', #
         'batted_ball': '', #
         'errors': {}, #
-        'sb_fl': {},
-        'cs_fl': {},
-        'pk_fl': {},
-        'sub_fl': {}, # new, position, removed,
+        'h_fl': 'T' if p.events[0].ev_code in [20, 21, 22, 23] else 'F',
+        'sb_fl': 'T' if 'stole' in p.text else 'F',
+        'cs_fl': 'T' if 'caught stealing' in p.text else 'F',
+        'pk_fl': 'T' if 'picked off' in p.text else 'F',
+        'sub_fl': self.sub, # new, position, removed,
         'po': {}, #,
         'assist': {},
         'event_id': 0, #
@@ -151,7 +166,7 @@ class Game:
     def make_sub(self, s):
         self.lineups.make_sub(s, self)
         self.defense = self.get_defense()
-        self.runners = [play.Runner(r.name.replace(s.sub_out, s.sub_in), self) if not r == '' else '' for r in self.runners]
+        self.sub.append([s.sub_in, s.pos, s.sub_out])
 
     def get_defense(self):
         if self.half % 2 == 0:
