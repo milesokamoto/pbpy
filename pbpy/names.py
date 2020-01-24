@@ -10,27 +10,46 @@ class NameDict:
 
     def match_name(self, team, name):
         max = 0
+        match_team = team
         if team == "h":
-            d = self.h_names
+            d1 = self.h_names
+            d2 = self.a_names
         elif team == "a":
-            d = self.a_names
-        else:
-            raise
-        for full, short in d.items():
-            if short != name:
-                ratio = Levenshtein.ratio(name, full)
+            d1 = self.a_names
+            d2 = self.h_names
+        for full, short in d1.items():
+            if short == '':
+                ratio = name_similarity(name, full)
                 if ratio > max:
                     max = ratio
                     match = full
-            else:
+            elif short == name:
                 max = 1
                 match = full
-        d[match] = name
-        if team == "h":
-            self.h_names = d
-        elif team == "a":
-            self.a_names = d
-        return match
+        for full, short in d2.items():
+            if short == '':
+                ratio = name_similarity(name, full)
+                if ratio > max:
+                    max = ratio
+                    match = full
+                    match_team = 'a' if team == 'h' else 'h'
+            elif short == name:
+                max = 1
+                match = full
+                match_team = 'a' if team == 'h' else 'h'
+        if match_team == team:
+            d1[match] = name
+            if match_team == "h":
+                self.h_names = d1
+            elif match_team == "a":
+                self.a_names = d1
+        else:
+            d2[match] = name
+            if match_team == "h":
+                self.h_names = d2
+            elif match_team == "a":
+                self.a_names = d2
+        return [match, match_team]
 
 
 
@@ -45,3 +64,14 @@ def get_name(s: str) -> str:
     name = re.search(r"^[A-Za-z,\. '-]*?(?= [a-z])", s)
     if not name is None:
         return name.group()
+
+
+def name_similarity(part, full):
+    max_score = Levenshtein.ratio(part, full)
+    clean = full.replace(',', ' ').replace('-', ' ').replace('.', ' ').replace('  ', ' ')
+    rev = clean.split(' ')
+    rev.reverse()
+    score = Levenshtein.ratio(part, ' '.join(rev))
+    if score > max_score:
+        max_score = score
+    return score
