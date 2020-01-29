@@ -10,6 +10,18 @@ seasons = pd.read_csv('../seasons.csv', index_col = False)
 def get_table(url) -> list:
     return lh.fromstring(requests.get(url).content).xpath('//tr')
 
+def get_lu_table(url) -> list:
+    players = []
+    positions = []
+    lineups = lh.fromstring(requests.get(url).content).xpath('//tr[@class="smtext"]/td[1]')
+    team_spl = len(lh.fromstring(requests.get(url).content).xpath("//table[@class='mytable'][2]")[0])-3
+    for td in lineups:
+        players.append(td[0].text if len(td)>0 else td.text.replace('\n', ''))
+    pos = lh.fromstring(requests.get(url).content).xpath('//tr[@class="smtext"]/td[2]')
+    for td in pos:
+        positions.append(td.text)
+    return [[players[0:team_spl], players[team_spl:]], [positions[0:team_spl], positions[team_spl:]]]
+
 #gets scoreboard (teams, game ids, and urls) given a date
 def get_scoreboard(date):
     day = (date.today()-timedelta(days=300)).strftime("%m-%d-%Y").split('-')
