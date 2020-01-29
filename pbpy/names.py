@@ -8,9 +8,10 @@ class NameDict:
         self.h_names = {name: '' for name in lineups.all_names('h')}
         self.a_names = {name: '' for name in lineups.all_names('a')}
 
-    def match_name(self, team, name):
+    def match_name(self, team, name, type):
         max = 0
         match_team = team
+        match = ''
         if team == "h":
             d1 = self.h_names
             d2 = self.a_names
@@ -26,29 +27,31 @@ class NameDict:
             elif short == name:
                 max = 1
                 match = full
-        for full, short in d2.items():
-            if short == '':
-                ratio = name_similarity(name, full)
-                if ratio > max:
-                    max = ratio
-                    match = full
-                    match_team = 'a' if team == 'h' else 'h'
-            elif short == name:
-                max = 1
-                match = full
-                match_team = 'a' if team == 'h' else 'h'
-        if match_team == team:
-            d1[match] = name
-            if match_team == "h":
-                self.h_names = d1
-            elif match_team == "a":
-                self.a_names = d1
-        else:
-            d2[match] = name
-            if match_team == "h":
-                self.h_names = d2
-            elif match_team == "a":
-                self.a_names = d2
+        if type == 's':
+            for full, short in d2.items():
+                if short == '':
+                    ratio = name_similarity(name, full)
+                    if ratio > max:
+                        max = ratio
+                        match = full
+                        match_team = 'a' if team == 'h' else 'h'
+                elif short == name:
+                    if max < 1:
+                        match = full
+                        match_team = 'a' if team == 'h' else 'h'
+        if not match == '':
+            if match_team == team:
+                d1[match] = name
+                if match_team == "h":
+                    self.h_names = d1
+                elif match_team == "a":
+                    self.a_names = d1
+            else:
+                d2[match] = name
+                if match_team == "h":
+                    self.h_names = d2
+                elif match_team == "a":
+                    self.a_names = d2
         return [match, match_team]
 
 
@@ -67,6 +70,7 @@ def get_name(s: str) -> str:
 
 
 def name_similarity(part, full):
+    part = part.title()
     max_score = Levenshtein.ratio(part, full)
     clean = full.replace(',', ' ').replace('-', ' ').replace('.', ' ').replace('  ', ' ')
     rev = clean.split(' ')
@@ -74,4 +78,4 @@ def name_similarity(part, full):
     score = Levenshtein.ratio(part, ' '.join(rev))
     if score > max_score:
         max_score = score
-    return score
+    return max_score
