@@ -30,7 +30,8 @@ codes = {
     'fouled out': 'O',  # when doing fielders, add f after fielder code
     'infield fly': 'O',
     'hit by pitch': 'HBP',
-    'walked': 'BB',
+    'intentionally walked': 'BB',
+    'walked': 'IBB',
     'stole': 'SB',
     'picked off': 'PO',
     'caught stealing': 'CS',
@@ -74,6 +75,7 @@ mod_codes = {
     'fouled into double play': 'FDP',
     'fouled out': 'FL',  # when doing fielders, add f after fielder code
     'hit by pitch': 'HBP',
+    'intentionally walked': 'IBB',
     'walked': 'BB',
     'stole': 'SB',
     'picked off': 'PO',
@@ -146,6 +148,7 @@ run_codes = {
     'reached first': [1,1],
     'reached on': [1,1],
     'singled': [1,1],
+    'intentionally walked': [1,1],
     'walked': [1,1],
     'hit by pitch': [1,1],
     'doubled': [2,1],
