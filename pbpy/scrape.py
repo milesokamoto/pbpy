@@ -22,10 +22,9 @@ def get_lu_table(url) -> list:
         positions.append(td.text)
     return [[players[0:team_spl], players[team_spl:]], [positions[0:team_spl], positions[team_spl:]]]
 
-#gets scoreboard (teams, game ids, and urls) given a date
+#gets scoreboard (teams, game ids, and urls) given a date (MM-DD-YYYY)
 def get_scoreboard(date):
-    day = (date.today()-timedelta(days=300)).strftime("%m-%d-%Y").split('-')
-
+    day = date.split('-')
     url = 'https://stats.ncaa.org/season_divisions/' + str(seasons.loc[seasons['season'] == int(day[2]),'id'].item()) + '/scoreboards?utf8=%E2%9C%93&game_date='+ day[0] +'%2F'+ day[1] + '%2F' + day[2]
 
     page = requests.get(url)
