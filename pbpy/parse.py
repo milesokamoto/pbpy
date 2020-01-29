@@ -9,6 +9,9 @@ def parse_half(g, half):
         g.advance_half()
 
 def parse(pbp_txt, g):
+    if len(g.output) >= 3:
+        if g.output[-1]['h_fl'] == 0 and g.output[-2]['h_fl'] == 0 and g.output[-3]['h_fl'] == 0:
+            g.error = True
     [type, txt] = get_type(pbp_txt)
     if type == 's':
         s = sub.Sub(pbp_txt, g)
