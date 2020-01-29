@@ -2,15 +2,18 @@ import re
 import names
 
 class Sub:
-    def __init__(self, game, text):
+    def __init__(self, text, game):
         self.team = get_sub_team(game.half, get_sub_type(text))
         [self.sub_in, self.pos, self.sub_out] = parse_sub(text)
         self.match_sub_names(game.names)
 
     def match_sub_names(self, names):
-        self.sub_in = names.match_name(self.team, self.sub_in)
+        match = names.match_name(self.team, self.sub_in, 's')
+        if match[1] != self.team:
+            self.team = match[1]
+        self.sub_in = names.match_name(self.team, self.sub_in, 's')[0]
         if not self.sub_out is None:
-            self.sub_out = names.match_name(self.team, self.sub_out)
+            self.sub_out = names.match_name(self.team, self.sub_out, 's')[0]
 
 def parse_sub(s):
     s = s.replace('/ ', '/ to x')
@@ -18,9 +21,9 @@ def parse_sub(s):
     if not sub is None:
         sub = [sub.group(1), sub.group(2), sub.group(3)]
         if not sub[1] is None:
-            if 'hit' in s:
+            if ' hit ' in s:
                 sub[1] = 'ph'
-            elif 'ran' in s:
+            elif ' ran ' in s:
                 sub[1] = 'pr'
             else:
                 sub[1] = (re.search(r'(?<=to )[0-9a-z]{1,2}', sub[1]).group())
@@ -28,21 +31,18 @@ def parse_sub(s):
     raise TypeError('No sub')
 
 def get_sub_type(s):
-    if 'pinch' in s[1]:
+    if 'pinch' in s:
         return 'o'
         # if s[2] is None:
         #     [order]
-    elif 'to dh' in s[1]:
-        if 'for' in s:
-            return 'o'
-        else:
-            return 'd'
+    elif 'to dh' in s:
+        return 'o'
     else:
         return 'd'
 
 def get_sub_team(half, type):
     if half %2 == 0:
-        if type == "o":
+        if type == 'o':
             return 'a'
         else:
             return 'h'
