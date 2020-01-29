@@ -1,7 +1,6 @@
 import scrape
 import pandas as pd
 
-
 class Lineups:
     def __init__(self, game_id):
         [self.a_lineup, self.a_sub, self.h_lineup,
@@ -64,52 +63,8 @@ class Lineups:
 
 
 def get_lineups(game_id):
-    player = False
-    pos = False
-    lineup = []
-    away = []
-    home = []
-    away_pos = []
-    home_pos = []
-    pos_list = []
-    team = 0
-    pos_team = 0
-    i = 0
-    j = 0
-    skip = True
-    table = scrape.get_table(
-        'https://stats.ncaa.org/game/box_score/' + str(game_id))
-    for element in table:
-        j = 0
-        for row in element:
-            i = 0
-            for cell in row:
-                i += 1
-                if i == 1 and not cell.text is None:
-                    if cell.text == "Fielding":
-                        skip = False
-                    elif not skip:
-                        if not '\n' in cell.text:
-                            lineup.append(cell.text)
-            j += 1
-            if j == 2:
-                if row.text == "Pos":
-                    pos = True
-                elif pos and row.text == None:
-                    pos = False
-                    if pos_team == 0:
-                        away_pos = pos_list
-                        away = lineup
-                        pos_team = 1
-                    else:
-                        home_pos = pos_list
-                        home = lineup
-                    pos_list = []
-                    lineup = []
-                elif pos:
-                    pos_list.append(row.text.split('/')[0])
-    return compile_lineups(away, away_pos, home, home_pos)
-
+    [players, positions] = scrape.get_lu_table('https://stats.ncaa.org/game/box_score/' + str(game_id))
+    return compile_lineups(players[0], positions[0], players[1], positions[1])
 
 def get_index(list, type):
     if type == "l":
