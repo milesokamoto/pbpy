@@ -14,9 +14,13 @@ codes = {
     'popped up': 'O',
     'popped out': 'O',
     'popped into double play': 'O',
+    'popped into triple play': 'O',
     'lined into double play': 'O',
     'lined into triple play': 'O',
     'lined out': 'O',
+    'struck out looking': 'SO',
+    'struck out swinging': 'SO',
+    'struck out': 'SO',
     'grounded out': 'O',
     'out at first': 'O',  # ONLY FOR BATTERS - check on this for fielding
     'grounded into double play': 'O',
@@ -24,9 +28,7 @@ codes = {
     'hit into triple play': 'O',
     'fouled into double play': 'O',
     'fouled out': 'O',  # when doing fielders, add f after fielder code
-    'struck out looking': 'SO',
-    'struck out swinging': 'SO',
-    'struck out': 'SO',
+    'infield fly': 'O',
     'hit by pitch': 'HBP',
     'walked': 'BB',
     'stole': 'SB',
@@ -35,10 +37,13 @@ codes = {
     'wild pitch': 'WP',
     'passed ball': 'PB',
     'balk': 'BK',
-    'batter\'s interference': 'INT',
-    'catcher\'s interference': 'INT',
+    'out on batter\'s interference': 'BINT',
+    'reached on catcher\'s interference': 'C',
     'reached on a throwing error': 'E',
+    'reached on a fielding error': 'E',
     'reached on an error': 'E',
+    'reached first on a dropped fly' : 'E',
+    'reached on a dropped fly' : 'E',
     'reached on a fielder\'s choice': 'FC',
     'indifference' : 'DI'
 }
@@ -52,11 +57,15 @@ mod_codes = {
     'flied into triple play': 'FTP',
     'popped up': 'P',
     'popped out': 'P',
-    'infield fly': 'IF',  # label w/ flag?
+    'infield fly': 'P',  # label w/ flag?
     'popped into double play': 'PDP',
+    'popped into triple play': 'PTP',
     'lined into double play': 'LDP',
     'lined into triple play': 'LTP',
     'lined out': 'L',
+    'struck out looking': 'KL',
+    'struck out swinging': 'KS',
+    'struck out': 'K',
     'grounded out': 'G',
     'out at first': 'G',  # ONLY FOR BATTERS - check on this for fielding
     'grounded into double play': 'GDP',
@@ -64,10 +73,6 @@ mod_codes = {
     'hit into triple play': 'GTP',
     'fouled into double play': 'FDP',
     'fouled out': 'FL',  # when doing fielders, add f after fielder code
-    'struck out looking': 'KL',
-    'struck out swinging': 'KS',
-    'struck out': 'K',
-    'struck out ': 'K',
     'hit by pitch': 'HBP',
     'walked': 'BB',
     'stole': 'SB',
@@ -76,9 +81,10 @@ mod_codes = {
     'wild pitch': 'WP',
     'passed ball': 'PB',
     'balk': 'BK',
-    'batter\'s interference': 'BINT',
-    'catcher\'s interference': 'C',
+    'out on batter\'s interference': 'BINT',
+    'reached on catcher\'s interference': 'C',
     'error': 'E',
+    'dropped fly': 'E',
     'a throwing error': 'TH',
     'fielder\'s choice': 'FC'
 }
@@ -87,6 +93,7 @@ event_codes = {
     'F': 2,
     'P': 2,
     'L': 2,
+    'FL': 2,
     'GDP': 2,
     'FDP' : 2,
     'BINT': 2,
@@ -153,16 +160,21 @@ run_codes = {
     'grounded out':[1,0],
     'grounded into double play':[1,0],
     'grounded into triple play':[1,0],
+    'hit into double play':[1,0],
+    'hit into triple play':[1,0],
     'fouled': [0,0],
-    'struck out': [0,0],
     'flied':[0,0],
     'popped':[0,0],
     'lined':[0,0],
+    'infield fly':[0,0],
     'out at first': [1,0],
     'out at second': [2,0],
     'out at third': [3,0],
     'out at home': [4,0],
-    'out on the play': [0,0]
+    'out on the play': [0,0],
+    'struck out': [0,0],
+    'out on batter\'s interference': [0,0],
+    'reached on catcher\'s interference': [1,0]
 }
 loc_codes = {
     'to pitcher': 1,
