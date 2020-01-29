@@ -24,6 +24,7 @@ def get_lu_table(url) -> list:
 
 #gets scoreboard (teams, game ids, and urls) given a date (MM-DD-YYYY)
 def get_scoreboard(date):
+    date = '02-15-2019'
     day = date.split('-')
     url = 'https://stats.ncaa.org/season_divisions/' + str(seasons.loc[seasons['season'] == int(day[2]),'id'].item()) + '/scoreboards?utf8=%E2%9C%93&game_date='+ day[0] +'%2F'+ day[1] + '%2F' + day[2]
 
@@ -52,10 +53,12 @@ def get_scoreboard(date):
             game.append(0)
         matchups.append(m)
     for j in range(0,len(away)):
+        if len(teams.loc[teams['institution'] == home[j]]) < 1:
+            print("ERROR TEAM: " + home[j])
+        if len(teams.loc[teams['institution'] == away[j]]) < 1:
+            print("ERROR TEAM: " + away[j])
         ids.append(day[2] + day[0] + day[1] + "{:0>5d}".format(teams.loc[teams['institution'] == away[j]]['id'].item()) + "{:0>5d}".format(teams.loc[teams['institution'] == home[j]]['id'].item()) + str(game[j]))
-
-
-    return pd.DataFrame({'away': away, 'home': home, 'link': links, 'game': game})
+    return pd.DataFrame({'away': away, 'home': home, 'game': game, 'link': links, 'id': ids})
 
 # param: url is team page, returns list of links to box scores
 def get_team_schedule(url):
