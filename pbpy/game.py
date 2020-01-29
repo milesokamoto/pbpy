@@ -114,7 +114,9 @@ class Game:
         self.sub = []
 
     def get_output(self, p):
-        output = {'inning': round(self.half/2+.51),
+        output = {
+        'ncaa_id': self.id,
+        'inning': round(self.half/2+.51),
         'half': self.half % 2,
         'outs': self.outs,
         'balls': self.count[0],
