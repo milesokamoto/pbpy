@@ -9,8 +9,8 @@ import play
 class Game:
     def __init__(self, id):
         self.id = id
+        # self.game_id = scrape.get_game_id('https://stats.ncaa.org/game/box_score/' + id)
         # self.meta = get_info(id) #should be separate db table
-        self.game = get_pbp(self.id)
         self.play = 0
         self.play_of_inn = 0
         self.pbp_no = 0
@@ -29,6 +29,7 @@ class Game:
         self.defense = self.get_defense()
         self.leadoff_fl = True
         self.names = names.NameDict(self.lineups)
+        self.game = get_pbp(self.id)
         self.output = []
         self.last_play = []
         self.sub = []
@@ -41,7 +42,8 @@ class Game:
         self.count = [0, 0]
         self.half += 1
         self.runners = ['']*4
-        self.defense = self.get_defense()
+        if not parse.get_type(self.game[self.half][self.play_of_inn + 1])[0] == 's':
+            self.defense = self.get_defense()
 
     def parse_plays(self):
         for half in self.game:
@@ -57,8 +59,8 @@ class Game:
         return parsed
 
     def parse_step(self):
-        parsed = parse.parse(self.game[self.half][self.inn_pbp_no + 1], self)
-        print('parsing play ' + str(self.inn_pbp_no+1))
+        parsed = parse.parse(self.game[self.half][self.inn_pbp_no], self)
+        print('parsing play ' + str(self.inn_pbp_no))
         return parsed
 
 
@@ -157,7 +159,7 @@ class Game:
         'sub_fl': self.sub, # new, position, removed,
         'po': {}, #,
         'assist': {},
-        'event_id': 0, #
+        'event_no': self.play+1, #
         'event_text': '',
         'pbp_text': p.text
         }
@@ -165,7 +167,6 @@ class Game:
 
     def make_sub(self, s):
         self.lineups.make_sub(s, self)
-        self.defense = self.get_defense()
         self.sub.append([s.sub_in, s.pos, s.sub_out])
 
     def get_defense(self):
@@ -243,5 +244,5 @@ def clean_plays(plays) -> list:
                 if not fc is None:
                     play = play.replace(fc.group(1), '')
             play = play.replace('did not advance', 'no advance')
-            new_plays.append(play.replace('3a', ':').replace(';', ':').replace('a dropped fly', 'an error').replace('a muffed throw', 'an error'))
+            new_plays.append(play.replace('3a', ':').replace(';', ':').replace(': ', ':').replace('a muffed throw', 'an error'))
     return new_plays
