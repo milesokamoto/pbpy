@@ -154,10 +154,11 @@ class Game:
         'fielder': '', #
         'batted_ball': '', #
         'errors': {}, #
-        'h_fl': 'T' if p.events[0].ev_code in [20, 21, 22, 23] else 'F',
-        'sb_fl': 'T' if 'stole' in p.text else 'F',
-        'cs_fl': 'T' if 'caught stealing' in p.text else 'F',
-        'pk_fl': 'T' if 'picked off' in p.text else 'F',
+        'h_fl': 1 if p.events[0].ev_code in [20, 21, 22, 23] else 0,
+        'ab_fl':
+        'sb_fl': 1 if 'stole' in p.text else 0,
+        'cs_fl': 1 if 'caught stealing' in p.text else 0,
+        'pk_fl': 1 if 'picked off' in p.text else 0,
         'sub_fl': self.sub, # new, position, removed,
         'po': {}, #,
         'assist': {},
