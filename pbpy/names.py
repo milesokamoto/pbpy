@@ -36,7 +36,8 @@ class NameDict:
                         match = full
                         match_team = 'a' if team == 'h' else 'h'
                 elif short == name:
-                    if max < 1:
+                    if max < .8:
+                        max = 1
                         match = full
                         match_team = 'a' if team == 'h' else 'h'
         if not match == '':
@@ -70,8 +71,7 @@ def get_name(s: str) -> str:
 
 
 def name_similarity(part, full):
-    part = part.title()
-    max_score = Levenshtein.ratio(part, full)
+    max_score = Levenshtein.ratio(part.title(), full.title())
     clean = full.replace(',', ' ').replace('-', ' ').replace('.', ' ').replace('  ', ' ')
     rev = clean.split(' ')
     rev.reverse()
