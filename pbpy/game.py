@@ -148,8 +148,8 @@ class Game:
         'leadoff_fl': 1 if self.play_of_inn == 0 else 0,
         'event_text': p.events[0].det_abb,
         'event_cd': p.events[0].ev_code, #
-        'bat_event_fl': 'T' if p.type == 'b' else 'F', #
-        'sac_fl': 'T' if 'SAC' in p.text else 'F', #
+        'bat_event_fl': 1 if p.type == 'b' else 0, #
+        'sac_fl': 1 if 'SAC' in p.text else 0, #
         'event_outs': self.event_outs,
         'rbi': 1 if ', RBI' in p.text else int(p.text.split(' RBI')[0][-1]) if 'RBI' in p.text else 0,
         'fielder': '', #
