@@ -33,6 +33,7 @@ class Game:
         self.output = []
         self.last_play = []
         self.sub = []
+        self.error = False
 
     def advance_half(self):
         self.leadoff_fl = True
@@ -155,7 +156,7 @@ class Game:
         'batted_ball': '', #
         'errors': {}, #
         'h_fl': 1 if p.events[0].ev_code in [20, 21, 22, 23] else 0,
-        'ab_fl':
+        'ab_fl': 1 if p.events[0].ev_code in [2, 3, 18, 19, 20, 21, 22, 23] else 0,
         'sb_fl': 1 if 'stole' in p.text else 0,
         'cs_fl': 1 if 'caught stealing' in p.text else 0,
         'pk_fl': 1 if 'picked off' in p.text else 0,
