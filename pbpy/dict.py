@@ -30,8 +30,8 @@ codes = {
     'fouled out': 'O',  # when doing fielders, add f after fielder code
     'infield fly': 'O',
     'hit by pitch': 'HBP',
-    'intentionally walked': 'BB',
-    'walked': 'IBB',
+    'intentionally walked': 'IBB',
+    'walked': 'BB',
     'stole': 'SB',
     'picked off': 'PO',
     'caught stealing': 'CS',
@@ -91,18 +91,12 @@ mod_codes = {
     'fielder\'s choice': 'FC'
 }
 event_codes = {
-    'G': 2,
-    'F': 2,
-    'P': 2,
-    'L': 2,
     'FL': 2,
     'GDP': 2,
     'FDP' : 2,
     'BINT': 2,
-    'O' : 2,
     'KL': 3,
     'KS': 3,
-    'K': 3,
     'SO': 3,
     'SB': 4,
     'DI': 5,
@@ -114,15 +108,23 @@ event_codes = {
     'BB': 14,
     'IBB': 15,
     'HBP': 16,
-    'C': 17,
-    'E': 18,
     'FC': 19,
     '1B': 20,
     '2B': 21,
     '3B': 22,
-    'HR': 23
+    'HR': 23,
+    'G': 2,
+    'F': 2,
+    'P': 2,
+    'L': 2,
+    'C': 17,
+    'E': 18,
+    'O' : 2,
+    'K': 3,
 }
 pos_codes = {
+    'ph': 11,
+    'pr': 12,
     'p': 1,
     'c': 2,
     '1b': 3,
@@ -133,8 +135,6 @@ pos_codes = {
     'cf': 8,
     'rf': 9,
     'dh': 10,
-    'ph': 11,
-    'pr': 12
 }
 base_codes = {
     'first': 1,
