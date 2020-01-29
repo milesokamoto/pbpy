@@ -12,7 +12,7 @@ class Play:
         else:
             self.off_team = 'h'
         self.event = get_event(self.text, '')
-        self.primary = self.game.names.match_name(self.off_team, get_primary(text, self.event))[0]
+        self.primary = self.game.names.match_name(self.off_team, get_primary(text, self.event), 'p')[0]
         parts = self.text.split(':')
         self.events = []
         self.batter = self.game.lineups.get_batter(self.game)
@@ -29,7 +29,7 @@ class Play:
 
     def match_players(self):
         for e in self.events:
-            e.player = self.game.names.match_name(self.off_team, e.player)
+            e.player = self.game.names.match_name(self.off_team, e.player, 'p')[0]
 
     def get_info(self):
         if '(' in self.text:
@@ -93,11 +93,11 @@ def get_event(text, type):
     elif type == 'r':
         return [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in text][0]
     else:
-        e = [[key, dict.codes[key]] for key in dict.codes.keys() if key in text][0]
-        if e is None:
+        e = [[key, dict.codes[key]] for key in dict.codes.keys() if key in text]
+        if e == []:
             return [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in text][0]
         else:
-            return e
+            return e[0]
 
 def get_det_event(text, type):
     e = [[key, dict.mod_codes[key]] for key in dict.mod_codes.keys() if key in text]
@@ -115,9 +115,9 @@ def get_primary(text, event):
             spl = run_txt[0]
         else:
             spl = event[0]
-
+    else:
+        spl = event[0]
     return text.split(' ' + spl)[0]
-
 
 def get_fielders(text, event):
     return [dict.pos_codes[key] for key in dict.pos_codes.keys() if key in text.split(' ' + event)[1]]
