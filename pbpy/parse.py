@@ -4,20 +4,30 @@ import sub
 
 def parse_half(g, half):
     for play in half:
-        parse(play)
-        g.play += 1
-    g.advance_half()
+        parse(play, g)
+    if g.half < len(g.game)-1:
+        g.advance_half()
 
 def parse(pbp_txt, g):
     [type, txt] = get_type(pbp_txt)
     if type == 's':
         s = sub.Sub(pbp_txt, g)
-        return s
-        # g.make_sub(s)
+        g.make_sub(s)
+        if not get_type(g.game[g.half][g.play_of_inn + 1])[0] == 's':
+            g.defense = g.get_defense()
     elif type == 'p':
-        p = play.Play(pbp_txt, g)
+        try:
+            p = play.Play(pbp_txt, g)
+            g.execute_play(p)
+        except:
+            input('ERROR: ' + pbp_txt)
+            return None
+    g.pbp_no += 1
+    g.inn_pbp_no += 1
+    if type == 's':
+        return s
+    elif type == 'p':
         return p
-        # p.execute(g)
 
 def get_type(s): #  PLAY OR SUB -> BREAK DOWN INTO PARTS
     """
