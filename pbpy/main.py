@@ -16,15 +16,18 @@ def main():
     games["ncaa_id"] = ""
     games["error"] = ""
     for i in range(0, len(games)):
-        i=0
         ncaa_id = scrape.get_id('https://stats.ncaa.org' + games.iloc[i]['link'])
-        games.at[0, "ncaa_id"] = ncaa_id
+        games.at[i, "ncaa_id"] = ncaa_id
+        print(games.at[i, 'link'])
         g = game.Game(ncaa_id)
-        g.parse_plays()
+        try:
+            g.parse_plays()
+        except:
+            g.error = True
         if g.error:
-            games.at[0, "error"] = 'ERROR'
+            games.at[i, "error"] = 'ERROR'
             error_log.append(ncaa_id)
-            print("ERROR " + games.iloc[i])
+            print("ERROR " + str(games.iloc[i]))
         else:
             data = []
             for row in g.output:
