@@ -22,7 +22,7 @@ class Play:
         else:
             self.type = 'r'
         for p in parts:
-            if not p == '':
+            if not p == '' and not 'no advance' in p:
                 self.events.append(RunEvent(p))
         self.match_players()
         self.get_info()
