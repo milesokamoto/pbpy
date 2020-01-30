@@ -24,7 +24,6 @@ def get_lu_table(url) -> list:
 
 #gets scoreboard (teams, game ids, and urls) given a date (MM-DD-YYYY)
 def get_scoreboard(date):
-    date = '02-15-2019'
     day = date.split('-')
     url = 'https://stats.ncaa.org/season_divisions/' + str(seasons.loc[seasons['season'] == int(day[2]),'id'].item()) + '/scoreboards?utf8=%E2%9C%93&game_date='+ day[0] +'%2F'+ day[1] + '%2F' + day[2]
 
@@ -33,9 +32,14 @@ def get_scoreboard(date):
     matchups = []
     game = []
     ids = []
-    away = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[3]/a/text()")
+    away = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[3]")
+    for a in range(0, round(len(away)/2)):
+        print(away[2*a][0].text if not len(away[2*a]) < 1 else away[2*a].text.replace('\n', '').replace('               ', ''))
     home = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[2]/a/text()")
     links = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[1]/a/@href")
+    len(away)
+    len(home)
+    len(links)
     for i in range(0,len(away)):
         if '#' in away[i]:
             away[i] = away[i].split(' ')[2:]
