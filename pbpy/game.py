@@ -43,8 +43,9 @@ class Game:
         self.count = [0, 0]
         self.half += 1
         self.runners = ['']*4
-        if not parse.get_type(self.game[self.half][self.play_of_inn + 1])[0] == 's':
-            self.defense = self.get_defense()
+        if len(self.game[self.half]) > 1:
+            if not parse.get_type(self.game[self.half][self.play_of_inn + 1])[0] == 's':
+                self.defense = self.get_defense()
 
     def parse_plays(self):
         for half in self.game:
