@@ -10,14 +10,16 @@ def parse_half(g, half):
 
 def parse(pbp_txt, g):
     if len(g.output) >= 3:
-        if g.output[-1]['h_fl'] == 0 and g.output[-2]['h_fl'] == 0 and g.output[-3]['h_fl'] == 0:
+        if g.output[-1]['bat_event_fl'] == 0 and g.output[-2]['bat_event_fl'] == 0 and g.output[-3]['bat_event_fl'] == 0:
+            print("ERROR HERE")
             g.error = True
     [type, txt] = get_type(pbp_txt)
     if type == 's':
         s = sub.Sub(pbp_txt, g)
         g.make_sub(s)
-        if not get_type(g.game[g.half][g.play_of_inn + 1])[0] == 's':
-            g.defense = g.get_defense()
+        if len(g.game[g.half]) > g.play_of_inn + 1:
+            if not get_type(g.game[g.half][g.play_of_inn + 1])[0] == 's':
+                g.defense = g.get_defense()
     elif type == 'p':
         try:
             p = play.Play(pbp_txt, g)
