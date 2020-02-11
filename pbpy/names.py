@@ -1,5 +1,8 @@
 import Levenshtein
 import re
+import parse
+import play
+import pandas as pd
 
 class NameDict:
     """docstring for NameDict."""
@@ -63,7 +66,7 @@ def match_all(g, team):
             for p in g.game[h]:
                 if parse.get_type(p)[0] == 'p':
                     n = play.get_primary(p, play.get_event(p, "")[0])
-                    if not n in a_pbp_names and not n is None:
+                    if not n in pbp_names and not n is None:
                         pbp_names.append(n)
         elif team == 'h' and h % 2 == 1:
             for p in g.game[h]:
@@ -77,7 +80,7 @@ def match_helper(box_names, pbp_names):
     combos = []
     for n1 in box_names.keys():
         for n2 in pbp_names:
-            combos.append([n1, n2, names.name_similarity(n1,n2)])
+            combos.append([n1, n2, name_similarity(n1,n2)])
     matches = []
     names_tbl = pd.DataFrame(combos, columns = ['pbp_name', 'box_name', 'sim'])
     while len(names_tbl) > 0:
