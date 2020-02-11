@@ -45,6 +45,7 @@ codes = {
     'reached on a fielding error': 'E',
     'reached first on a fielding error': 'E',
     'reached on an error': 'E',
+    'reached first on an error': 'E',
     'reached first on a dropped fly' : 'E',
     'reached on a dropped fly' : 'E',
     'reached on a fielder\'s choice': 'FC',
