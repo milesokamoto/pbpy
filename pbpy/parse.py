@@ -38,6 +38,11 @@ def parse(pbp_txt, g):
         return p
 
 def check_play(pbp_text, g):
+    pbp_text = pbp_text.replace('/ ', '/ to x')
+    subtest = re.search(r"^([A-Za-z,\. '-]*?(?= [a-z])|\/) (pinch (?:hit|ran)|to [0-9a-z]{1,2})* *(?:for ([A-Za-z,\. '-]*?)\.$)*", pbp_text)
+    if subtest is None:
+        if not play.get_event(pbp_text, '') == "None":
+            return False
     if ' pinch hit' in pbp_text and not 'for' in pbp_text:
         return False
     return True
