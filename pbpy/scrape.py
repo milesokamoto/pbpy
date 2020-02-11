@@ -20,7 +20,7 @@ def get_lu_table(url) -> list:
             team_spl = i
         else:
             text = lineups[i].text.split(',')
-            players.append(text[0] + ', ' + text[1])
+            players.append(text[0] + ',' + text[1])
             positions.append(text[2].split('/')[0].upper())
     return [[players[0:team_spl-2], players[team_spl-2:]], [positions[0:team_spl-2], positions[team_spl-2:]]]
 
