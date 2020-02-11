@@ -95,7 +95,10 @@ def get_event(text, type):
     else:
         e = [[key, dict.codes[key]] for key in dict.codes.keys() if key in text]
         if e == []:
-            return [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in text][0]
+            check = [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in text]
+            if check == []:
+                return 'None'
+            return check[0]
         else:
             return e[0]
 
