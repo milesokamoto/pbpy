@@ -13,7 +13,6 @@ class Game:
         # self.meta = get_info(id) #should be separate db table
         self.play = 0
         self.play_of_inn = 0
-        self.play_index = 0
         self.pbp_no = 0
         self.inn_pbp_no = 0
         self.half = 0 # inning is (half/2)+1, top/bottom is even/odd
@@ -40,13 +39,12 @@ class Game:
         self.leadoff_fl = True
         self.outs = 0
         self.play_of_inn = 0
-        self.play_index = 0
         self.inn_pbp_no = 0
         self.count = [0, 0]
         self.half += 1
         self.runners = ['']*4
         if len(self.game[self.half]) > 1:
-            if not parse.get_type(self.game[self.half][self.play_index])[0] == 's':
+            if not parse.get_type(self.game[self.half][0])[0] == 's':
                 self.defense = self.get_defense()
 
     def parse_plays(self):
@@ -116,7 +114,6 @@ class Game:
         print('play no: ' + str(self.play))
 
         self.sub = []
-        self.play_index += 1
 
     def get_output(self, p):
         output = {
@@ -179,7 +176,6 @@ class Game:
         #         return
         self.lineups.make_sub(s, self)
         self.sub.append([s.sub_in, s.pos, s.sub_out])
-        self.play_index += 1
 
     def get_defense(self):
         if self.half % 2 == 0:
