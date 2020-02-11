@@ -13,6 +13,7 @@ class Game:
         # self.meta = get_info(id) #should be separate db table
         self.play = 0
         self.play_of_inn = 0
+        self.play_index = 0
         self.pbp_no = 0
         self.inn_pbp_no = 0
         self.half = 0 # inning is (half/2)+1, top/bottom is even/odd
@@ -26,10 +27,10 @@ class Game:
         self.h_order = 0
         self.a_order = 0
         self.score = [0,0]
-        self.defense = self.get_defense()
         self.leadoff_fl = True
         self.names = names.NameDict(self.lineups)
         self.game = get_pbp(self.id)
+        self.defense = self.get_defense() if not parse.get_type(self.game[0][0]) == 's' else []
         self.output = []
         self.last_play = []
         self.sub = []
@@ -39,12 +40,13 @@ class Game:
         self.leadoff_fl = True
         self.outs = 0
         self.play_of_inn = 0
+        self.play_index = 0
         self.inn_pbp_no = 0
         self.count = [0, 0]
         self.half += 1
         self.runners = ['']*4
         if len(self.game[self.half]) > 1:
-            if not parse.get_type(self.game[self.half][self.play_of_inn + 1])[0] == 's':
+            if not parse.get_type(self.game[self.half][self.play_index])[0] == 's':
                 self.defense = self.get_defense()
 
     def parse_plays(self):
@@ -114,6 +116,7 @@ class Game:
         print('play no: ' + str(self.play))
 
         self.sub = []
+        self.play_index += 1
 
     def get_output(self, p):
         output = {
@@ -155,7 +158,7 @@ class Game:
         'rbi': 1 if ', RBI' in p.text else int(p.text.split(' RBI')[0][-1]) if 'RBI' in p.text else 0,
         'fielder': '', #
         'batted_ball': '', #
-        'errors': {}, #
+        'errors': {}, #Need to add dropped foul
         'h_fl': 1 if p.events[0].ev_code in [20, 21, 22, 23] else 0,
         'ab_fl': 1 if p.events[0].ev_code in [2, 3, 18, 19, 20, 21, 22, 23] else 0,
         'sb_fl': 1 if 'stole' in p.text else 0,
@@ -171,8 +174,12 @@ class Game:
         return output
 
     def make_sub(self, s):
+        # if s.pos == "ph":
+        #     if self.lineups.get_batter(self) != s.sub_out:
+        #         return
         self.lineups.make_sub(s, self)
         self.sub.append([s.sub_in, s.pos, s.sub_out])
+        self.play_index += 1
 
     def get_defense(self):
         if self.half % 2 == 0:
