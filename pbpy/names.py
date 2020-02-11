@@ -4,9 +4,9 @@ import re
 class NameDict:
     """docstring for NameDict."""
 
-    def __init__(self, lineups):
-        self.h_names = {name: '' for name in lineups.all_names('h')}
-        self.a_names = {name: '' for name in lineups.all_names('a')}
+    def __init__(self, g):
+        self.h_names = match_all(g, 'h')
+        self.a_names = match_all(g, 'a')
 
     def match_name(self, team, name, type):
         max = 0
@@ -55,7 +55,38 @@ class NameDict:
                     self.a_names = d2
         return [match, match_team]
 
+def match_all(g, team):
+    box_names = {s:'' for s in g.lineups.all_names(team)}
+    pbp_names = []
+    for h in range(0, len(g.game)):
+        if team == 'a' and h % 2 == 0:
+            for p in g.game[h]:
+                if parse.get_type(p)[0] == 'p':
+                    n = play.get_primary(p, play.get_event(p, "")[0])
+                    if not n in a_pbp_names and not n is None:
+                        pbp_names.append(n)
+        elif team == 'h' and h % 2 == 1:
+            for p in g.game[h]:
+                if parse.get_type(p)[0] == 'p':
+                    n = play.get_primary(p, play.get_event(p, "")[0])
+                    if not n in pbp_names and not n is None:
+                        pbp_names.append(n)
+    return match_helper(box_names, pbp_names)
 
+def match_helper(box_names, pbp_names):
+    combos = []
+    for n1 in box_names.keys():
+        for n2 in pbp_names:
+            combos.append([n1, n2, names.name_similarity(n1,n2)])
+    matches = []
+    names_tbl = pd.DataFrame(combos, columns = ['pbp_name', 'box_name', 'sim'])
+    while len(names_tbl) > 0:
+        max_index = names_tbl["sim"].idxmax()
+        match = names_tbl.loc[max_index]
+        names_tbl = names_tbl[names_tbl.pbp_name != match[0]]
+        names_tbl = names_tbl[names_tbl.box_name != match[1]]
+        box_names[match[0]] = match[1]
+    return box_names
 
 def get_name(s: str) -> str:
     """
