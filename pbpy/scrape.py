@@ -13,33 +13,36 @@ def get_table(url) -> list:
 def get_lu_table(url) -> list:
     players = []
     positions = []
-    lineups = lh.fromstring(requests.get(url).content).xpath('//tr[@class="smtext"]/td[1]')
-    team_spl = len(lh.fromstring(requests.get(url).content).xpath("//table[@class='mytable'][2]")[0])-3
-    for td in lineups:
-        players.append(td[0].text if len(td)>0 else td.text.replace('\n', ''))
-    pos = lh.fromstring(requests.get(url).content).xpath('//tr[@class="smtext"]/td[2]')
-    for td in pos:
-        positions.append(td.text)
+    team_spl = 0
+    lineups = lh.fromstring(requests.get(url).content).xpath("//table[@class='mytable'][2]/tr/td[1]")
+    for i in range(2, len(lineups)-1):
+        if lineups[i].text is None and team_spl == 0:
+            team_spl = i
+        else:
+            text = lineups[i].text.split(',')
+            players.append(text[0] + ', ' + text[1])
+            positions.append(text[2].split('/')[0])
     return [[players[0:team_spl], players[team_spl:]], [positions[0:team_spl], positions[team_spl:]]]
 
 #gets scoreboard (teams, game ids, and urls) given a date (MM-DD-YYYY)
 def get_scoreboard(date):
     day = date.split('-')
     url = 'https://stats.ncaa.org/season_divisions/' + str(seasons.loc[seasons['season'] == int(day[2]),'id'].item()) + '/scoreboards?utf8=%E2%9C%93&game_date='+ day[0] +'%2F'+ day[1] + '%2F' + day[2]
-
     page = requests.get(url)
     doc = lh.fromstring(page.content)
     matchups = []
     game = []
     ids = []
-    away = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[3]")
-    for a in range(0, round(len(away)/2)):
-        print(away[2*a][0].text if not len(away[2*a]) < 1 else away[2*a].text.replace('\n', '').replace('               ', ''))
-    home = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[2]/a/text()")
+    away = []
+    home = []
+    a_teams = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[3]")
+    for a in range(0, round(len(a_teams)/2)):
+        away.append(a_teams[2*a][0].text if not len(a_teams[2*a]) < 1 else a_teams[2*a].text.replace('\n', '').replace('               ', '').replace('            ', ''))
+    h_teams = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[2]")
+    for h in range(0, round(len(h_teams)/3)):
+        home.append(h_teams[3*h+1][0].text if not len(h_teams[3*h+1]) < 1 else h_teams[3*h+1].text.replace('\n', '').replace('               ', '').replace('            ', ''))
     links = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[1]/a/@href")
-    len(away)
-    len(home)
-    len(links)
+
     for i in range(0,len(away)):
         if '#' in away[i]:
             away[i] = away[i].split(' ')[2:]
@@ -61,7 +64,7 @@ def get_scoreboard(date):
             print("ERROR TEAM: " + home[j])
         if len(teams.loc[teams['institution'] == away[j]]) < 1:
             print("ERROR TEAM: " + away[j])
-        ids.append(day[2] + day[0] + day[1] + "{:0>5d}".format(teams.loc[teams['institution'] == away[j]]['id'].item()) + "{:0>5d}".format(teams.loc[teams['institution'] == home[j]]['id'].item()) + str(game[j]))
+        ids.append(day[2] + day[0] + day[1] + "{:0>6d}".format(teams.loc[teams['institution'] == away[j]]['id'].item()) + "{:0>6d}".format(teams.loc[teams['institution'] == home[j]]['id'].item()) + str(game[j]))
     return pd.DataFrame({'away': away, 'home': home, 'game': game, 'link': links, 'id': ids})
 
 # param: url is team page, returns list of links to box scores

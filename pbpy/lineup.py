@@ -63,7 +63,7 @@ class Lineups:
 
 
 def get_lineups(game_id):
-    [players, positions] = scrape.get_lu_table('https://stats.ncaa.org/game/box_score/' + str(game_id))
+    [players, positions] = scrape.get_lu_table('https://stats.ncaa.org/game/situational_stats/' + str(game_id))
     return compile_lineups(players[0], positions[0], players[1], positions[1])
 
 def get_index(list, type):
