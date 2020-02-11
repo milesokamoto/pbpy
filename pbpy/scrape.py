@@ -21,8 +21,8 @@ def get_lu_table(url) -> list:
         else:
             text = lineups[i].text.split(',')
             players.append(text[0] + ', ' + text[1])
-            positions.append(text[2].split('/')[0])
-    return [[players[0:team_spl], players[team_spl:]], [positions[0:team_spl], positions[team_spl:]]]
+            positions.append(text[2].split('/')[0].upper())
+    return [[players[0:team_spl-2], players[team_spl-2:]], [positions[0:team_spl-2], positions[team_spl-2:]]]
 
 #gets scoreboard (teams, game ids, and urls) given a date (MM-DD-YYYY)
 def get_scoreboard(date):
