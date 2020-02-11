@@ -7,7 +7,7 @@ def parse_half(g, half):
         if check_play(play, g):
             parse(play, g)
         else:
-            g.play_index += 1
+            g.inn_pbp_no += 1
     if g.half < len(g.game)-1:
         g.advance_half()
 
@@ -20,8 +20,8 @@ def parse(pbp_txt, g):
     if type == 's':
         s = sub.Sub(pbp_txt, g)
         g.make_sub(s)
-        if len(g.game[g.half]) > g.play_index:
-            if not get_type(g.game[g.half][g.play_index])[0] == 's':
+        if len(g.game[g.half]) > g.inn_pbp_no:
+            if not get_type(g.game[g.half][g.inn_pbp_no])[0] == 's':
                 g.defense = g.get_defense()
     elif type == 'p':
         try:
