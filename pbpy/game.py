@@ -27,8 +27,8 @@ class Game:
         self.a_order = 0
         self.score = [0,0]
         self.leadoff_fl = True
-        self.names = names.NameDict(self.lineups)
         self.game = get_pbp(self.id)
+        self.names = names.NameDict(self)
         self.defense = self.get_defense() if not parse.get_type(self.game[0][0]) == 's' else []
         self.output = []
         self.last_play = []
