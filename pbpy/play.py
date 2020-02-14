@@ -75,7 +75,7 @@ class RunEvent:
         [self.event, self.code] = get_event(self.text, 'r')
         [self.det_event, self.det_abb] = get_det_event(self.text, 'r')
         self.ev_code = dict.event_codes[self.det_abb] if not self.det_abb == '' else ''
-        self.player = get_primary(self.text, self.event)
+        self.player = get_primary(self.text, self.det_event)
         self.dest = self.get_run_dest()
 
     def get_run_dest(self):
