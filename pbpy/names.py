@@ -58,8 +58,12 @@ class NameDict:
                     self.a_names = d2
         return [match, match_team]
 
+
+
 def match_all(g, team):
-    box_names = {s:'' for s in g.lineups.all_names(team)}
+    starters = g.lineups.a_lineup['name'] if team == 'a' else g.lineups.h_lineup['name']
+    lu = starters[0:9]
+    box_names = {s:'' for s in lu}
     pbp_names = []
     for h in range(0, len(g.game)):
         if team == 'a' and h % 2 == 0:
@@ -74,21 +78,34 @@ def match_all(g, team):
                     n = play.get_primary(p, play.get_event(p, "")[0])
                     if not n in pbp_names and not n is None:
                         pbp_names.append(n)
-    return match_helper(box_names, pbp_names)
+    nm = match_helper(box_names, pbp_names)
+    if len(starters) > 9:
+        nm[starters[9]] = ''
+    subs = g.lineups.a_sub if team == 'a' else g.lineups.h_sub
+    for sub in subs:
+        nm[sub] = ''
+    return nm
+
+
 
 def match_helper(box_names, pbp_names):
-    combos = []
-    for n1 in box_names.keys():
-        for n2 in pbp_names:
-            combos.append([n1, n2, name_similarity(n1,n2)])
-    matches = []
-    names_tbl = pd.DataFrame(combos, columns = ['pbp_name', 'box_name', 'sim'])
-    while len(names_tbl) > 0:
-        max_index = names_tbl["sim"].idxmax()
-        match = names_tbl.loc[max_index]
-        names_tbl = names_tbl[names_tbl.pbp_name != match[0]]
-        names_tbl = names_tbl[names_tbl.box_name != match[1]]
-        box_names[match[0]] = match[1]
+    i=0
+    for key in box_names.keys():
+        if box_names[key] == '' and name_similarity(pbp_names[i], key) > .5:
+            box_names[key] = pbp_names[i]
+            i+=1
+    # combos = []
+    # for n1 in box_names.keys():
+    #     for n2 in pbp_names:
+    #         combos.append([n1, n2, name_similarity(n1,n2)])
+    # matches = []
+    # names_tbl = pd.DataFrame(combos, columns = ['pbp_name', 'box_name', 'sim'])
+    # while len(names_tbl) > 0:
+    #     max_index = names_tbl["sim"].idxmax()
+    #     match = names_tbl.loc[max_index]
+    #     names_tbl = names_tbl[names_tbl.pbp_name != match[0]]
+    #     names_tbl = names_tbl[names_tbl.box_name != match[1]]
+    #     box_names[match[0]] = match[1]
     return box_names
 
 def get_name(s: str) -> str:
@@ -110,6 +127,10 @@ def name_similarity(part, full):
     rev = clean.split(' ')
     rev.reverse()
     score = Levenshtein.ratio(part, ' '.join(rev))
+    if score > max_score:
+        max_score = score
+    if (len(full) - len(part)) > 5:
+        score = Levenshtein.ratio(part.title(), full.title()[0:len(part)])
     if score > max_score:
         max_score = score
     return max_score
