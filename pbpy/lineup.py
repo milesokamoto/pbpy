@@ -7,10 +7,7 @@ class Lineups:
             self.h_sub] = get_lineups(game_id)
 
     def make_sub(self, s, g):
-        if s.team == 'a':
-            lu = self.a_lineup
-        elif s.team == 'h':
-            lu = self.h_lineup
+        lu = self.a_lineup if s.team == 'a' else self.h_lineup
         if '/' in s.sub_in:
             if len(lu[lu['pos']=='P']) > 1:
                 lu = lu[0:9]
@@ -21,8 +18,14 @@ class Lineups:
                         r.name = s.sub_in
         if s.pos == 'ph':
             order = g.a_order if s.team == 'a' else g.h_order
-            lu.iloc[order]['name'] = s.sub_in
-            lu.iloc[order]['pos'] = 'PH'
+            if s.sub_out is None:
+                lu.iloc[order]['name'] = s.sub_in
+                lu.iloc[order]['pos'] = 'PH'
+            else:
+                if not len(lu.loc[lu['name'] == s.sub_out, 'name']) > 0:
+                    lu = self.a_lineup if s.team == 'h' else self.h_lineup
+                lu.loc[lu['name'] == s.sub_out, 'name'] = s.sub_in
+                lu.loc[lu['name'] == s.sub_in, 'pos'] = s.pos.upper()
         elif s.sub_out is None:
             lu.loc[lu['pos'] == s.pos.upper(), 'pos'] = ''
             lu.loc[lu['name'] == s.sub_in, 'pos'] = s.pos.upper()
@@ -82,10 +85,13 @@ def compile_lineups(away, away_pos, home, home_pos):
     a_lu_pos = list_index(away_pos, get_index(away, 'l'))
     a_sub = [s.replace('\xa0', '')
              for s in list_index(away, get_index(away, 's'))]
+    # a_sub_pos = [away_pos, get_index(away, 's')]
+
     h_lu = list_index(home, get_index(home, 'l'))
     h_lu_pos = list_index(home_pos, get_index(home, 'l'))
     h_sub = [s.replace('\xa0', '')
              for s in list_index(home, get_index(home, 's'))]
+    # h_sub_pos = [home_pos, get_index(home, 's'))]
     a_lineup = pd.DataFrame({'name': a_lu, 'pos': a_lu_pos})
     h_lineup = pd.DataFrame({'name': h_lu, 'pos': h_lu_pos})
     return [a_lineup, a_sub, h_lineup, h_sub]
