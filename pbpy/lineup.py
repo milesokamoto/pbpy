@@ -29,6 +29,8 @@ class Lineups:
         elif s.sub_out is None:
             lu.loc[lu['pos'] == s.pos.upper(), 'pos'] = ''
             lu.loc[lu['name'] == s.sub_in, 'pos'] = s.pos.upper()
+        elif len(lu.loc[lu['name'] == s.sub_in, 'name']) > 0:
+            lu.loc[lu['name'] == s.sub_in, 'pos'] = s.pos.upper()
         else:
             lu.loc[lu['name'] == s.sub_out, 'name'] = s.sub_in
             lu.loc[lu['name'] == s.sub_in, 'pos'] = s.pos.upper()
