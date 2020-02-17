@@ -7,12 +7,9 @@ class Play:
     def __init__(self, text, game):
         self.text = text
         self.game = game
-        if self.game.half % 2 == 0:
-            self.off_team = 'a'
-        else:
-            self.off_team = 'h'
-        self.event = get_event(self.text, '')
-        self.primary = self.game.names.match_name(self.off_team, get_primary(text, self.event), 'p')[0]
+        self.off_team = 'a' if self.game.half % 2 == 0 else 'h'
+        [self.event, self.code] = get_event(self.text, '')
+        self.primary = self.game.names.match_name(self.off_team, get_primary(text, self.event[0]), 'p')[0]
         parts = self.text.split(':')
         self.events = []
         self.batter = self.game.lineups.get_batter(self.game)
@@ -22,7 +19,7 @@ class Play:
         else:
             self.type = 'r'
         for p in parts:
-            if not p == '' and not 'no advance' in p:
+            if not p == '' and not ' no advance' in p:
                 self.events.append(RunEvent(p))
         self.match_players()
         self.get_info()
@@ -75,7 +72,10 @@ class RunEvent:
         [self.event, self.code] = get_event(self.text, 'r')
         [self.det_event, self.det_abb] = get_det_event(self.text, 'r')
         self.ev_code = dict.event_codes[self.det_abb] if not self.det_abb == '' else ''
-        self.player = get_primary(self.text, self.det_event)
+        if not self.det_event == '' and self.text.index(self.det_event) < self.text.index(self.event):
+            self.player = get_primary(self.text, self.det_event)
+        else:
+            self.player = get_primary(self.text, self.event)
         self.dest = self.get_run_dest()
 
     def get_run_dest(self):
@@ -114,12 +114,13 @@ def get_det_event(text, type):
 def get_primary(text, event):
     run_txt = [key for key in dict.run_codes.keys() if key in text]
     if not run_txt == []:
-        if text.index(run_txt[0]) < text.index(event[0]):
+        if text.index(run_txt[0]) < text.index(event):
             spl = run_txt[0]
         else:
-            spl = event[0]
+            if not len(event) == 0:
+                spl = event
     else:
-        spl = event[0]
+        spl = event
     return text.split(' ' + spl)[0]
 
 def get_fielders(text, event):
