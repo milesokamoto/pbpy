@@ -2,6 +2,7 @@ import requests
 import lxml.html as lh
 import pandas as pd
 from datetime import date, datetime, timedelta
+import re
 
 teams = pd.read_csv('teams.csv', index_col = False)
 seasons = pd.read_csv('../seasons.csv', index_col = False)
@@ -62,10 +63,13 @@ def get_scoreboard(date):
             game.append(0)
         matchups.append(m)
     for j in range(0,len(away)):
+        if len(re.search(r'([0-9]{1,2}-[0-9]{1,2})', home[j]).group()):
+            home[j] = home[j].replace(' (' + home[j].split(' (')[-1], '')
+            away[j] = away[j].replace(' (' + away[j].split(' (')[-1], '')
         if len(teams.loc[teams['institution'] == home[j]]) < 1:
             print("ERROR TEAM: " + home[j])
         if len(teams.loc[teams['institution'] == away[j]]) < 1:
-            print("ERROR TEAM: " + away[j])
+            print("ERROR TEAM: " + away[j]),
         ids.append(day[2] + day[0] + day[1] + "{:0>6d}".format(teams.loc[teams['institution'] == away[j]]['id'].item()) + "{:0>6d}".format(teams.loc[teams['institution'] == home[j]]['id'].item()) + str(game[j]))
     return pd.DataFrame({'away': away, 'home': home, 'game': game, 'link': links, 'id': ids})
 
