@@ -58,11 +58,13 @@ class Game:
         while self.inn_pbp_no <= play:
             parsed = parse.parse(self.game[self.half][self.inn_pbp_no], self)
             print('parsing play ' + str(self.inn_pbp_no))
+            print(self.game[self.half][self.inn_pbp_no])
         return parsed
 
     def parse_step(self):
         parsed = parse.parse(self.game[self.half][self.inn_pbp_no], self)
         print('parsing play ' + str(self.inn_pbp_no))
+        print(self.game[self.half][self.inn_pbp_no])
         return parsed
 
 
@@ -145,7 +147,7 @@ class Game:
         'run_3_resp': self.runners[3].resp if self.runners[3] != '' else '',
         'run_3_dest': self.dest[3] if self.runners[3] != '' else '',
         'run_3_play': '',
-        'full_event': p.event[0], #
+        'full_event': p.event, #
         'leadoff_fl': 1 if self.play_of_inn == 0 else 0,
         'event_text': p.events[0].det_abb,
         'event_cd': p.events[0].ev_code, #
