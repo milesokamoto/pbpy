@@ -22,7 +22,6 @@ codes = {
     'struck out swinging': 'SO',
     'struck out': 'SO',
     'grounded out': 'O',
-    'out at first': 'O',  # ONLY FOR BATTERS - check on this for fielding
     'grounded into double play': 'O',
     'hit into double play': 'O',
     'hit into triple play': 'O',
@@ -39,6 +38,7 @@ codes = {
     'wild pitch': 'WP',
     'passed ball': 'PB',
     'balk': 'BK',
+    'out at first': 'O',  # ONLY FOR BATTERS - check on this for fielding
     'out on batter\'s interference': 'BINT',
     'reached on catcher\'s interference': 'C',
     'reached on a throwing error': 'E',
@@ -72,7 +72,6 @@ mod_codes = {
     'struck out swinging': 'KS',
     'struck out': 'K',
     'grounded out': 'G',
-    'out at first': 'G',  # ONLY FOR BATTERS - check on this for fielding
     'grounded into double play': 'GDP',
     'hit into double play': 'GDP',
     'hit into triple play': 'GTP',
@@ -88,6 +87,7 @@ mod_codes = {
     'wild pitch': 'WP',
     'passed ball': 'PB',
     'balk': 'BK',
+    'out at first': 'G',  # ONLY FOR BATTERS - check on this for fielding
     'out on batter\'s interference': 'BINT',
     'reached on catcher\'s interference': 'C',
     'error': 'E',
