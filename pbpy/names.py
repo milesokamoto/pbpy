@@ -126,7 +126,7 @@ def name_similarity(part, full):
     clean = full.replace(',', ' ').replace('-', ' ').replace('.', ' ').replace('  ', ' ')
     rev = clean.split(' ')
     rev.reverse()
-    score = Levenshtein.ratio(part, ' '.join(rev))
+    score = Levenshtein.ratio(part.title(), ' '.join(rev))
     if score > max_score:
         max_score = score
     if (len(full) - len(part)) > 5:
