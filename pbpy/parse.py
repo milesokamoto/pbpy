@@ -12,8 +12,8 @@ def parse_half(g, half):
         g.advance_half()
 
 def parse(pbp_txt, g):
-    if len(g.output) >= 3:
-        if g.output[-1]['bat_event_fl'] == 0 and g.output[-2]['bat_event_fl'] == 0 and g.output[-3]['bat_event_fl'] == 0:
+    if len(g.output) >= 4:
+        if g.output[-1]['bat_event_fl'] == 0 and g.output[-2]['bat_event_fl'] == 0 and g.output[-3]['bat_event_fl'] == 0 and g.output[-4]['bat_event_fl'] == 0:
             print("ERROR HERE")
             g.error = True
     [type, txt] = get_type(pbp_txt)
@@ -28,7 +28,7 @@ def parse(pbp_txt, g):
             p = play.Play(pbp_txt, g)
             g.execute_play(p)
         except:
-            # input('ERROR: ' + pbp_txt)
+            input('ERROR: ' + pbp_txt + ' game: ' + str(g.id))
             return None
     g.pbp_no += 1
     g.inn_pbp_no += 1
