@@ -58,10 +58,8 @@ class NameDict:
                     self.a_names = d2
         return [match, match_team]
 
-
-
 def match_all(g, team):
-    starters = g.lineups.a_lineup['name'] if team == 'a' else g.lineups.h_lineup['name']
+    starters = [p.name for p in g.lineups.a_lineup] if team == 'a' else [p.name for p in g.lineups.h_lineup]
     lu = starters[0:9]
     box_names = {s:'' for s in lu}
     pbp_names = []
@@ -79,13 +77,26 @@ def match_all(g, team):
                     if not n in pbp_names and not n is None:
                         pbp_names.append(n)
     nm = match_helper(box_names, pbp_names)
+    def_plays = g.all_plays('a' if team == 'h' else 'h')
+    pitcher_subs = [p for p in def_plays if (' to p.' in p and not 'out' in p) or ' to p for ' in p]
     if len(starters) > 9:
-        nm[starters[9]] = ''
+        if ' for ' in pitcher_subs[0]:
+            nm[starters[9]] = pitcher_subs[0][0:-1].split(' to p for ')[1]
+        else:
+            nm[starters[9]] = ''
+    pitchers = [p.split(' to p ')[0] for p in pitcher_subs]
     subs = g.lineups.a_sub if team == 'a' else g.lineups.h_sub
+    plays = g.all_plays('')
+    p_no = 0
     for sub in subs:
-        nm[sub] = ''
+        if sub.pos in ('ph', 'pr'):
+            nm[sub.name] = [re.match(r'(.*)(?: pinch (?:hit|ran) for )' + nm[sub.sub], s).group(1) for s in plays if ' pinch ' in s and nm[sub.sub] in s.split(' for ')[1]][0]
+        elif sub.pos == 'p':
+            pitchers[p_no]
+            p_no += 1
+        else:
+            nm[sub.name] = [re.match(r'(.*)(?: to ' + sub.pos + ' for )' + nm[sub.sub], s).group(1) for s in plays if ' to ' + sub.pos + ' for ' in s and nm[sub.sub] in s.split(' for ')[1]][0]
     return nm
-
 
 
 def match_helper(box_names, pbp_names):
