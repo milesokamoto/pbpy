@@ -186,6 +186,15 @@ class Game:
             team = 'a'
         return self.lineups.get_defense(team)
 
+    def all_plays(self, team):
+        out = []
+        for i in range(0, len(self.game)):
+                x = self.game[i]
+                for p in x:
+                    if team == 'h' and i % 2 == 1 or team == 'a' and i % 2 == 0 or not team in ('h', 'a'):
+                        out.append(p)
+        return out
+
     # def output(self):
     #     pass
 
