@@ -37,7 +37,7 @@ class Play:
     def split_play(self):
         new_text = self.text
         parts = []
-        off_names = p.g.names.h_names if p.g.half % 2 == 1 else p.g.names.a_names
+        off_names = self.g.names.h_names if self.g.half % 2 == 1 else self.g.names.a_names
         players = {name: new_text.index(name) for name in off_names.values() if name in new_text}
         sort_players = {k: v for k, v in sorted(players.items(), key=lambda item: item[1])}
         if len(sort_players) > 1:
