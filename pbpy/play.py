@@ -6,13 +6,13 @@ import re
 class Play:
     def __init__(self, text, game):
         self.text = text
-        self.game = game
-        self.off_team = 'a' if self.game.half % 2 == 0 else 'h'
+        self.g = game
+        self.off_team = 'a' if self.g.half % 2 == 0 else 'h'
         [self.event, self.code] = get_event(self.text, '')
-        self.primary = self.game.names.match_name(self.off_team, get_primary(text, self.event[0]), 'p')[0]
-        parts = self.text.split(':')
+        self.primary = self.g.names.match_name(self.off_team, get_primary(text, self.event[0]), 'p')[0]
         self.events = []
-        self.batter = self.game.lineups.get_batter(self.game)
+        self.batter = self.g.lineups.get_batter(self.g)
+        parts = self.split_play()
         if self.primary == self.batter:
             self.events.append(BatEvent(parts.pop(0)))
             self.type = 'b'
@@ -26,13 +26,30 @@ class Play:
 
     def match_players(self):
         for e in self.events:
-            e.player = self.game.names.match_name(self.off_team, e.player, 'p')[0]
+            e.player = self.g.names.match_name(self.off_team, e.player, 'p')[0]
 
     def get_info(self):
         if '(' in self.text:
             count = re.search(r'[0-3]-[0-2]', self.text).group(0)
-            self.game.count = count.split('-')
-            self.game.seq = re.search(r'[KFBS]*(?=\))', self.text).group(0)
+            self.g.count = count.split('-')
+            self.g.seq = re.search(r'[KFBS]*(?=\))', self.text).group(0)
+
+    def split_play(self):
+        new_text = self.text
+        parts = []
+        off_names = p.g.names.h_names if p.g.half % 2 == 1 else p.g.names.a_names
+        players = {name: new_text.index(name) for name in off_names.values() if name in new_text}
+        sort_players = {k: v for k, v in sorted(players.items(), key=lambda item: item[1])}
+        if len(sort_players) > 1:
+            for name in list(sort_players.keys())[1:]:
+                split = new_text.split(name)
+                parts.append(split[0])
+                new_text = name + split[1]
+            parts.append(new_text)
+        else:
+            parts = [new_text]
+        return parts
+
 
 class BatEvent:
     def __init__(self, text):
