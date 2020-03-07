@@ -78,13 +78,13 @@ def match_all(g, team):
                         pbp_names.append(n)
     nm = match_helper(box_names, pbp_names)
     def_plays = g.all_plays('a' if team == 'h' else 'h')
-    pitcher_subs = [p for p in def_plays if (' to p.' in p and not 'out' in p) or ' to p for ' in p]
+    pitcher_subs = [p for p in def_plays if (' to p.' in p and not 'out to p.' in p and not 'up to p.' in p) or ' to p for ' in p]
     if len(starters) > 9:
         if ' for ' in pitcher_subs[0]:
             nm[starters[9]] = pitcher_subs[0][0:-1].split(' to p for ')[1]
         else:
             nm[starters[9]] = ''
-    pitchers = [p.split(' to p ')[0] for p in pitcher_subs]
+    pitchers = [p.split(' to p')[0] for p in pitcher_subs]
     subs = g.lineups.a_sub if team == 'a' else g.lineups.h_sub
     plays = g.all_plays('')
     p_no = 0
@@ -92,7 +92,7 @@ def match_all(g, team):
         if sub.pos in ('ph', 'pr'):
             nm[sub.name] = [re.match(r'(.*)(?: pinch (?:hit|ran) for )' + nm[sub.sub], s).group(1) for s in plays if ' pinch ' in s and nm[sub.sub] in s.split(' for ')[1]][0]
         elif sub.pos == 'p':
-            pitchers[p_no]
+            nm[sub.name] = pitchers[p_no]
             p_no += 1
         else:
             nm[sub.name] = [re.match(r'(.*)(?: to ' + sub.pos + ' for )' + nm[sub.sub], s).group(1) for s in plays if ' to ' + sub.pos + ' for ' in s and nm[sub.sub] in s.split(' for ')[1]][0]
