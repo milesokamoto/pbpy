@@ -7,38 +7,37 @@ class Lineups:
             self.h_sub]] = get_lineups(game_id)
 
     def make_sub(self, s, g):
-        # lu = self.a_lineup if s.team == 'a' else self.h_lineup
-        # if '/' in s.sub_in:
-        #     if len(lu[lu['pos']=='P']) > 1:
-        #         lu = lu[0:9]
-        # if s.pos == 'pr':
-        #     for r in g.runners:
-        #         if r != '':
-        #             if r.name == s.sub_out:
-        #                 r.name = s.sub_in
-        # if s.pos == 'ph':
-        #     order = g.a_order if s.team == 'a' else g.h_order
-        #     if s.sub_out is None:
-        #         lu.iloc[order]['name'] = s.sub_in
-        #         lu.iloc[order]['pos'] = 'PH'
-        #     else:
-        #         if not len(lu.loc[lu['name'] == s.sub_out, 'name']) > 0:
-        #             lu = self.a_lineup if s.team == 'h' else self.h_lineup
-        #         lu.loc[lu['name'] == s.sub_out, 'name'] = s.sub_in
-        #         lu.loc[lu['name'] == s.sub_in, 'pos'] = s.pos.upper()
-        # elif s.sub_out is None:
-        #     lu.loc[lu['pos'] == s.pos.upper(), 'pos'] = ''
-        #     lu.loc[lu['name'] == s.sub_in, 'pos'] = s.pos.upper()
-        # elif len(lu.loc[lu['name'] == s.sub_in, 'name']) > 0:
-        #     lu.loc[lu['name'] == s.sub_in, 'pos'] = s.pos.upper()
-        # else:
-        #     lu.loc[lu['name'] == s.sub_out, 'name'] = s.sub_in
-        #     lu.loc[lu['name'] == s.sub_in, 'pos'] = s.pos.upper()
-        # if s.team == 'a':
-        #     self.a_lineup = lu
-        # elif s.team == 'h':
-        #     self.h_lineup = lu
-        pass
+        lu = self.a_lineup if s.team == 'a' else self.h_lineup
+        subs = self.a_sub if s.team == 'a' else self.h_sub
+        names = g.names.a_names if s.team == 'a' else g.names.h_names
+        if '/' in s.sub_in:
+            if len([p.name for p in lu if p.pos == 'p']) > 1:
+                lu = lu[0:9]
+        if s.pos == 'pr':
+            for r in g.runners:
+                if r != '':
+                    if r.name == s.sub_out:
+                        r.name = s.sub_in
+        # sub_full = rev_dict(s.sub_in, names)
+        index = find_player_index(lu, s.sub_in)
+        if index == -1:
+            sub_index = find_player_index(subs, s.sub_in)
+            if s.pos == 'p' and find_pos_index(lu, 'p') == -1:
+                lu.append(subs[sub_index])
+            else:
+                if s.sub_out == '':
+                    for player in lu:
+                        if player.sub == s.sub_in:
+                            sub_out_full = player.name
+                out_index = find_player_index(lu, s.sub_out)
+                lu[out_index] = subs[sub_index]
+        else:
+            if s.pos in lu[index].switch:
+                lu[index].pos = s.pos
+        if s.team == 'a':
+            self.a_lineup = lu
+        else:
+            self.h_lineup = lu
 
 
     def get_batter(self, game):
@@ -68,6 +67,24 @@ class Lineups:
         return d
 
 
+def find_player_index(lu, name):
+    for i in range(0,len(lu)):
+        if lu[i].name == name:
+            return i
+    return -1
+
+def find_pos_index(lu, pos):
+    for i in range(0,len(lu)):
+        if lu[i].pos == pos:
+            return i
+    return -1
+
+def get_names(lu):
+    names = []
+    for batter in lu:
+        names.append(batter.name)
+    return names
+
 def get_lineups(game_id):
     [players, positions] = scrape.get_lu_table('https://stats.ncaa.org/game/situational_stats/' + str(game_id))
     return [compile_lineups(players[0], positions[0]), compile_lineups(players[1], positions[1])]
@@ -85,8 +102,6 @@ def compile_lineups(names, positions):
     lu = []
     subs = []
     for i in range(0, len(names)):
-        if names[i][-1] == ' ':
-            names[i] = names[i][0:-1]
         if '\xa0' in names[i]:
             if not i == 0:
                 if not '\xa0' in names[i-1]:
