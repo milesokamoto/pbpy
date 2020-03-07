@@ -29,6 +29,7 @@ class Game:
         self.leadoff_fl = True
         self.game = get_pbp(self.id)
         self.names = names.NameDict(self)
+        self.clean_game()
         self.defense = self.get_defense() if not parse.get_type(self.game[0][0]) == 's' else []
         self.output = []
         self.last_play = []
@@ -98,6 +99,8 @@ class Game:
                     new_runners[i] = self.runners[i]
 
         self.output.append(self.get_output(p))
+        print('play no: ' + str(self.play))
+        print(self.game[self.half][self.play_of_inn])
 
         if self.leadoff_fl == True:
             self.leadoff_fl = False
@@ -113,7 +116,7 @@ class Game:
                 self.h_order = (self.h_order + 1) % 9
         self.play += 1
         self.play_of_inn += 1
-        print('play no: ' + str(self.play))
+
 
         self.sub = []
 
@@ -130,7 +133,7 @@ class Game:
         'h_score': self.score[1],
         'batter': p.batter,
         'batter_order': self.a_order if self.half % 2 == 0 else self.h_order, #
-        'batter_pos': self.lineups.a_lineup.iloc[self.a_order]['pos'] if self.half % 2 == 0 else  self.lineups.h_lineup.iloc[self.h_order]['pos'], #
+        'batter_pos': self.lineups.a_lineup[self.a_order].pos if self.half % 2 == 0 else  self.lineups.h_lineup[self.h_order].pos, #
         'batter_dest': self.dest[0],
         'batter_play': loc if type(self.last_play.events[0]) == 'play.BatEvent' else '',
         'pitcher': self.defense[0],
@@ -194,6 +197,21 @@ class Game:
                     if team == 'h' and i % 2 == 1 or team == 'a' and i % 2 == 0 or not team in ('h', 'a'):
                         out.append(p)
         return out
+
+    def clean_game(self):
+        for i in range(0, len(self.game)):
+            delete = []
+            half = self.game[i]
+            for j in range(0, len(half)):
+                p = half[j]
+                h = [name for name in self.names.h_names.values() if name in p]
+                a = [name for name in self.names.a_names.values() if name in p]
+                if len(h) == 0 and len(a) == 0:
+                    delete.append(j)
+            deleted = 0
+            for k in delete:
+                self.game[i].pop(k-deleted)
+                deleted += 1
 
     # def output(self):
     #     pass
