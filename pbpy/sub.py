@@ -8,12 +8,19 @@ class Sub:
         self.match_sub_names(game.names)
 
     def match_sub_names(self, names):
-        match = names.match_name(self.team, self.sub_in, 's')
-        if match[1] != self.team:
-            self.team = match[1]
-        self.sub_in = names.match_name(self.team, self.sub_in, 's')[0]
+        n = names.h_names if self.team == 'h' else names.a_names
+        self.sub_in = rev_dict(self.sub_in, n)
         if not self.sub_out is None:
-            self.sub_out = names.match_name(self.team, self.sub_out, 's')[0]
+            self.sub_out = rev_dict(self.sub_out, n)
+        # match = names.match_name(self.team, self.sub_in, 's')
+        # if match[1] != self.team:
+        #     self.team = match[1]
+        # self.sub_in = names.match_name(self.team, self.sub_in, 's')[0]
+        # if not self.sub_out is None:
+            # self.sub_out = names.match_name(self.team, self.sub_out, 's')[0]
+
+def rev_dict(value, dict):
+    return [k for k, v in sorted(dict.items(), key=lambda item: item[1]) if v == value][0]
 
 def parse_sub(s):
     s = s.replace('/ ', '/ to x')
@@ -35,8 +42,6 @@ def get_sub_type(s):
         return 'o'
         # if s[2] is None:
         #     [order]
-    elif 'to dh' in s:
-        return 'o'
     else:
         return 'd'
 
