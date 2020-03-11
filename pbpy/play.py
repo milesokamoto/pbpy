@@ -13,6 +13,7 @@ class Play:
         self.events = []
         self.batter = self.g.lineups.get_batter(self.g)
         parts = self.split_play()
+        # print('parts: ' + str(parts))
         if self.primary == self.batter:
             self.events.append(BatEvent(parts.pop(0)))
             self.type = 'b'
@@ -38,7 +39,7 @@ class Play:
         new_text = self.text
         parts = []
         off_names = self.g.names.h_names if self.g.half % 2 == 1 else self.g.names.a_names
-        players = {name: new_text.index(name) for name in off_names.values() if name in new_text}
+        players = {name: new_text.index(name) for name in off_names.values() if name + ' ' in new_text}
         sort_players = {k: v for k, v in sorted(players.items(), key=lambda item: item[1])}
         if len(sort_players) > 1:
             for name in list(sort_players.keys())[1:]:
