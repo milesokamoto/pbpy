@@ -9,15 +9,20 @@ class Sub:
 
     def match_sub_names(self, names):
         n = names.h_names if self.team == 'h' else names.a_names
-        self.sub_in = rev_dict(self.sub_in_short, n)
-        if self.sub_in == -1:
-            self.team = 'a' if 'h' else 'h'
-            n = names.h_names if self.team == 'h' else names.a_names
+        if '/' in self.sub_in_short:
+            self.sub_in = '/'
+        else:
             self.sub_in = rev_dict(self.sub_in_short, n)
         if not self.sub_out_short is None:
             self.sub_out = rev_dict(self.sub_out_short, n)
         else:
             self.sub_out = None
+        if self.sub_in == -1 or self.sub_out == -1:
+            self.team = 'a' if self.team == 'h' else 'h'
+            n = names.h_names if self.team == 'h' else names.a_names
+            self.sub_in = rev_dict(self.sub_in_short, n)
+            if not self.sub_out_short is None:
+                self.sub_out = rev_dict(self.sub_out_short, n)
         # match = names.match_name(self.team, self.sub_in, 's')
         # if match[1] != self.team:
         #     self.team = match[1]
