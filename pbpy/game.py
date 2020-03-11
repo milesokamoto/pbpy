@@ -100,7 +100,7 @@ class Game:
 
         self.output.append(self.get_output(p))
         print('play no: ' + str(self.play))
-        print(self.game[self.half][self.play_of_inn])
+        # print(self.game[self.half][self.play_of_inn])
 
         if self.leadoff_fl == True:
             self.leadoff_fl = False
@@ -204,9 +204,11 @@ class Game:
             half = self.game[i]
             for j in range(0, len(half)):
                 p = half[j]
-                h = [name for name in self.names.h_names.values() if name in p]
-                a = [name for name in self.names.a_names.values() if name in p]
+                h = [name for name in self.names.h_names.values() if name + ' ' in p]
+                a = [name for name in self.names.a_names.values() if name + ' ' in p]
                 if len(h) == 0 and len(a) == 0:
+                    delete.append(j)
+                if 'failed pickoff attempt.' in p:
                     delete.append(j)
             deleted = 0
             for k in delete:
@@ -276,6 +278,8 @@ def clean_plays(plays) -> list:
     new_plays = []
     for play in plays:
         if not 'No play.' in play:
+            if play[0:3] == 'for':
+                play = '/ ' + play
             if 'fielder\'s choice' in play:
                 fc = re.search(r"(out at first [a-z0-9]{1,2} to [a-z0-9]{1,2}, )reached on a fielder's choice", play)
                 if not fc is None:
