@@ -78,7 +78,7 @@ def match_all(g, team):
                         pbp_names.append(n)
     nm = match_helper(box_names, pbp_names)
     def_plays = g.all_plays('a' if team == 'h' else 'h')
-    pitcher_subs = [p for p in def_plays if (' to p.' in p and not 'out to p.' in p and not 'up to p.' in p) or ' to p for ' in p]
+    pitcher_subs = [p for p in def_plays if (' to p.' in p and not 'out to p.' in p and not 'up to p.' in p and not '1b to p.' in p) or ' to p for ' in p]
     if len(starters) > 9:
         if ' for ' in pitcher_subs[0]:
             nm[starters[9]] = pitcher_subs[0][0:-1].split(' to p for ')[1]
@@ -96,15 +96,25 @@ def match_all(g, team):
             p_no += 1
         else:
             nm[sub.name] = [re.match(r'(.*)(?: to ' + sub.pos + ' for )' + nm[sub.sub], s).group(1) for s in plays if ' to ' + sub.pos + ' for ' in s and nm[sub.sub] in s.split(' for ')[1]][0]
+    blank = [k for k, v in sorted(nm.items(), key=lambda item: item[1]) if v == '']
+    for name in blank:
+        # print(name)
+        # print([p.__dict__ for p in subs])
+        sub_out = [[s.name, s.pos, s.sub] for s in subs if s.sub == name][0]
+        sub_txt = [t for t in g.all_plays('') if nm[sub_out[0]] + ' to ' + sub_out[1] + ' for ' in t]
+        if len(sub_txt) > 0:
+            nm[sub_out[2]] = re.search(r'(?<=' + nm[sub_out[0]] + r' to ' + sub_out[1] + r' for ).*(?=\.)', sub_txt[0]).group()
     return nm
 
 
 def match_helper(box_names, pbp_names):
     i=0
     for key in box_names.keys():
-        if box_names[key] == '' and name_similarity(pbp_names[i], key) > .5:
+        if box_names[key] == '' and name_similarity(pbp_names[i], key) >= .5:
             box_names[key] = pbp_names[i]
-            i+=1
+        # elif len(box_names) == len(pbp_names) and name_similarity(box_names[len(box_names-1)], pbp_names[len(pbp_names-1)]) < .5:
+            #Add in position not in the lineup and shift everyone else down (including subs order)
+        i+=1
     # combos = []
     # for n1 in box_names.keys():
     #     for n2 in pbp_names:
@@ -134,6 +144,8 @@ def get_name(s: str) -> str:
 
 def name_similarity(part, full):
     max_score = Levenshtein.ratio(part.title(), full.title())
+    if part.title() in full.title():
+        max_score = .5
     clean = full.replace(',', ' ').replace('-', ' ').replace('.', ' ').replace('  ', ' ')
     rev = clean.split(' ')
     rev.reverse()
