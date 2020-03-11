@@ -20,6 +20,13 @@ def get_lu_table(id) -> list:
     bs_a_pos = lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/' + str(id)).content).xpath("//table[@class='mytable'][2]/tr/td[2]")
     bs_h_lineup = lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/' + str(id)).content).xpath("//table[@class='mytable'][3]/tr/td[1]")
     bs_h_pos = lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/' + str(id)).content).xpath("//table[@class='mytable'][3]/tr/td[2]")
+
+    ss_order = [td[0].text.replace(' Totals', '') for td in ss_lineups if len(td) == 1]
+    bs_order = [bs_a_lineup[0].text[0:-1], bs_h_lineup[0].text[0:-1]]
+    if ss_order != bs_order:
+        flip = True
+    else:
+        flip = False
     for i in range(2, len(ss_lineups)-1):
         if ss_lineups[i].text is None and team_spl == 0:
             team_spl = i
@@ -29,6 +36,10 @@ def get_lu_table(id) -> list:
                 text[1] = text[1][0:-1]
             players.append(text[0] + ', ' + text[1])
             positions.append(text[2].split('/'))
+    if flip:
+        players = players[team_spl-2:] + players[0:team_spl-2]
+        positions = positions[team_spl-2:] + positions[0:team_spl-2]
+        team_spl = len(positions) - team_spl + 4
     bs_a_players = [bs_a_lineup[i][0].text for i in range(1, len(bs_a_lineup)-1)]
     bs_h_players = [bs_h_lineup[i][0].text for i in range(1, len(bs_h_lineup)-1)]
     if len(players[0:team_spl-2]) < len(bs_a_players):
@@ -38,6 +49,8 @@ def get_lu_table(id) -> list:
     if len(players[team_spl-2:]) < len(bs_h_players):
         players = players[0:team_spl-2] + bs_h_players
         positions = positions[0:team_spl-2] + [bs_h_pos[i].text.lower().split('/') for i in range(0, len(bs_h_pos)-1)]
+    for i in range(0, len(players)):
+        players[i] = players[i].replace('Ã±', 'n')
     return [[players[0:team_spl-2], players[team_spl-2:]], [positions[0:team_spl-2], positions[team_spl-2:]]]
 #TODO: Use positions to help with substitutions
 
