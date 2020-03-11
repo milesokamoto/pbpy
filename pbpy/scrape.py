@@ -11,20 +11,33 @@ seasons = pd.read_csv('../seasons.csv', index_col = False)
 def get_table(url) -> list:
     return lh.fromstring(requests.get(url).content).xpath('//tr')
 
-def get_lu_table(url) -> list:
+def get_lu_table(id) -> list:
     players = []
     positions = []
     team_spl = 0
-    lineups = lh.fromstring(requests.get(url).content).xpath("//table[@class='mytable'][2]/tr/td[1]")
-    for i in range(2, len(lineups)-1):
-        if lineups[i].text is None and team_spl == 0:
+    ss_lineups = lh.fromstring(requests.get('https://stats.ncaa.org/game/situational_stats/' + str(id)).content).xpath("//table[@class='mytable'][2]/tr/td[1]")
+    bs_a_lineup = lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/' + str(id)).content).xpath("//table[@class='mytable'][2]/tr/td[1]")
+    bs_a_pos = lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/' + str(id)).content).xpath("//table[@class='mytable'][2]/tr/td[2]")
+    bs_h_lineup = lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/' + str(id)).content).xpath("//table[@class='mytable'][3]/tr/td[1]")
+    bs_h_pos = lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/' + str(id)).content).xpath("//table[@class='mytable'][3]/tr/td[2]")
+    for i in range(2, len(ss_lineups)-1):
+        if ss_lineups[i].text is None and team_spl == 0:
             team_spl = i
         else:
-            text = lineups[i].text.split(', ')
+            text = ss_lineups[i].text.split(', ')
             if text[1][-1] == ' ':
                 text[1] = text[1][0:-1]
             players.append(text[0] + ', ' + text[1])
             positions.append(text[2].split('/'))
+    bs_a_players = [bs_a_lineup[i][0].text for i in range(1, len(bs_a_lineup)-1)]
+    bs_h_players = [bs_h_lineup[i][0].text for i in range(1, len(bs_h_lineup)-1)]
+    if len(players[0:team_spl-2]) < len(bs_a_players):
+        players = bs_a_players + players[team_spl-2:]
+        positions = [bs_a_pos[i].text.lower().split('/') for i in range(0, len(bs_a_pos)-1)] + positions[team_spl-2:]
+        team_spl = len(bs_a_players)+2
+    if len(players[team_spl-2:]) < len(bs_h_players):
+        players = players[0:team_spl-2] + bs_h_players
+        positions = positions[0:team_spl-2] + [bs_h_pos[i].text.lower().split('/') for i in range(0, len(bs_h_pos)-1)]
     return [[players[0:team_spl-2], players[team_spl-2:]], [positions[0:team_spl-2], positions[team_spl-2:]]]
 #TODO: Use positions to help with substitutions
 
