@@ -4,14 +4,20 @@ import names
 class Sub:
     def __init__(self, text, game):
         self.team = get_sub_team(game.half, get_sub_type(text))
-        [self.sub_in, self.pos, self.sub_out] = parse_sub(text)
+        [self.sub_in_short, self.pos, self.sub_out_short] = parse_sub(text)
         self.match_sub_names(game.names)
 
     def match_sub_names(self, names):
         n = names.h_names if self.team == 'h' else names.a_names
-        self.sub_in = rev_dict(self.sub_in, n)
-        if not self.sub_out is None:
-            self.sub_out = rev_dict(self.sub_out, n)
+        self.sub_in = rev_dict(self.sub_in_short, n)
+        if self.sub_in == -1:
+            self.team = 'a' if 'h' else 'h'
+            n = names.h_names if self.team == 'h' else names.a_names
+            self.sub_in = rev_dict(self.sub_in_short, n)
+        if not self.sub_out_short is None:
+            self.sub_out = rev_dict(self.sub_out_short, n)
+        else:
+            self.sub_out = None
         # match = names.match_name(self.team, self.sub_in, 's')
         # if match[1] != self.team:
         #     self.team = match[1]
@@ -20,7 +26,11 @@ class Sub:
             # self.sub_out = names.match_name(self.team, self.sub_out, 's')[0]
 
 def rev_dict(value, dict):
-    return [k for k, v in sorted(dict.items(), key=lambda item: item[1]) if v == value][0]
+    val = [k for k, v in sorted(dict.items(), key=lambda item: item[1]) if v == value]
+    if not val == []:
+        return val[0]
+    else:
+        return -1
 
 def parse_sub(s):
     s = s.replace('/ ', '/ to x')
