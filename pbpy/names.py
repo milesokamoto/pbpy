@@ -79,31 +79,92 @@ def match_all(g, team):
     nm = match_helper(box_names, pbp_names)
     def_plays = g.all_plays('a' if team == 'h' else 'h')
     pitcher_subs = [p for p in def_plays if (' to p.' in p and not 'out to p.' in p and not 'up to p.' in p and not '1b to p.' in p) or ' to p for ' in p]
-    if len(starters) > 9:
+    if len(starters) > 9 and len(pitcher_subs) > 0:
         if ' for ' in pitcher_subs[0]:
             nm[starters[9]] = pitcher_subs[0][0:-1].split(' to p for ')[1]
         else:
             nm[starters[9]] = ''
     pitchers = [p.split(' to p')[0] for p in pitcher_subs]
+    print(pitchers)
+    print(team)
     subs = g.lineups.a_sub if team == 'a' else g.lineups.h_sub
+    print([[s.pos, s.name] for s in subs])
     plays = g.all_plays('')
     p_no = 0
     for sub in subs:
         if sub.pos in ('ph', 'pr'):
-            nm[sub.name] = [re.match(r'(.*)(?: pinch (?:hit|ran) for )' + nm[sub.sub], s).group(1) for s in plays if ' pinch ' in s and nm[sub.sub] in s.split(' for ')[1]][0]
+            # print(sub.__dict__)
+            # print(r'(.*)(?: pinch (?:hit|ran) for )' + nm[sub.sub])
+            # print(nm[sub.sub])
+            match = [re.match(r'(.*)(?: pinch (?:hit|ran) for )' + nm[sub.sub] + r'\.', s).group(1) for s in plays if ' pinch ' in s and nm[sub.sub] in s[-len(sub.sub)-2:]]
+            if len(match) > 0:
+                nm[sub.name] = match[0]
+            else:
+                if (sub.name in nm.keys() and nm[sub.name] == '') or not sub.name in nm.keys():
+                    # print(sub.__dict__)
+                    players = g.lineups.a_lineup if team == 'a' else g.lineups.h_lineup
+                    sub_match = [p.pos for p in players if p.name == sub.sub]
+                    ph_dh = False
+                    if len(sub_match) > 0:
+                        ph_dh = sub_match[0] == 'dh'
+                    if sub.pos == 'ph' and ph_dh:
+                        match = [re.match(r'(.*)(?: to dh for )' + nm[sub.sub] + r'\.', s).group(1) for s in plays if nm[sub.sub] in s[-len(sub.sub)-2:]]
+                        if len(match) > 0:
+                            nm[sub.name] = match[0]
+                        else:
+                            nm[sub.name] = ''
+                    else:
+                        nm[sub.name] = ''
         elif sub.pos == 'p':
             nm[sub.name] = pitchers[p_no]
             p_no += 1
         else:
-            nm[sub.name] = [re.match(r'(.*)(?: to ' + sub.pos + ' for )' + nm[sub.sub], s).group(1) for s in plays if ' to ' + sub.pos + ' for ' in s and nm[sub.sub] in s.split(' for ')[1]][0]
+            # print(sub.__dict__)
+            # print(nm)
+            match = [re.match(r'(.*)(?: to ' + sub.pos + ' for )' + nm[sub.sub], s).group(1) for s in plays if ' to ' + sub.pos + ' for ' in s and nm[sub.sub] in s.split(' for ')[1]]
+            if len(match) > 0:
+                nm[sub.name] = match[0]
+            else:
+                nm[sub.name] = ''
+    check = [k for k, v in sorted(nm.items(), key=lambda item: item[1]) if name_similarity(v, k) < .5]
+    for i in range(0, len(check)):
+        for j in range(i, len(check)):
+            if name_similarity(check[i], nm[check[j]]) > name_similarity(check[i], nm[check[i]]) + .1:
+                if name_similarity(check[j], nm[check[i]]) > name_similarity(check[i], nm[check[i]]) + .1:
+                    temp = nm[check[i]]
+                    nm[check[i]] = nm[check[j]]
+                    nm[check[j]] = temp
     blank = [k for k, v in sorted(nm.items(), key=lambda item: item[1]) if v == '']
     for name in blank:
         # print(name)
         # print([p.__dict__ for p in subs])
-        sub_out = [[s.name, s.pos, s.sub] for s in subs if s.sub == name][0]
-        sub_txt = [t for t in g.all_plays('') if nm[sub_out[0]] + ' to ' + sub_out[1] + ' for ' in t]
-        if len(sub_txt) > 0:
-            nm[sub_out[2]] = re.search(r'(?<=' + nm[sub_out[0]] + r' to ' + sub_out[1] + r' for ).*(?=\.)', sub_txt[0]).group()
+        sub_out = [[s.name, s.pos, s.sub] for s in subs if s.sub == name]
+        if len(sub_out) > 0:
+            if sub_out[0][1] == 'pr':
+                sub_type = ' pinch ran'
+            elif sub_out[0][1] == 'ph':
+                sub_type = ' pinch hit'
+            else:
+                sub_type = ' to ' + sub_out[0][1]
+            sub_txt = [t for t in g.all_plays('') if nm[sub_out[0][0]] + sub_type + ' for ' in t]
+            if len(sub_txt) > 0:
+                nm[sub_out[0][2]] = re.search(r'(?<=' + nm[sub_out[0][0]] + sub_type + r' for ).*(?=\.)', sub_txt[0]).group()
+        else:
+            # print(name)
+            # print([[s.name, s.pos, s.sub] for s in subs])
+            sub_in = [[s.name, s.pos, s.sub] for s in subs if s.name == name]
+            if sub_in[0][1] == 'pr':
+                sub_type = ' pinch ran'
+            elif sub_in[0][1] == 'ph':
+                sub_type = ' pinch hit'
+            else:
+                sub_type = ' to ' + sub_in[0][1]
+            if len(sub_in) > 0:
+                sub_txt = [t for t in g.all_plays('') if sub_type + ' for ' + nm[sub_in[0][2]] in t]
+                if len(sub_txt) > 0:
+                    # print(r'.*(?=' + sub_type + r' for ' + nm[sub_in[0][2]] + r'\.)')
+                    nm[sub_in[0][0]] = re.search(r'.*(?=' + sub_type + r' for ' + nm[sub_in[0][2]] + r'\.)', sub_txt[0]).group()
+
     return nm
 
 
