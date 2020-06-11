@@ -24,12 +24,12 @@ def parse(pbp_txt, g):
             if not get_type(g.game[g.half][g.inn_pbp_no])[0] == 's':
                 g.defense = g.get_defense()
     elif type == 'p':
-        try:
-            p = play.Play(pbp_txt, g)
-            g.execute_play(p)
-        except:
-            input('ERROR: ' + pbp_txt + ' game: ' + str(g.id))
-            return None
+        # try:
+        p = play.Play(pbp_txt, g)
+        g.execute_play(p)
+        # except:
+        #     input('ERROR: ' + pbp_txt + ' game: ' + str(g.id))
+        #     return None
     g.pbp_no += 1
     g.inn_pbp_no += 1
     if type == 's':

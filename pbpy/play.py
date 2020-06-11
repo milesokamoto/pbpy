@@ -106,19 +106,26 @@ class Runner:
         self.resp = g.defense[0]
 
 def get_event(text, type):
+    parts = []
+    new_text = text
     if type == 'b':
-        return [[key, dict.codes[key]] for key in dict.codes.keys() if key in text][0]
+        events = {key: text.index(key) for key in dict.codes.keys() if key in text}
+        sort_events = {k: v for k, v in sorted(events.items(), key=lambda item: item[1])}
+        return [list(sort_events.keys())[0], dict.codes[list(sort_events.keys())[0]]]
     elif type == 'r':
         return [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in text][0]
     else:
-        e = [[key, dict.codes[key]] for key in dict.codes.keys() if key in text]
-        if e == []:
+        events = {key: text.index(key) for key in dict.codes.keys() if key in text}
+        if len(events) > 0:
+            sort_events = {k: v for k, v in sorted(events.items(), key=lambda item: item[1])}
+            events = [list(sort_events.keys())[0], dict.codes[list(sort_events.keys())[0]]]
+        if events == {}:
             check = [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in text]
             if check == []:
                 return 'None'
             return check[0]
         else:
-            return e[0]
+            return events
 
 def get_det_event(text, type):
     e = [[key, dict.mod_codes[key]] for key in dict.mod_codes.keys() if key in text]

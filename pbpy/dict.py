@@ -50,6 +50,7 @@ codes = {
     'reached first on a dropped fly' : 'E',
     'reached on a dropped fly' : 'E',
     'reached on a fielder\'s choice': 'FC',
+    'reached on a fielders choice': 'FC',
     'indifference' : 'DI'
 }
 mod_codes = {
@@ -95,6 +96,7 @@ mod_codes = {
     'a throwing error': 'TH',
     'fielder\'s choice': 'FC'
 }
+
 event_codes = {
     'FL': 2,
     'GDP': 2,
@@ -203,7 +205,7 @@ loc_codes = {
     'down the rf line': 9
 }
 sub_codes = {
-'pinch hit for' : 'PH',
-'pinch ran for' : 'PR',
-' to ' : 'DEF'
+    'pinch hit for' : 'PH',
+    'pinch ran for' : 'PR',
+    ' to ' : 'DEF'
 }

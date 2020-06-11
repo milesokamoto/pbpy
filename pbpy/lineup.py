@@ -10,6 +10,8 @@ class Lineups:
         lu = self.a_lineup if s.team == 'a' else self.h_lineup
         subs = self.a_sub if s.team == 'a' else self.h_sub
         names = g.names.a_names if s.team == 'a' else g.names.h_names
+        if s.sub_in == -1:
+            print(s.__dict__)
         if '/' in s.sub_in:
             if len([p.name for p in lu if p.pos == 'p']) > 1:
                 lu = lu[0:9]
@@ -25,11 +27,9 @@ class Lineups:
             if s.pos == 'p' and find_pos_index(lu, 'p') == -1:
                 lu.append(subs[sub_index])
             else:
-                if s.sub_out == '':
-                    for player in lu:
-                        if player.sub == s.sub_in:
-                            sub_out_full = player.name
                 out_index = find_player_index(lu, s.sub_out)
+                if out_index == -1:
+                    out_index = find_pos_index(lu, s.pos)
                 lu[out_index] = subs[sub_index]
         else:
             if s.pos in lu[index].switch:
@@ -86,7 +86,7 @@ def get_names(lu):
     return names
 
 def get_lineups(game_id):
-    [players, positions] = scrape.get_lu_table('https://stats.ncaa.org/game/situational_stats/' + str(game_id))
+    [players, positions] = scrape.get_lu_table(game_id)
     return [compile_lineups(players[0], positions[0]), compile_lineups(players[1], positions[1])]
 
 # def get_index(list, type):
@@ -101,6 +101,9 @@ def get_lineups(game_id):
 def compile_lineups(names, positions):
     lu = []
     subs = []
+    for n in range(len(names)):
+        if names[n][-1] == ' ':
+            names[n] = names[n][0:-1]
     for i in range(0, len(names)):
         if '\xa0' in names[i]:
             if not i == 0:

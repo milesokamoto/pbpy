@@ -59,13 +59,13 @@ class Game:
         while self.inn_pbp_no <= play:
             parsed = parse.parse(self.game[self.half][self.inn_pbp_no], self)
             print('parsing play ' + str(self.inn_pbp_no))
-            print(self.game[self.half][self.inn_pbp_no])
+            print(self.game[self.half][self.inn_pbp_no-1])
         return parsed
 
     def parse_step(self):
         parsed = parse.parse(self.game[self.half][self.inn_pbp_no], self)
         print('parsing play ' + str(self.inn_pbp_no))
-        print(self.game[self.half][self.inn_pbp_no])
+        print(self.game[self.half][self.inn_pbp_no-1])
         return parsed
 
 
@@ -170,7 +170,6 @@ class Game:
         'po': {}, #,
         'assist': {},
         'event_no': self.play+1, #
-        'event_text': '',
         'pbp_text': p.text
         }
         return output
@@ -206,7 +205,7 @@ class Game:
                 p = half[j]
                 h = [name for name in self.names.h_names.values() if name + ' ' in p]
                 a = [name for name in self.names.a_names.values() if name + ' ' in p]
-                if len(h) == 0 and len(a) == 0:
+                if len(h) == 0 and len(a) == 0 and not '/ for ' in p:
                     delete.append(j)
                 if 'failed pickoff attempt.' in p:
                     delete.append(j)
