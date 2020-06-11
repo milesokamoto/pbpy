@@ -1,4 +1,4 @@
-import scrape
+import modules.scrape as scrape
 import pandas as pd
 
 class Lineups:
@@ -6,8 +6,51 @@ class Lineups:
     Contains list of player objects
     """
     def __init__(self, game_id):
-        [[self.a_lineup, self.a_sub], [self.h_lineup,
-            self.h_sub]] = get_lineups(game_id)
+        self.game_id = game_id
+        self.a_lineup = None
+        self.a_sub = None
+        self.h_lineup = None
+        self.h_sub = None
+
+    def get_lineups(self):
+        """Given a game ID, assigns lists of player objects to Lineups object attributes
+
+        :param game_id: game ID
+        :type game_id: int
+        """            
+        [players, positions] = scrape.get_lu_table(self.game_id)
+        away = compile_lineups(players[0], positions[0])
+        home = compile_lineups(players[1], positions[1])
+        self.a_lineup = away['lineup']
+        self.a_subs = away['subs']
+        self.h_lineup = home['lineup']
+        self.h_subs = home['subs']
+
+    def get_batter(self, game):
+        if game.half % 2 == 0:
+            return game.lineups.a_lineup[game.a_order].name
+        else:
+            return game.lineups.h_lineup[game.h_order].name
+
+    def all_names(self, team):
+        if team == 'h':
+            return self.h_lineup['name'].to_list() + self.h_sub
+        elif team == 'a':
+            return self.a_lineup['name'].to_list() + self.a_sub
+
+    def get_defense(self, team):
+        pos_list = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
+        d = []
+        if team == 'h':
+            l = self.h_lineup
+        elif team == 'a':
+            l = self.a_lineup
+        for p in pos_list:
+            if len([player.pos for player in l if player.pos == p]) > 0:
+                d.append([player.name for player in l if player.pos == p][0])
+            else:
+                d.append('')
+        return d
 
     def make_sub(self, s, g):
         lu = self.a_lineup if s.team == 'a' else self.h_lineup
@@ -43,33 +86,6 @@ class Lineups:
             self.h_lineup = lu
 
 
-    def get_batter(self, game):
-        if game.half % 2 == 0:
-            return game.lineups.a_lineup[game.a_order].name
-        else:
-            return game.lineups.h_lineup[game.h_order].name
-
-    def all_names(self, team):
-        if team == 'h':
-            return self.h_lineup['name'].to_list() + self.h_sub
-        elif team == 'a':
-            return self.a_lineup['name'].to_list() + self.a_sub
-
-    def get_defense(self, team):
-        pos_list = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
-        d = []
-        if team == 'h':
-            l = self.h_lineup
-        elif team == 'a':
-            l = self.a_lineup
-        for p in pos_list:
-            if len([player.pos for player in l if player.pos == p]) > 0:
-                d.append([player.name for player in l if player.pos == p][0])
-            else:
-                d.append('')
-        return d
-
-
 def find_player_index(lu, name):
     for i in range(0,len(lu)):
         if lu[i].name == name:
@@ -88,9 +104,6 @@ def get_names(lu):
         names.append(batter.name)
     return names
 
-def get_lineups(game_id):
-    [players, positions] = scrape.get_lu_table(game_id)
-    return [compile_lineups(players[0], positions[0]), compile_lineups(players[1], positions[1])]
 
 # def get_index(list, type):
 #     if type == "l":
@@ -108,8 +121,8 @@ def compile_lineups(names, positions):
     :type names: list
     :param positions: player positions from box score
     :type positions: list
-    :return: list containing a 'lineup' list of Players and 'subs' list of Players
-    :rtype: list
+    :return: dict containing a 'lineup' list of Players and 'subs' list of Players
+    :rtype: dict
     """
     lu = []
     subs = []
@@ -134,7 +147,7 @@ def compile_lineups(names, positions):
             subs.append(Player(names[i].replace('\xa0', ''), positions[i][0], positions[i][1:] if len(positions) > 1 else [], len(lu) + 1, sub_out.replace('\xa0', '')))
         else:
             lu.append(Player(names[i], positions[i][0], positions[i][1:] if len(positions)>1 else [], len(lu) + 1, ''))
-    return [lu, subs]
+    return {"lineup":lu, "subs":subs}
 
 class Player:
     def __init__(self, name, pos, switch, order, sub):
