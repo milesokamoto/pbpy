@@ -1,7 +1,10 @@
-import pandas as pd
-import dict
-import names
 import re
+
+import pandas as pd
+
+import modules.names as names
+import modules.ref as ref
+
 
 class Play:
     def __init__(self, text, game):
@@ -57,7 +60,7 @@ class BatEvent:
         self.text = text
         [self.event, self.code] = get_event(self.text, 'b')
         [self.det_event, self.det_abb] = get_det_event(self.text, 'b')
-        self.ev_code = dict.event_codes[self.code]
+        self.ev_code = ref.event_codes[self.code]
         self.player = get_primary(self.text, self.event)
         self.fielders = get_fielders(text, self.event)
         self.loc = self.get_loc()
@@ -70,7 +73,7 @@ class BatEvent:
                 self.fielders.append(3)
 
     def get_loc(self):
-        loc = [dict.loc_codes[key] for key in dict.loc_codes.keys() if key in self.text]
+        loc = [ref.loc_codes[key] for key in ref.loc_codes.keys() if key in self.text]
         if len(loc) > 0:
             return loc[0]
         else:
@@ -80,16 +83,14 @@ class BatEvent:
                 return ''
 
     def get_bat_dest(self):
-        return [dict.run_codes[key] for key in dict.run_codes.keys() if key in self.text][-1]
-
-
+        return [ref.run_codes[key] for key in ref.run_codes.keys() if key in self.text][-1]
 
 class RunEvent:
     def __init__(self, text):
         self.text = text
         [self.event, self.code] = get_event(self.text, 'r')
         [self.det_event, self.det_abb] = get_det_event(self.text, 'r')
-        self.ev_code = dict.event_codes[self.det_abb] if not self.det_abb == '' else ''
+        self.ev_code = ref.event_codes[self.det_abb] if not self.det_abb == '' else ''
         if not self.det_event == '' and self.text.index(self.det_event) < self.text.index(self.event):
             self.player = get_primary(self.text, self.det_event)
         else:
@@ -97,7 +98,7 @@ class RunEvent:
         self.dest = self.get_run_dest()
 
     def get_run_dest(self):
-        return [dict.run_codes[key] for key in dict.run_codes.keys() if key in self.text][-1]
+        return [ref.run_codes[key] for key in ref.run_codes.keys() if key in self.text][-1]
 
 
 class Runner:
@@ -109,18 +110,18 @@ def get_event(text, type):
     parts = []
     new_text = text
     if type == 'b':
-        events = {key: text.index(key) for key in dict.codes.keys() if key in text}
+        events = {key: text.index(key) for key in ref.codes.keys() if key in text}
         sort_events = {k: v for k, v in sorted(events.items(), key=lambda item: item[1])}
-        return [list(sort_events.keys())[0], dict.codes[list(sort_events.keys())[0]]]
+        return [list(sort_events.keys())[0], ref.codes[list(sort_events.keys())[0]]]
     elif type == 'r':
-        return [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in text][0]
+        return [[key, ref.run_codes[key]] for key in ref.run_codes.keys() if key in text][0]
     else:
-        events = {key: text.index(key) for key in dict.codes.keys() if key in text}
+        events = {key: text.index(key) for key in ref.codes.keys() if key in text}
         if len(events) > 0:
             sort_events = {k: v for k, v in sorted(events.items(), key=lambda item: item[1])}
-            events = [list(sort_events.keys())[0], dict.codes[list(sort_events.keys())[0]]]
+            events = [list(sort_events.keys())[0], ref.codes[list(sort_events.keys())[0]]]
         if events == {}:
-            check = [[key, dict.run_codes[key]] for key in dict.run_codes.keys() if key in text]
+            check = [[key, ref.run_codes[key]] for key in ref.run_codes.keys() if key in text]
             if check == []:
                 return 'None'
             return check[0]
@@ -128,7 +129,7 @@ def get_event(text, type):
             return events
 
 def get_det_event(text, type):
-    e = [[key, dict.mod_codes[key]] for key in dict.mod_codes.keys() if key in text]
+    e = [[key, ref.mod_codes[key]] for key in ref.mod_codes.keys() if key in text]
     if e == []:
         return ['','']
     else:
@@ -137,7 +138,7 @@ def get_det_event(text, type):
 
 
 def get_primary(text, event):
-    run_txt = [key for key in dict.run_codes.keys() if key in text]
+    run_txt = [key for key in ref.run_codes.keys() if key in text]
     if not run_txt == []:
         if text.index(run_txt[0]) < text.index(event):
             spl = run_txt[0]
@@ -149,4 +150,4 @@ def get_primary(text, event):
     return text.split(' ' + spl)[0]
 
 def get_fielders(text, event):
-    return [dict.pos_codes[key] for key in dict.pos_codes.keys() if key in text.split(' ' + event)[1]]
+    return [ref.pos_codes[key] for key in ref.pos_codes.keys() if key in text.split(' ' + event)[1]]

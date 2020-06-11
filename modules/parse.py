@@ -1,7 +1,7 @@
 import re
 
-import play
-import sub
+import modules.play as play
+import modules.sub as sub
 
 def parse_half(g, half):
     for play in half:

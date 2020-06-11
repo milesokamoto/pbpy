@@ -1,5 +1,5 @@
 import re
-import names
+import modules.names as names
 
 class Sub:
     def __init__(self, text, game):

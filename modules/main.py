@@ -1,8 +1,12 @@
-import scrape
-import game
-import pandas as pd
 import os
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
+
+import pandas as pd
+
+import modules.game as game
+import modules.scrape as scrape
+
+
 def main():
     error_log = []
     day = datetime.strptime('02-14-2020', '%m-%d-%Y')

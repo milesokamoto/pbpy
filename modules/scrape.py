@@ -1,8 +1,9 @@
-import requests
+import re
+from datetime import date, datetime, timedelta
+
 import lxml.html as lh
 import pandas as pd
-from datetime import date, datetime, timedelta
-import re
+import requests
 
 teams = pd.read_csv('teams.csv', index_col = False)
 seasons = pd.read_csv('./seasons.csv', index_col = False)

@@ -1,8 +1,11 @@
-import Levenshtein
 import re
-import parse
-import play
+
+import Levenshtein
 import pandas as pd
+
+import modules.parse as parse
+import modules.play as play
+
 
 class NameDict:
     """docstring for NameDict."""

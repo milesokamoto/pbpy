@@ -1,30 +1,30 @@
-import scrape
-import parse
-import pandas as pd
 import re
-import lineup
-import names
-import play
+
+import pandas as pd
+
+import modules.lineup as lineup
+import modules.names as names
+import modules.parse as parse
+import modules.play as play
+import modules.scrape as scrape
 
 class Game:
     def __init__(self, id):
         self.id = id
+        self.play = {'play_idx': 0, 'play_of_inn': 0, 'pbp_idx': 0, 'pbp_of_inn': 0}
         # self.game_id = scrape.get_game_id('https://stats.ncaa.org/game/box_score/' + id)
         # self.meta = get_info(id) #should be separate db table
-        self.play = 0
-        self.play_of_inn = 0
-        self.pbp_no = 0
-        self.inn_pbp_no = 0
-        self.half = 0 # inning is (half/2)+1, top/bottom is even/odd
+        self.state_before = {'inning': 0, 'half': 0, 'outs': 0, 'runners': '000'}
         self.lineups = lineup.Lineups(self.id) # 2 lineup objects, 2 sub lists
-        self.runners = ['']*4
+        
+        
+        self.state_after = {'inning': 0, 'half': 0, 'outs': 0, 'runners': '000'}
+        
+        
         self.dest = ['']*4
-        self.outs = 0
         self.event_outs = 0
         self.count = [0, 0] #balls/strikes/outs
         self.seq = ''
-        self.h_order = 0
-        self.a_order = 0
         self.score = [0,0]
         self.leadoff_fl = True
         self.game = get_pbp(self.id)
@@ -198,6 +198,7 @@ class Game:
         return out
 
     def clean_game(self):
+        
         for i in range(0, len(self.game)):
             delete = []
             half = self.game[i]
@@ -218,20 +219,13 @@ class Game:
     #     pass
 
 def get_pbp(game_id) -> list:
-    """
-    extracts pbp text from table
+    """ extracts pbp text from table
 
-    Parameters
-    ----------
-    game_id : int
-        unique game id
-
-    Returns
-    -------
-    list
-        Play by play text as a list of lists,
-        with each sublist containing play by play for a half inning
-    """
+    :param game_id: unique game id
+    :type game_id: int
+    :return: Play by play text as a list of lists, with each sublist containing play by play for a half inning
+    :rtype: list
+    """    
     table = scrape.get_table('https://stats.ncaa.org/game/play_by_play/' + str(game_id))
     skip = True
     score = False
