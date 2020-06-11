@@ -9,8 +9,10 @@ class Lineups:
         self.game_id = game_id
         self.a_lineup = None
         self.a_sub = None
+        self.a_order = 0
         self.h_lineup = None
         self.h_sub = None
+        self.h_order = 0
 
     def get_lineups(self):
         """Given a game ID, assigns lists of player objects to Lineups object attributes
