@@ -66,16 +66,16 @@ def match_all(g, team):
     lu = starters[0:9]
     box_names = {s:'' for s in lu}
     pbp_names = []
-    for h in range(0, len(g.game)):
+    for h in range(0, len(g.play_list)):
         if team == 'a' and h % 2 == 0:
-            for p in g.game[h]:
-                if parse.get_type(p)[0] == 'p':
+            for p in g.play_list[h]:
+                if parse.get_type(p) == 'p':
                     n = play.get_primary(p, play.get_event(p, "")[0])
                     if not n in pbp_names and not n is None:
                         pbp_names.append(n)
         elif team == 'h' and h % 2 == 1:
-            for p in g.game[h]:
-                if parse.get_type(p)[0] == 'p':
+            for p in g.play_list[h]:
+                if parse.get_type(p) == 'p':
                     n = play.get_primary(p, play.get_event(p, "")[0])
                     if not n in pbp_names and not n is None:
                         pbp_names.append(n)
@@ -85,56 +85,50 @@ def match_all(g, team):
     if len(starters) > 9 and len(pitcher_subs) > 0:
         if ' for ' in pitcher_subs[0]:
             nm[starters[9]] = pitcher_subs[0][0:-1].split(' for ')[1]
-        elif '/ for ' in pitcher_subs[1]:
+        elif len(pitcher_subs) > 1 and '/ for ' in pitcher_subs[1]:
             short = pitcher_subs[1][0:-1].split(' for ')[1]
             if name_similarity(short, starters[9]) > .5:
                 nm[starters[9]] = short
         else:
             nm[starters[9]] = ''
     pitchers = [p.split(' to p')[0] for p in pitcher_subs]
-    # print(pitchers)
-    # print(team)
-    subs = g.lineups.a_sub if team == 'a' else g.lineups.h_sub
-    # print([[s.pos, s.name] for s in subs])
+
+    subs = g.lineups.a_subs if team == 'a' else g.lineups.h_subs
+
     plays = g.all_plays('')
     p_no = 0
-    for sub in subs:
-        if sub.pos in ('ph', 'pr'):
-            # print(sub.__dict__)
-            # print(r'(.*)(?: pinch (?:hit|ran) for )' + nm[sub.sub])
-            # print(nm[sub.sub])
-            match = [re.match(r'(.*)(?: pinch (?:hit|ran) for )' + nm[sub.sub] + r'\.', s).group(1) for s in plays if ' pinch ' in s and nm[sub.sub] in s[-len(sub.sub)-2:]]
-            if len(match) > 0:
-                nm[sub.name] = match[0]
-            else:
-                if (sub.name in nm.keys() and nm[sub.name] == '') or not sub.name in nm.keys():
-                    # print(sub.__dict__)
-                    players = g.lineups.a_lineup if team == 'a' else g.lineups.h_lineup
-                    sub_match = [p.pos for p in players if p.name == sub.sub]
-                    ph_dh = False
-                    if len(sub_match) > 0:
-                        ph_dh = sub_match[0] == 'dh'
-                    if sub.pos == 'ph' and ph_dh:
-                        match = [re.match(r'(.*)(?: to dh for )' + nm[sub.sub] + r'\.', s).group(1) for s in plays if nm[sub.sub] in s[-len(sub.sub)-2:]]
-                        if len(match) > 0:
-                            nm[sub.name] = match[0]
+    if not subs is None:
+        for sub in subs:
+            if sub.pos in ('ph', 'pr'):
+                match = [re.match(r'(.*)(?: pinch (?:hit|ran) for )' + nm[sub.sub] + r'\.', s).group(1) for s in plays if ' pinch ' in s and nm[sub.sub] in s[-len(sub.sub)-2:]]
+                if len(match) > 0:
+                    nm[sub.name] = match[0]
+                else:
+                    if (sub.name in nm.keys() and nm[sub.name] == '') or not sub.name in nm.keys():
+                        players = g.lineups.a_lineup if team == 'a' else g.lineups.h_lineup
+                        sub_match = [p.pos for p in players if p.name == sub.sub]
+                        ph_dh = False
+                        if len(sub_match) > 0:
+                            ph_dh = sub_match[0] == 'dh'
+                        if sub.pos == 'ph' and ph_dh:
+                            match = [re.match(r'(.*)(?: to dh for )' + nm[sub.sub] + r'\.', s).group(1) for s in plays if nm[sub.sub] in s[-len(sub.sub)-2:]]
+                            if len(match) > 0:
+                                nm[sub.name] = match[0]
+                            else:
+                                nm[sub.name] = ''
                         else:
                             nm[sub.name] = ''
-                    else:
-                        nm[sub.name] = ''
-        elif sub.pos == 'p':
-            while pitchers[p_no] in list(nm.values()) and p_no < len(pitchers):
+            elif sub.pos == 'p':
+                while pitchers[p_no] in list(nm.values()) and p_no < len(pitchers):
+                    p_no += 1
+                nm[sub.name] = pitchers[p_no]
                 p_no += 1
-            nm[sub.name] = pitchers[p_no]
-            p_no += 1
-        else:
-            # print(sub.__dict__)
-            # print(nm)
-            match = [re.match(r'(.*)(?: to ' + sub.pos + ' for )' + nm[sub.sub], s).group(1) for s in plays if ' to ' + sub.pos + ' for ' in s and nm[sub.sub] in s.split(' for ')[1]]
-            if len(match) > 0:
-                nm[sub.name] = match[0]
             else:
-                nm[sub.name] = ''
+                match = [re.match(r'(.*)(?: to ' + sub.pos + ' for )' + nm[sub.sub], s).group(1) for s in plays if ' to ' + sub.pos + ' for ' in s and nm[sub.sub] in s.split(' for ')[1]]
+                if len(match) > 0:
+                    nm[sub.name] = match[0]
+                else:
+                    nm[sub.name] = ''
     check = [k for k, v in sorted(nm.items(), key=lambda item: item[1]) if name_similarity(v, k) < .5]
     for i in range(0, len(check)):
         for j in range(i, len(check)):
@@ -145,8 +139,6 @@ def match_all(g, team):
                     nm[check[j]] = temp
     blank = [k for k, v in sorted(nm.items(), key=lambda item: item[1]) if v == '']
     for name in blank:
-        # print(name)
-        # print([p.__dict__ for p in subs])
         sub_out = [[s.name, s.pos, s.sub] for s in subs if s.sub == name]
         if len(sub_out) > 0:
             if sub_out[0][1] == 'pr':
@@ -164,8 +156,6 @@ def match_all(g, team):
                 if name_similarity(short, sub_out[0][2]) > .5:
                     nm[sub_out[0][2]] = short
         else:
-            # print(name)
-            # print([[s.name, s.pos, s.sub] for s in subs])
             sub_in = [[s.name, s.pos, s.sub] for s in subs if s.name == name]
             if sub_in[0][1] == 'pr':
                 sub_type = ' pinch ran'
@@ -183,6 +173,8 @@ def match_all(g, team):
 
 def match_helper(box_names, pbp_names):
     i=0
+    # print(box_names)
+    # print(pbp_names)
     for key in box_names.keys():
         if box_names[key] == '' and name_similarity(pbp_names[i], key) >= .5:
             box_names[key] = pbp_names[i]
