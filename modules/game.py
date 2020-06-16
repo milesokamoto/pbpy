@@ -9,63 +9,67 @@ import modules.play as play
 import modules.scrape as scrape
 
 class Game:
+    """Object representing one game
+    """    
     def __init__(self, id):
         self.id = id
         self.play = {'play_idx': 0, 'play_of_inn': 0, 'pbp_idx': 0, 'pbp_of_inn': 0}
-        # self.game_id = scrape.get_game_id('https://stats.ncaa.org/game/box_score/' + id)
+        # self.play_list_id = scrape.get_game_id('https://stats.ncaa.org/game/box_score/' + id)
         # self.meta = get_info(id) #should be separate db table
-        self.state_before = {'inning': 0, 'half': 0, 'outs': 0, 'runners': '000'}
+        self.state = {'inning': 0, 'half': 0, 'outs': 0, 'runners': ['','',''], 'h_score': 0, 'a_score': 0}
         self.lineups = lineup.Lineups(self.id) # 2 lineup objects, 2 sub lists
-        
-        
-        self.state_after = {'inning': 0, 'half': 0, 'outs': 0, 'runners': '000'}
-        
-        
-        self.dest = ['']*4
-        self.event_outs = 0
-        self.count = [0, 0] #balls/strikes/outs
-        self.seq = ''
-        self.score = [0,0]
-        self.leadoff_fl = True
-        self.game = get_pbp(self.id)
+
+        self.play_list = get_pbp(self.id)
+
         self.names = names.NameDict(self)
+   
+        
+
         self.clean_game()
-        self.defense = self.get_defense() if not parse.get_type(self.game[0][0]) == 's' else []
-        self.output = []
-        self.last_play = []
-        self.sub = []
+        # self.dest = ['']*4
+        # self.event_outs = 0
+        # self.count = [0, 0] #balls/strikes/outs
+        # self.seq = ''
+        # self.score = [0,0]
+        # self.leadoff_fl = True
+               
+        # self.defense = self.get_defense() if not parse.get_type(self.play_list[0][0]) == 's' else []
+        # self.output = []
+        # self.last_play = []
+        # self.sub = []
+
         self.error = False
 
-    def advance_half(self):
-        self.leadoff_fl = True
-        self.outs = 0
-        self.play_of_inn = 0
-        self.inn_pbp_no = 0
-        self.count = [0, 0]
-        self.half += 1
-        self.runners = ['']*4
-        if len(self.game[self.half]) > 1:
-            if not parse.get_type(self.game[self.half][0])[0] == 's':
-                self.defense = self.get_defense()
+    # def advance_half(self):
+    #     self.leadoff_fl = True
+    #     self.outs = 0
+    #     self.play_of_inn = 0
+    #     self.inn_pbp_no = 0
+    #     self.count = [0, 0]
+    #     self.state['half'] += 1
+    #     self.runners = ['']*4
+    #     if len(self.play_list[self.state['half']]) > 1:
+    #         if not parse.get_type(self.play_list[self.state['half']][0])[0] == 's':
+    #             self.defense = self.get_defense()
 
     def parse_plays(self):
-        for half in self.game:
+        for half in self.play_list:
             parse.parse_half(self, half)
 
     def parse_debug(self, half, play):
-        while self.half < half:
-            parse.parse_half(self, self.game[self.half])
-            print('parsing half ' + str(self.half))
+        while self.state['half'] < half:
+            parse.parse_half(self, self.play_list[self.state['half']])
+            print('parsing half ' + str(self.state['half']))
         while self.inn_pbp_no <= play:
-            parsed = parse.parse(self.game[self.half][self.inn_pbp_no], self)
+            parsed = parse.parse(self.play_list[self.state['half']][self.inn_pbp_no], self)
             print('parsing play ' + str(self.inn_pbp_no))
-            print(self.game[self.half][self.inn_pbp_no-1])
+            print(self.play_list[self.state['half']][self.inn_pbp_no-1])
         return parsed
 
     def parse_step(self):
-        parsed = parse.parse(self.game[self.half][self.inn_pbp_no], self)
+        parsed = parse.parse(self.play_list[self.state['half']][self.inn_pbp_no], self)
         print('parsing play ' + str(self.inn_pbp_no))
-        print(self.game[self.half][self.inn_pbp_no-1])
+        print(self.play_list[self.state['half']][self.inn_pbp_no-1])
         return parsed
 
 
@@ -91,7 +95,7 @@ class Game:
                 if self.dest[i] in [1,2,3]:
                     new_runners[self.dest[i]] = self.runners[i]
                 elif self.dest[i] == 4:
-                    self.score[self.half % 2] += 1
+                    self.score[self.state['half'] % 2] += 1
                 elif self.dest[i] == 0:
                     self.event_outs += 1
             else:
@@ -100,7 +104,7 @@ class Game:
 
         self.output.append(self.get_output(p))
         print('play no: ' + str(self.play))
-        # print(self.game[self.half][self.play_of_inn])
+        # print(self.play_list[self.state['half']][self.play_of_inn])
 
         if self.leadoff_fl == True:
             self.leadoff_fl = False
@@ -123,8 +127,8 @@ class Game:
     def get_output(self, p):
         output = {
         'ncaa_id': self.id,
-        'inning': round(self.half/2+.51),
-        'half': self.half % 2,
+        'inning': round(self.state['half']/2+.51),
+        'half': self.state['half'] % 2,
         'outs': self.outs,
         'balls': self.count[0],
         'strikes': self.count[1],
@@ -132,8 +136,8 @@ class Game:
         'a_score': self.score[0],
         'h_score': self.score[1],
         'batter': p.batter,
-        'batter_order': self.a_order if self.half % 2 == 0 else self.h_order, #
-        'batter_pos': self.lineups.a_lineup[self.a_order].pos if self.half % 2 == 0 else  self.lineups.h_lineup[self.h_order].pos, #
+        'batter_order': self.a_order if self.state['half'] % 2 == 0 else self.h_order, #
+        'batter_pos': self.lineups.a_lineup[self.a_order].pos if self.state['half'] % 2 == 0 else  self.lineups.h_lineup[self.h_order].pos, #
         'batter_dest': self.dest[0],
         'batter_play': loc if type(self.last_play.events[0]) == 'play.BatEvent' else '',
         'pitcher': self.defense[0],
@@ -182,7 +186,7 @@ class Game:
         self.sub.append([s.sub_in, s.pos, s.sub_out])
 
     def get_defense(self):
-        if self.half % 2 == 0:
+        if self.state['half'] % 2 == 0:
             team = 'h'
         else:
             team = 'a'
@@ -190,8 +194,8 @@ class Game:
 
     def all_plays(self, team):
         out = []
-        for i in range(0, len(self.game)):
-                x = self.game[i]
+        for i in range(0, len(self.play_list)):
+                x = self.play_list[i]
                 for p in x:
                     if team == 'h' and i % 2 == 1 or team == 'a' and i % 2 == 0 or not team in ('h', 'a'):
                         out.append(p)
@@ -199,9 +203,9 @@ class Game:
 
     def clean_game(self):
         
-        for i in range(0, len(self.game)):
+        for i in range(0, len(self.play_list)):
             delete = []
-            half = self.game[i]
+            half = self.play_list[i]
             for j in range(0, len(half)):
                 p = half[j]
                 h = [name for name in self.names.h_names.values() if name + ' ' in p]
@@ -212,7 +216,7 @@ class Game:
                     delete.append(j)
             deleted = 0
             for k in delete:
-                self.game[i].pop(k-deleted)
+                self.play_list[i].pop(k-deleted)
                 deleted += 1
 
     # def output(self):
@@ -265,6 +269,7 @@ def get_pbp(game_id) -> list:
                     if (i-2) % 3 == 0:
                         plays.append(e.text)
                         none = 0
+    
     return game
 
 def clean_plays(plays) -> list:
