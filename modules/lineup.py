@@ -1,5 +1,6 @@
 import modules.scrape as scrape
 import pandas as pd
+import modules.player as player
 
 class Lineups:
     """
@@ -13,6 +14,7 @@ class Lineups:
         self.h_lineup = None
         self.h_sub = None
         self.h_order = 0
+        self.get_lineups()
 
     def get_lineups(self):
         """Given a game ID, assigns lists of player objects to Lineups object attributes
@@ -146,15 +148,8 @@ def compile_lineups(names, positions):
                 while '\xa0' in names[j]:
                     j += 1
                 sub_out = names[j]
-            subs.append(Player(names[i].replace('\xa0', ''), positions[i][0], positions[i][1:] if len(positions) > 1 else [], len(lu) + 1, sub_out.replace('\xa0', '')))
+            subs.append(player.Player(names[i].replace('\xa0', ''), positions[i][0], positions[i][1:] if len(positions) > 1 else [], len(lu) + 1, sub_out.replace('\xa0', '')))
         else:
-            lu.append(Player(names[i], positions[i][0], positions[i][1:] if len(positions)>1 else [], len(lu) + 1, ''))
+            lu.append(player.Player(names[i], positions[i][0], positions[i][1:] if len(positions)>1 else [], len(lu) + 1, ''))
     return {"lineup":lu, "subs":subs}
 
-class Player:
-    def __init__(self, name, pos, switch, order, sub):
-        self.name = name
-        self.pos = pos
-        self.switch = switch
-        self.order = order
-        self.sub = sub
