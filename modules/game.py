@@ -7,6 +7,7 @@ import modules.names as names
 import modules.parse as parse
 import modules.play as play
 import modules.scrape as scrape
+import modules.sub as sub
 
 class Game:
     """Object representing one game
@@ -20,10 +21,13 @@ class Game:
         self.lineups = lineup.Lineups(self.id) # 2 lineup objects, 2 sub lists
 
         self.play_list = get_pbp(self.id)
+        
 
         self.names = names.NameDict(self)
    
         
+        # self.create_plays()
+
 
         self.clean_game()
         # self.dest = ['']*4
@@ -52,6 +56,111 @@ class Game:
     #         if not parse.get_type(self.play_list[self.state['half']][0])[0] == 's':
     #             self.defense = self.get_defense()
 
+
+    def check_lineups(self):
+        h = check_lineup(self.lineups.h_lineup)
+        a = check_lineup(self.lineups.a_lineup)
+        return h and a
+
+    def check_subs(self):        
+        """Matches substitutions in play by play to box score and raises errors for mismatches
+        """        
+        sub_regex = r"^([A-Za-z,\. '-]*?(?= [a-z])|\/) (pinch (?:hit|ran)|to [0-9a-z]{1,2})* *(?:for ([A-Za-z,\. '-]*?)\.$)*"
+        sub_plays = [play for half in self.play_list for play in half if not re.search(sub_regex, play).group(2) is None]
+        subs_from_box = {}
+
+        for player in self.lineups.a_lineup:
+            if len(player.switch) > 0:
+                for pos in player.switch:
+                    s = {'name':player.name, 'pos':pos, 'team':'a'}
+                    subs_from_box[len(subs_from_box)] = s
+
+        for player in self.lineups.a_subs:
+            if len(player.switch) > 0:
+                for pos in player.switch:
+                    s = {'name':player.name, 'pos':pos, 'team':'a'}
+                    subs_from_box[len(subs_from_box)] = s
+        
+        for player in self.lineups.a_subs:
+            if not player.sub == '':
+                s = {'name':player.name, 'replaces':player.sub, 'team':'a'}
+                subs_from_box[len(subs_from_box)] = s
+            
+        for player in self.lineups.h_lineup:
+            if len(player.switch) > 0:
+                for pos in player.switch:
+                    s = {'name':player.name, 'pos':pos, 'team':'h'}
+                    subs_from_box[len(subs_from_box)] = s
+
+        for player in self.lineups.h_subs:
+            if len(player.switch) > 0:
+                for pos in player.switch:
+                    s = {'name':player.name, 'pos':pos, 'team':'h'}
+                    subs_from_box[len(subs_from_box)] = s
+        
+        for player in self.lineups.h_subs:
+            if not player.sub == '':
+                s = {'name':player.name, 'replaces':player.sub, 'team':'h'}
+                subs_from_box[len(subs_from_box)] = s
+        
+        for play in sub_plays:
+            [sub_in, pos, sub_out] = sub.parse_sub(play)
+            for i in range(0,len(subs_from_box)):
+                team = subs_from_box[i]['team']
+                if team == 'a':
+                    name_list = self.names.a_names
+                elif team == 'h':
+                    name_list = self.names.h_names
+                if name_list[subs_from_box[i]['name']] == sub_in:
+                    if 'replaces' in subs_from_box[i].keys():
+                        if name_list[subs_from_box[i]['replaces']] == sub_out:
+                            subs_from_box[i]['text'] = play
+                    else: 
+                        if 'pos' in subs_from_box[i].keys():
+                            if subs_from_box[i]['pos'] == pos:
+                                subs_from_box[i]['text'] = play
+        for i in range(0, len(subs_from_box)):
+            if not 'text' in subs_from_box[i].keys():
+                self.error = True
+                print("ERROR: not all subs accounted for")
+        if len(subs_from_box) < len(sub_plays):
+            self.error = True
+            print("ERROR: too many subs in pbp")
+        self.subs = subs_from_box 
+        # TODO: handle subs for various types of errors
+
+    # def test_subs(self):
+    #     print([s.__dict__ for s in self.lineups.h_lineup])
+    #     print(self.lineups.a_lineup)
+    #     return True
+
+    def create_plays(self):
+        g = []
+        for half in self.play_list:
+            h = []
+            for p in half:
+                if parse.get_type(p) == 'p':
+                    pass
+                    # new_play = play.Play(p, self.state)
+                    # h.append(new_play)
+                elif parse.get_type(p) == 's':
+                    for i in range(0, len(self.subs)):
+                        if self.subs[i]['text'] == p:
+                            sub_idx = self.subs[i]
+                            if not 'replaces' in sub_idx.keys():
+                                new_sub = sub.PositionSwitch(sub_idx['team'], sub_idx['name'], sub_idx['pos'])
+                            elif not((self.state['half'] == 0) ^ (sub_idx['team'] == 'h')):
+                                if 'ran' in p:
+                                    sub_type = 'pr'
+                                else:
+                                    sub_type = 'ph'
+                                new_sub = sub.OffensiveSub(sub_idx['team'], sub_idx['name'], sub_idx['replaces'], sub_type)
+                            else:
+                                new_sub = sub.DefensiveSub(sub_idx['team'], sub_idx['name'], sub_idx['replaces'], sub.parse_sub(p)[1])
+                    h.append(new_sub)
+                    print('sub' in str(type(new_sub)))
+            g.append(h)
+
     def parse_plays(self):
         for half in self.play_list:
             parse.parse_half(self, half)
@@ -71,6 +180,9 @@ class Game:
         print('parsing play ' + str(self.inn_pbp_no))
         print(self.play_list[self.state['half']][self.inn_pbp_no-1])
         return parsed
+
+
+
 
 
     def execute_play(self, p):
@@ -285,3 +397,39 @@ def clean_plays(plays) -> list:
             play = play.replace('did not advance', 'no advance')
             new_plays.append(play.replace('3a', ':').replace(';', ':').replace(': ', ':').replace('a muffed throw', 'an error'))
     return new_plays
+
+def check_lineup(lineup):
+    # Rules:
+    # must have all defensive positions
+    # must have numbers 1-9 in order (10 is pitcher)
+    # if dh position, then must have 10 if not then must only have 9
+    # no removed players allowed
+    pos_list = ['p', 'c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh']
+    order_list = list(range(1,11))
+    for player in lineup:
+        if player.pos in pos_list:
+            pos_list.remove(player.pos)
+        else:
+            print("ERROR: multiple players listed at " + player.pos)
+            return False
+        if player.order in order_list:
+            order_list.remove(player.order)
+        else:
+            print("ERROR: multiple players listed at " + player.order)
+            return False
+    if 10 in order_list and not 'dh' in pos_list:
+        print("ERROR: missing position " + pos_list)
+        return False
+    if len(order_list) == 0 and not len(pos_list) == 0:
+        print("ERROR: missing position " + pos_list)
+        return False
+    if len(pos_list) == 0 and not len(order_list) == 0:
+        print("ERROR: missing order " + order_list)
+        return False
+    if len(order_list) > 0 and not order_list == [10] :
+        print("ERROR: missing order " + order_list)
+        return False
+    if len(pos_list) > 0 and not pos_list == ['dh'] :
+        print("ERROR: missing order " + order_list)
+        return False
+    return True
