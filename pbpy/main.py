@@ -27,20 +27,25 @@ def main():
             games.at[i, "ncaa_id"] = ncaa_id
             print(games.at[i, 'link'])
             g = game.Game(ncaa_id)
-            try:
-                g.parse_plays()
-            except:
-                g.error = True
-            if g.error:
-                games.at[i, "error"] = 'ERROR'
-                error_log.append(ncaa_id)
-                print("ERROR " + str(games.iloc[i]))
-            else:
-                data = []
-                for row in g.output:
-                    data.append(row)
-                df = pd.DataFrame(data, columns = g.output[0].keys())
-                df.to_csv('../output/' + date + '/' + games.iloc[i]['id'] + '.csv', index = False)
-        games.to_csv('../output/meta/' + date + '.csv', index = False)
+            pbp = g.get_pbp(ncaa_id)
+            pbp_flat = [item for sublist in pbp for item in sublist]
+            if len([s for s in pbp_flat if '/ for' in s]) > 0:
+                print(ncaa_id)
+
+        #     try:
+        #         g.parse_plays()
+        #     except:
+        #         g.error = True
+        #     if g.error:
+        #         games.at[i, "error"] = 'ERROR'
+        #         error_log.append(ncaa_id)
+        #         print("ERROR " + str(games.iloc[i]))
+        #     else:
+        #         data = []
+        #         for row in g.output:
+        #             data.append(row)
+        #         df = pd.DataFrame(data, columns = g.output[0].keys())
+        #         df.to_csv('../output/' + date + '/' + games.iloc[i]['id'] + '.csv', index = False)
+        # games.to_csv('../output/meta/' + date + '.csv', index = False)
         day = day + timedelta(days=1)
 main()
