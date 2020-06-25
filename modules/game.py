@@ -11,7 +11,7 @@ import modules.sub as sub
 
 class Game:
     """Object representing one game
-    """    
+    """
     def __init__(self, id):
         self.id = id
         self.play = {'play_idx': 0, 'play_of_inn': 0, 'pbp_idx': 0, 'pbp_of_inn': 0}
@@ -21,11 +21,11 @@ class Game:
         self.lineups = lineup.Lineups(self.id) # 2 lineup objects, 2 sub lists
 
         self.play_list = get_pbp(self.id)
-        
+
 
         self.names = names.NameDict(self)
-   
-        
+
+
         # self.create_plays()
 
 
@@ -36,7 +36,7 @@ class Game:
         # self.seq = ''
         # self.score = [0,0]
         # self.leadoff_fl = True
-               
+
         # self.defense = self.get_defense() if not parse.get_type(self.play_list[0][0]) == 's' else []
         # self.output = []
         # self.last_play = []
@@ -62,9 +62,9 @@ class Game:
         a = check_lineup(self.lineups.a_lineup)
         return h and a
 
-    def check_subs(self):        
+    def check_subs(self):
         """Matches substitutions in play by play to box score and raises errors for mismatches
-        """        
+        """
         sub_regex = r"^([A-Za-z,\. '-]*?(?= [a-z])|\/) (pinch (?:hit|ran)|to [0-9a-z]{1,2})* *(?:for ([A-Za-z,\. '-]*?)\.$)*"
         sub_plays = [play for half in self.play_list for play in half if not re.search(sub_regex, play).group(2) is None]
         subs_from_box = {}
@@ -80,12 +80,12 @@ class Game:
                 for pos in player.switch:
                     s = {'name':player.name, 'pos':pos, 'team':'a'}
                     subs_from_box[len(subs_from_box)] = s
-        
+
         for player in self.lineups.a_subs:
             if not player.sub == '':
                 s = {'name':player.name, 'replaces':player.sub, 'team':'a'}
                 subs_from_box[len(subs_from_box)] = s
-            
+
         for player in self.lineups.h_lineup:
             if len(player.switch) > 0:
                 for pos in player.switch:
@@ -97,12 +97,12 @@ class Game:
                 for pos in player.switch:
                     s = {'name':player.name, 'pos':pos, 'team':'h'}
                     subs_from_box[len(subs_from_box)] = s
-        
+
         for player in self.lineups.h_subs:
             if not player.sub == '':
                 s = {'name':player.name, 'replaces':player.sub, 'team':'h'}
                 subs_from_box[len(subs_from_box)] = s
-        
+
         for play in sub_plays:
             [sub_in, pos, sub_out] = sub.parse_sub(play)
             for i in range(0,len(subs_from_box)):
@@ -115,7 +115,7 @@ class Game:
                     if 'replaces' in subs_from_box[i].keys():
                         if name_list[subs_from_box[i]['replaces']] == sub_out:
                             subs_from_box[i]['text'] = play
-                    else: 
+                    else:
                         if 'pos' in subs_from_box[i].keys():
                             if subs_from_box[i]['pos'] == pos:
                                 subs_from_box[i]['text'] = play
@@ -126,7 +126,7 @@ class Game:
         if len(subs_from_box) < len(sub_plays):
             self.error = True
             print("ERROR: too many subs in pbp")
-        self.subs = subs_from_box 
+        self.subs = subs_from_box
         # TODO: handle subs for various types of errors
 
     # def test_subs(self):
@@ -314,7 +314,7 @@ class Game:
         return out
 
     def clean_game(self):
-        
+
         for i in range(0, len(self.play_list)):
             delete = []
             half = self.play_list[i]
@@ -341,7 +341,7 @@ def get_pbp(game_id) -> list:
     :type game_id: int
     :return: Play by play text as a list of lists, with each sublist containing play by play for a half inning
     :rtype: list
-    """    
+    """
     table = scrape.get_table('https://stats.ncaa.org/game/play_by_play/' + str(game_id))
     skip = True
     score = False
@@ -377,11 +377,10 @@ def get_pbp(game_id) -> list:
                         none = 0
                         game.append(clean_plays(plays))
                         plays = []
-                if half %2 == 0:
+                elif half % 2 == 0:
                     if (i-2) % 3 == 0:
                         plays.append(e.text)
                         none = 0
-    
     return game
 
 def clean_plays(plays) -> list:
