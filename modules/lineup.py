@@ -9,10 +9,10 @@ class Lineups:
     def __init__(self, game_id):
         self.game_id = game_id
         self.a_lineup = None
-        self.a_sub = None
+        self.a_subs = None
         self.a_order = 0
         self.h_lineup = None
-        self.h_sub = None
+        self.h_subs = None
         self.h_order = 0
         self.get_lineups()
 
@@ -56,7 +56,7 @@ class Lineups:
                 d.append('')
         return d
 
-    def make_sub(self, s, g):
+    def make_sub(self, sub, lineup):
         lu = self.a_lineup if s.team == 'a' else self.h_lineup
         subs = self.a_sub if s.team == 'a' else self.h_sub
         names = g.names.a_names if s.team == 'a' else g.names.h_names
