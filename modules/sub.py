@@ -2,9 +2,10 @@ import re
 import modules.names as names
 
 class Sub:
-    def __init__(self, team, player):
+    def __init__(self, team, player, text):
         self.team = team
         self.player = player
+        self.text = text
 
     # def match_sub_names(self, names):
     #     n = names.h_names if self.team == 'h' else names.a_names
@@ -31,21 +32,27 @@ class Sub:
 
 
 class PositionSwitch(Sub):
-    def __init__(self, team, player, pos):
-        super().__init__(team, player)
+    def __init__(self, team, player, pos, text):
+        super().__init__(team, player, text)
         self.pos = pos
 
 class DefensiveSub(Sub):
-    def __init__(self, team, player, sub, pos):
-        super().__init__(team, player)
+    def __init__(self, team, player, sub, pos, text):
+        super().__init__(team, player, text)
         self.sub = sub
         self.pos = pos
 
 class OffensiveSub(Sub):
-    def __init__(self, team, player, sub, sub_type):
-        super().__init__(team, player)
+    def __init__(self, team, player, sub, sub_type, text):
+        super().__init__(team, player, text)
         self.sub = sub
         self.sub_type = sub_type
+
+class Removal(Sub):
+        def __init__(self, team, sub, text):
+            self.team = team
+            self.sub = sub
+            self.text = text
 
 def rev_dict(value, dict):
     val = [k for k, v in sorted(dict.items(), key=lambda item: item[1]) if v == value]
