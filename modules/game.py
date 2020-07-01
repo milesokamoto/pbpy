@@ -22,9 +22,9 @@ class Game:
 
         self.play_list = get_pbp(self.id)
 
-
         self.names = names.NameDict(self)
 
+        self.lineups.add_names(self.names)
 
         # self.create_plays()
 
@@ -43,6 +43,7 @@ class Game:
         # self.sub = []
 
         self.error = False
+        self.events = []
 
     # def advance_half(self):
     #     self.leadoff_fl = True
@@ -103,29 +104,39 @@ class Game:
                 s = {'name':player.name, 'replaces':player.sub, 'team':'h'}
                 subs_from_box[len(subs_from_box)] = s
 
-        for play in sub_plays:
-            [sub_in, pos, sub_out] = sub.parse_sub(play)
-            for i in range(0,len(subs_from_box)):
-                team = subs_from_box[i]['team']
-                if team == 'a':
-                    name_list = self.names.a_names
-                elif team == 'h':
-                    name_list = self.names.h_names
+        for i in range(0,len(subs_from_box)):
+            team = subs_from_box[i]['team']
+            if team == 'a':
+                name_list = self.names.a_names
+            elif team == 'h':
+                name_list = self.names.h_names
+            for play in sub_plays:
+                [sub_in, pos, sub_out] = sub.parse_sub(play)
                 if name_list[subs_from_box[i]['name']] == sub_in:
                     if 'replaces' in subs_from_box[i].keys():
                         if name_list[subs_from_box[i]['replaces']] == sub_out:
                             subs_from_box[i]['text'] = play
+                            sub_plays.remove(play)
                     else:
                         if 'pos' in subs_from_box[i].keys():
                             if subs_from_box[i]['pos'] == pos:
                                 subs_from_box[i]['text'] = play
+                                sub_plays.remove(play)
         for i in range(0, len(subs_from_box)):
             if not 'text' in subs_from_box[i].keys():
                 self.error = True
                 print("ERROR: not all subs accounted for")
-        if len(subs_from_box) < len(sub_plays):
+                print(subs_from_box)
+        if len(sub_plays) > 0:
             self.error = True
             print("ERROR: too many subs in pbp")
+            print(subs_from_box)
+            print(sub_plays)
+        
+        # burns = [play for half in self.play_list for play in half if '/ ' in play]
+        # for b in burns:
+            
+
         self.subs = subs_from_box
         # TODO: handle subs for various types of errors
 
@@ -136,30 +147,39 @@ class Game:
 
     def create_plays(self):
         g = []
-        for half in self.play_list:
+        for half in range(0, len(self.play_list)):
             h = []
-            for p in half:
+            for p in self.play_list[half]:
                 if parse.get_type(p) == 'p':
-                    pass
-                    # new_play = play.Play(p, self.state)
-                    # h.append(new_play)
+                    # pass
+                    team = 'a' if half % 2 == 0 else 'h'
+                    names = self.names.a_names if team == 'a' else self.names.h_names
+                    new_play = play.Play(p, names)
+                    new_play.get_type(self.lineups, team)
+                    h.append(new_play)
                 elif parse.get_type(p) == 's':
+                    new_sub = None
                     for i in range(0, len(self.subs)):
                         if self.subs[i]['text'] == p:
                             sub_idx = self.subs[i]
                             if not 'replaces' in sub_idx.keys():
-                                new_sub = sub.PositionSwitch(sub_idx['team'], sub_idx['name'], sub_idx['pos'])
+                                new_sub = sub.PositionSwitch(sub_idx['team'], sub_idx['name'], sub_idx['pos'], p)
                             elif not((self.state['half'] == 0) ^ (sub_idx['team'] == 'h')):
-                                if 'ran' in p:
+                                if ' ran ' in p:
                                     sub_type = 'pr'
                                 else:
                                     sub_type = 'ph'
-                                new_sub = sub.OffensiveSub(sub_idx['team'], sub_idx['name'], sub_idx['replaces'], sub_type)
+                                new_sub = sub.OffensiveSub(sub_idx['team'], sub_idx['name'], sub_idx['replaces'], sub_type, p)
                             else:
-                                new_sub = sub.DefensiveSub(sub_idx['team'], sub_idx['name'], sub_idx['replaces'], sub.parse_sub(p)[1])
+                                new_sub = sub.DefensiveSub(sub_idx['team'], sub_idx['name'], sub_idx['replaces'], sub.parse_sub(p)[1], p)
+                    if new_sub is None:
+                        if '/ ' in p:
+                            team = 'a' if half % 2 == 1 else 'h'
+                            new_sub = sub.Removal(team, sub.parse_sub(p)[2], p)
                     h.append(new_sub)
-                    print('sub' in str(type(new_sub)))
+                    # print('sub' in str(type(new_sub)))
             g.append(h)
+        self.events = g
 
     def parse_plays(self):
         for half in self.play_list:
@@ -290,12 +310,12 @@ class Game:
         }
         return output
 
-    def make_sub(self, s):
-        # if s.pos == "ph":
-        #     if self.lineups.get_batter(self) != s.sub_out:
-        #         return
-        self.lineups.make_sub(s, self)
-        self.sub.append([s.sub_in, s.pos, s.sub_out])
+    # def make_sub(self, s):
+    #     # if s.pos == "ph":
+    #     #     if self.lineups.get_batter(self) != s.sub_out:
+    #     #         return
+    #     self.lineups.make_sub(s, self)
+    #     self.sub.append([s.sub_in, s.pos, s.sub_out])
 
     def get_defense(self):
         if self.state['half'] % 2 == 0:
@@ -322,7 +342,7 @@ class Game:
                 p = half[j]
                 h = [name for name in self.names.h_names.values() if name + ' ' in p]
                 a = [name for name in self.names.a_names.values() if name + ' ' in p]
-                if len(h) == 0 and len(a) == 0 and not '/ for ' in p:
+                if len(h) == 0 and len(a) == 0 and not '/ ' in p:
                     delete.append(j)
                 if 'failed pickoff attempt.' in p:
                     delete.append(j)
@@ -377,7 +397,7 @@ def get_pbp(game_id) -> list:
                         none = 0
                         game.append(clean_plays(plays))
                         plays = []
-                elif half % 2 == 0:
+                if half % 2 == 0 and not e.text is None:
                     if (i-2) % 3 == 0:
                         plays.append(e.text)
                         none = 0
