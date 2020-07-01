@@ -7,26 +7,44 @@ import modules.ref as ref
 
 
 class Play:
-    def __init__(self, text, game):
+    def __init__(self, text, names):
         self.text = text
-        self.g = game
-        self.off_team = 'a' if self.g.half % 2 == 0 else 'h'
-        [self.event, self.code] = get_event(self.text, '')
-        self.primary = self.g.names.match_name(self.off_team, get_primary(text, self.event[0]), 'p')[0]
-        self.events = []
-        self.batter = self.g.lineups.get_batter(self.g)
-        parts = self.split_play()
-        # print('parts: ' + str(parts))
-        if self.primary == self.batter:
-            self.events.append(BatEvent(parts.pop(0)))
-            self.type = 'b'
-        else:
-            self.type = 'r'
-        for p in parts:
-            if not p == '' and not ' no advance' in p:
-                self.events.append(RunEvent(p))
-        self.match_players()
-        self.get_info()
+        self.names = names
+        self.play_names = play_names(text, names)
+        self.parts = self.split_play()
+        self.order = 0
+
+        # print(self.parts)
+        # self.create_events()
+        
+
+        # self.state_before = state
+        # self.state_after = {'inning': 0, 'half': 0, 'outs': 0, 'runners': '000'}
+
+        # self.play_info = {}
+ 
+        # self.off_team = 'a' if self.g.half == 0 else 'h'
+
+        # [self.event, self.code] = get_event(self.text, '')
+        
+        # self.events = []
+        # self.batter = self.g.lineups.get_batter(self.g)
+        # parts = self.split_play()
+        # # print('parts: ' + str(parts))
+        # if self.primary == self.batter:
+        #     self.events.append(BatEvent(parts.pop(0)))
+        #     self.type = 'b'
+        # else:
+        #     self.type = 'r'
+        # for p in parts:
+        #     if not p == '' and not ' no advance' in p:
+        #         self.events.append(RunEvent(p))
+        # self.match_players()
+        # self.get_info()
+    
+    def create_events(self):
+        for i in range(0, len(parts)):
+            pass
 
     def match_players(self):
         for e in self.events:
@@ -41,18 +59,30 @@ class Play:
     def split_play(self):
         new_text = self.text
         parts = []
-        off_names = self.g.names.h_names if self.g.half % 2 == 1 else self.g.names.a_names
-        players = {name: new_text.index(name) for name in off_names.values() if name + ' ' in new_text}
-        sort_players = {k: v for k, v in sorted(players.items(), key=lambda item: item[1])}
-        if len(sort_players) > 1:
-            for name in list(sort_players.keys())[1:]:
-                split = new_text.split(name)
-                parts.append(split[0])
-                new_text = name + split[1]
-            parts.append(new_text)
-        else:
-            parts = [new_text]
+        splits = list(self.play_names.keys())
+        for i in range(0, len(splits)):
+            name = splits[i]
+            split = new_text.split(splits[i] + " ")
+            new_text = split[0]
+            player_text = split[1]
+            parts.insert(0, {'player': name, 'text': player_text})
         return parts
+    
+    def get_type(self, lineups, team):
+        lu = lineups.a_lineup if team == 'a' else lineups.h_lineup
+        sub = lineups.a_subs if team == 'a' else lineups.h_subs
+        self.order = lineups.a_order if team == 'a' else lineups.h_order
+        order_names = [player.pbp_name for player in lu if player.order == self.order]
+        order_names.extend([player.pbp_name for player in sub if player.order == self.order])
+        print(order_names)
+        if self.parts[0]['player'] in order_names:
+            self.type = 'b'
+            if team == 'a':
+                lineups.a_order = self.order % 9 + 1
+            else:
+                lineups.h_order = self.order % 9 + 1
+        else:
+            self.type = 'r'
 
 
 class BatEvent:
@@ -135,8 +165,6 @@ def get_det_event(text, type):
     else:
         return e[0]
 
-
-
 def get_primary(text, event):
     run_txt = [key for key in ref.run_codes.keys() if key in text]
     if not run_txt == []:
@@ -149,5 +177,17 @@ def get_primary(text, event):
         spl = event
     return text.split(' ' + spl)[0]
 
+def play_names(text, names):
+    """get player names and indexes within the play by play strings
+
+    :param text: play by play text
+    :type text: str
+    :param names: name directory of offensive team
+    :type names: dict
+    """    
+    players = {name: text.index(name) for name in names.values() if name + ' ' in text}
+    return({k: v for k, v in sorted(players.items(), key=lambda item: item[1], reverse=True)})
+
 def get_fielders(text, event):
     return [ref.pos_codes[key] for key in ref.pos_codes.keys() if key in text.split(' ' + event)[1]]
+
