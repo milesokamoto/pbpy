@@ -4,16 +4,16 @@ import modules.player as player
 
 class Lineups:
     """
-    Contains list of player objects
+    Contains lists of player objects
     """
     def __init__(self, game_id):
         self.game_id = game_id
         self.a_lineup = None
         self.a_subs = None
-        self.a_order = 0
+        self.a_order = 1
         self.h_lineup = None
         self.h_subs = None
-        self.h_order = 0
+        self.h_order = 1
         self.get_lineups()
 
     def get_lineups(self):
@@ -23,8 +23,8 @@ class Lineups:
         :type game_id: int
         """            
         [players, positions] = scrape.get_lu_table(self.game_id)
-        away = compile_lineups(players[0], positions[0])
-        home = compile_lineups(players[1], positions[1])
+        away = compile_lineups(players[0], positions[0], 'a')
+        home = compile_lineups(players[1], positions[1], 'h')
         self.a_lineup = away['lineup']
         self.a_subs = away['subs']
         self.h_lineup = home['lineup']
@@ -38,9 +38,9 @@ class Lineups:
 
     def all_names(self, team):
         if team == 'h':
-            return self.h_lineup['name'].to_list() + self.h_sub
+            return self.h_lineup['name'].to_list() + self.h_subs
         elif team == 'a':
-            return self.a_lineup['name'].to_list() + self.a_sub
+            return self.a_lineup['name'].to_list() + self.a_subs
 
     def get_defense(self, team):
         pos_list = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
@@ -56,38 +56,78 @@ class Lineups:
                 d.append('')
         return d
 
-    def make_sub(self, sub, lineup):
-        lu = self.a_lineup if s.team == 'a' else self.h_lineup
-        subs = self.a_sub if s.team == 'a' else self.h_sub
-        names = g.names.a_names if s.team == 'a' else g.names.h_names
-        if s.sub_in == -1:
-            print(s.__dict__)
-        if '/' in s.sub_in:
-            if len([p.name for p in lu if p.pos == 'p']) > 1:
-                lu = lu[0:9]
-        if s.pos == 'pr':
-            for r in g.runners:
-                if r != '':
-                    if r.name == s.sub_out:
-                        r.name = s.sub_in
-        # sub_full = rev_dict(s.sub_in, names)
-        index = find_player_index(lu, s.sub_in)
-        if index == -1:
-            sub_index = find_player_index(subs, s.sub_in)
-            if s.pos == 'p' and find_pos_index(lu, 'p') == -1:
-                lu.append(subs[sub_index])
-            else:
-                out_index = find_player_index(lu, s.sub_out)
-                if out_index == -1:
-                    out_index = find_pos_index(lu, s.pos)
-                lu[out_index] = subs[sub_index]
+    def make_sub(self, sub):
+        [lu, subs] = [self.a_lineup, self.a_subs] if sub.team == 'a' else [self.h_lineup, self.h_subs]
+        # print([s.__dict__ for s in subs])
+        if 'PositionSwitch' in str(type(sub)):
+            for player in lu:
+                if player.name == sub.player:
+                    player.pos = sub.pos
+                    player.switch.remove(sub.pos)
+
+        elif 'OffensiveSub' in str(type(sub)):
+            lu_idx = find_player_index(lu, sub.sub)
+            sub_idx = find_player_index(subs, sub.player)
+            lu[lu_idx].status = 'removed'
+            subs.append(lu.pop(lu_idx))
+            lu.insert(lu_idx, subs[sub_idx])
+            #TODO: Pinch runner functionality
+
+        elif 'DefensiveSub' in str(type(sub)):
+            lu_idx = find_player_index(lu, sub.sub)
+            sub_idx = find_player_index(subs, sub.player)
+            lu[lu_idx].status = 'removed'
+            subs.append(lu.pop(lu_idx))
+            lu.insert(lu_idx, subs[sub_idx])
+
+        elif 'Removal' in str(type(sub)):
+            lu_idx = find_player_index(lu, sub.sub)
+            lu[lu_idx].status = 'removed'
+            subs.append(lu.pop(lu_idx))
+        if sub.team == 'a':
+            [self.a_lineup, self.a_subs] = [lu, subs] 
         else:
-            if s.pos in lu[index].switch:
-                lu[index].pos = s.pos
-        if s.team == 'a':
-            self.a_lineup = lu
-        else:
-            self.h_lineup = lu
+            [self.h_lineup, self.h_subs] = [lu, subs] 
+
+
+        # if s.sub_in == -1:
+        #     print(s.__dict__)
+        # if '/' in s.sub_in:
+        #     if len([p.name for p in lu if p.pos == 'p']) > 1:
+        #         lu = lu[0:9]
+        # if s.pos == 'pr':
+        #     for r in g.runners:
+        #         if r != '':
+        #             if r.name == s.sub_out:
+        #                 r.name = s.sub_in
+        # # sub_full = rev_dict(s.sub_in, names)
+        # index = find_player_index(lu, s.sub_in)
+        # if index == -1:
+        #     sub_index = find_player_index(subs, s.sub_in)
+        #     if s.pos == 'p' and find_pos_index(lu, 'p') == -1:
+        #         lu.append(subs[sub_index])
+        #     else:
+        #         out_index = find_player_index(lu, s.sub_out)
+        #         if out_index == -1:
+        #             out_index = find_pos_index(lu, s.pos)
+        #         lu[out_index] = subs[sub_index]
+        # else:
+        #     if s.pos in lu[index].switch:
+        #         lu[index].pos = s.pos
+        # if s.team == 'a':
+        #     self.a_lineup = lu
+        # else:
+        #     self.h_lineup = lu
+
+    def add_names(self, names):
+        for player in self.a_lineup:
+            player.match_pbp_name(names)
+        for player in self.h_lineup:
+            player.match_pbp_name(names)
+        for player in self.a_subs:
+            player.match_pbp_name(names)
+        for player in self.h_subs:
+            player.match_pbp_name(names)
 
 
 def find_player_index(lu, name):
@@ -118,7 +158,7 @@ def get_names(lu):
 # def list_index(list, index):
 #     return [list[i] for i in index]
 
-def compile_lineups(names, positions):
+def compile_lineups(names, positions, team):
     """given lists of names and positions returns two lists populated with Player objects
 
     :param names: player names from box score
@@ -148,8 +188,8 @@ def compile_lineups(names, positions):
                 while '\xa0' in names[j]:
                     j += 1
                 sub_out = names[j]
-            subs.append(player.Player(names[i].replace('\xa0', ''), positions[i][0], positions[i][1:] if len(positions) > 1 else [], len(lu) + 1, sub_out.replace('\xa0', '')))
+            subs.append(player.Player(names[i].replace('\xa0', ''), positions[i][0], positions[i][1:] if len(positions) > 1 else [], len(lu) + 1, sub_out.replace('\xa0', ''), 'available', team))
         else:
-            lu.append(player.Player(names[i], positions[i][0], positions[i][1:] if len(positions)>1 else [], len(lu) + 1, ''))
+            lu.append(player.Player(names[i], positions[i][0], positions[i][1:] if len(positions)>1 else [], len(lu) + 1, '', 'entered', team))
     return {"lineup":lu, "subs":subs}
 
