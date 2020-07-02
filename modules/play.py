@@ -9,13 +9,11 @@ import modules.ref as ref
 class Play:
     def __init__(self, text, names):
         self.text = text
-        self.names = names
         self.play_names = play_names(text, names)
         self.parts = self.split_play()
         self.order = 0
 
         # print(self.parts)
-        # self.create_events()
         
 
         # self.state_before = state
@@ -42,20 +40,6 @@ class Play:
         # self.match_players()
         # self.get_info()
     
-    def create_events(self):
-        for i in range(0, len(parts)):
-            pass
-
-    def match_players(self):
-        for e in self.events:
-            e.player = self.g.names.match_name(self.off_team, e.player, 'p')[0]
-
-    def get_info(self):
-        if '(' in self.text:
-            count = re.search(r'[0-3]-[0-2]', self.text).group(0)
-            self.g.count = count.split('-')
-            self.g.seq = re.search(r'[KFBS]*(?=\))', self.text).group(0)
-
     def split_play(self):
         new_text = self.text
         parts = []
@@ -74,7 +58,6 @@ class Play:
         self.order = lineups.a_order if team == 'a' else lineups.h_order
         order_names = [player.pbp_name for player in lu if player.order == self.order]
         order_names.extend([player.pbp_name for player in sub if player.order == self.order])
-        print(order_names)
         if self.parts[0]['player'] in order_names:
             self.type = 'b'
             if team == 'a':
@@ -84,51 +67,122 @@ class Play:
         else:
             self.type = 'r'
 
+    def create_events(self):
+        self.events = []
+        if self.type == 'b':
+            self.events.append(BatEvent(self.parts[0]))
+            if len(self.parts) > 1:
+                for part in self.parts[1:]:
+                    self.events.append(RunEvent(part))
+        else:
+            for part in self.parts:
+                self.events.append(RunEvent(part))
 
 class BatEvent:
-    def __init__(self, text):
-        self.text = text
-        [self.event, self.code] = get_event(self.text, 'b')
-        [self.det_event, self.det_abb] = get_det_event(self.text, 'b')
-        self.ev_code = ref.event_codes[self.code]
-        self.player = get_primary(self.text, self.event)
-        self.fielders = get_fielders(text, self.event)
-        self.loc = self.get_loc()
-        self.dest = self.get_bat_dest()
-        self.correct_fielders()
+    def __init__(self, part):
+        self.player = part['player']
+        self.text = part['text']
+        self.deconstruct_text()
 
-    def correct_fielders(self):
-        if self.event == 'grounded out':
-            if len(self.fielders) == 1:
-                self.fielders.append(3)
 
-    def get_loc(self):
-        loc = [ref.loc_codes[key] for key in ref.loc_codes.keys() if key in self.text]
-        if len(loc) > 0:
-            return loc[0]
+
+        # [self.event, self.code] = get_event(self.text, 'b')
+        # [self.det_event, self.det_abb] = get_det_event(self.text, 'b')
+        # self.ev_code = ref.event_codes[self.code]
+        # self.player = get_primary(self.text, self.event)
+        # self.fielders = get_fielders(text, self.event)
+        # self.loc = self.get_loc()
+        # self.dest = self.get_bat_dest()
+        # self.correct_fielders()
+
+    def deconstruct_text(self):
+        pbp = self.text
+        self.get_info()
+        pbp = pbp.split('(')[0]
+        if ', RBI' in pbp:
+            self.rbi = 1
+            pbp = pbp.split(', RBI')[0]
+        elif ' RBI' in pbp:
+            self.rbi = int(pbp.split(' RBI')[0][-1])
+            pbp = pbp.split(', ' + str(self.rbi) + ' RBI')[0]
         else:
-            if len(self.fielders) > 0:
-                return self.fielders[0]
-            else:
-                return ''
+            self.rbi = 0
+            
+        self.flags = get_flags(pbp)
+        if len(self.flags) > 0:
+            pbp = pbp.split(', ' + self.flags[0])[0]
 
-    def get_bat_dest(self):
-        return [ref.run_codes[key] for key in ref.run_codes.keys() if key in self.text][-1]
+        run = get_run(pbp)
+        if len(run) > 1:
+            pbp = pbp.split(run[1])[0]
+        self.dest = ref.run_codes[run[-1]]
+        
+        loc = get_loc(pbp)
+        if len(loc) > 0:
+            self.bb_loc = ref.loc_codes[loc[0]]
+        #TODO: Add assists and putouts
+        #TODO: Add bb type
+
+        self.event = get_event(pbp)
+
+        print(self.__dict__)
+                
+
+    def get_info(self):
+        if '(' in self.text:
+            #TODO: If count in any of the events, fill in rest with 0-0, otherwise n/a
+            count = re.search(r'[0-3]-[0-2]', self.text).group(0)
+            self.count = count.split('-')
+            self.seq = re.search(r'[KFBS]*(?=\))', self.text).group(0)
+
+
+
+    # def correct_fielders(self):
+    #     if self.event == 'grounded out':
+    #         if len(self.fielders) == 1:
+    #             self.fielders.append(3)
+
+
+
+def get_run(text):
+    run = [key for key in ref.run_codes.keys() if key in text]
+    sorted_run = [k for k, v in sorted({r:text.index(r) for r in run}.items(), key=lambda item:item[1])]
+    return sorted_run
+
+def get_loc(text):
+    loc = [key for key in ref.loc_codes.keys() if key in text]
+    sorted_loc = [k for k, v in sorted({l:text.index(l) for l in loc}.items(), key=lambda item:item[1])]
+    return sorted_loc
+
+def get_flags(text):
+    flag = [key for key in ref.flag_codes.keys() if key in text]
+    sorted_flags = [ref.flag_codes[k] for k, v in sorted({l:text.index(l) for l in flag}.items(), key=lambda item:item[1])]
+    return sorted_flags
+
+def get_event(text):
+    ev = [key for key in ref.mod_codes.keys() if key in text]
+    sorted_ev = [k for k, v in sorted({l:text.index(l) for l in ev}.items(), key=lambda item:item[1])]
+    return sorted_ev
+
+
 
 class RunEvent:
-    def __init__(self, text):
-        self.text = text
-        [self.event, self.code] = get_event(self.text, 'r')
-        [self.det_event, self.det_abb] = get_det_event(self.text, 'r')
-        self.ev_code = ref.event_codes[self.det_abb] if not self.det_abb == '' else ''
-        if not self.det_event == '' and self.text.index(self.det_event) < self.text.index(self.event):
-            self.player = get_primary(self.text, self.det_event)
-        else:
-            self.player = get_primary(self.text, self.event)
-        self.dest = self.get_run_dest()
+    def __init__(self, part):
+        self.player = part['player']
+        self.text = part['text']
+        self.event = get_event(self.text)
+        self.dest = get_run_dest(self.text)
+        # [self.event, self.code] = get_event(self.text, 'r')
+        # [self.det_event, self.det_abb] = get_det_event(self.text, 'r')
+        # self.ev_code = ref.event_codes[self.det_abb] if not self.det_abb == '' else ''
+        # if not self.det_event == '' and self.text.index(self.det_event) < self.text.index(self.event):
+        #     self.player = get_primary(self.text, self.det_event)
+        # else:
+        #     self.player = get_primary(self.text, self.event)
+        # self.dest = self.get_run_dest()
 
-    def get_run_dest(self):
-        return [ref.run_codes[key] for key in ref.run_codes.keys() if key in self.text][-1]
+def get_run_dest(text):
+    return [ref.run_codes[key] for key in ref.run_codes.keys() if key in text][-1]
 
 
 class Runner:
@@ -136,9 +190,7 @@ class Runner:
         self.name = name
         self.resp = g.defense[0]
 
-def get_event(text, type):
-    parts = []
-    new_text = text
+def find_event(text, type):
     if type == 'b':
         events = {key: text.index(key) for key in ref.codes.keys() if key in text}
         sort_events = {k: v for k, v in sorted(events.items(), key=lambda item: item[1])}
@@ -158,12 +210,12 @@ def get_event(text, type):
         else:
             return events
 
-def get_det_event(text, type):
-    e = [[key, ref.mod_codes[key]] for key in ref.mod_codes.keys() if key in text]
-    if e == []:
-        return ['','']
-    else:
-        return e[0]
+# def get_det_event(text, type):
+#     e = [[key, ref.mod_codes[key]] for key in ref.mod_codes.keys() if key in text]
+#     if e == []:
+#         return ['','']
+#     else:
+#         return e[0]
 
 def get_primary(text, event):
     run_txt = [key for key in ref.run_codes.keys() if key in text]
