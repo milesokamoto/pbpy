@@ -186,6 +186,25 @@ run_codes = {
     'out on batter\'s interference': [0,0],
     'reached on catcher\'s interference': [1,0]
 }
+adv_codes = {
+    'advanced to second': [2,1],
+    'advanced to third': [3,1],
+    'scored': [4,1],
+    'out at second': [2,0],
+    'out at third': [3,0],
+    'out at home': [4,0],
+}
+flag_codes = {
+    ', bunt': 'B',
+    ', SAC': 'SAC',
+    ', SF': 'SF',
+}
+rbi_codes = {
+    ', RBI': 1,
+    ', 2 RBI': 2,
+    ', 3 RBI': 3,
+    ', 4 RBI': 4
+}
 loc_codes = {
     'to pitcher': 1,
     'to catcher': 2,
@@ -202,7 +221,16 @@ loc_codes = {
     'up the middle': 46,
     'to right center': 89,
     'to right': 9,
-    'down the rf line': 9
+    'down the rf line': 9,
+    ' p ': 1,
+    ' c ': 2,
+    ' 1b ': 3,
+    ' 2b ': 4,
+    ' 3b ': 5,
+    ' ss ': 6,
+    ' lf ': 7,
+    ' cf ': 8,
+    ' rf ': 9,
 }
 sub_codes = {
     'pinch hit for' : 'PH',
