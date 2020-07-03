@@ -14,36 +14,45 @@ class Game:
     """
     def __init__(self, id):
         self.id = id
+        
+        #keep track of whether there is an error in parsing the game
+        self.error = False
+
+        #keep track of where in the game we are
         self.play = {'play_idx': 0, 'play_of_inn': 0, 'pbp_idx': 0, 'pbp_of_inn': 0}
         # self.play_list_id = scrape.get_game_id('https://stats.ncaa.org/game/box_score/' + id)
         # self.meta = get_info(id) #should be separate db table
-        self.state = {'inning': 0, 'half': 0, 'outs': 0, 'runners': ['','',''], 'h_score': 0, 'a_score': 0}
+        
+        #keep track of inning/half/outs/runners/score info
+        #Runners could be tracked using ids based on lineup order?
+        self.state = {'inning': 1, 'half': 0, 'outs': 0, 'runners': ['','','',''], 'score': [0,0]}
+        
+        #create lineups based on game id
         self.lineups = lineup.Lineups(self.id) # 2 lineup objects, 2 sub lists
 
+        #scrape the play by play based on id
         self.play_list = get_pbp(self.id)
 
+        #create a dictionary of names to go between the lineup and play by play
+        #TODO: what if we kept track of everyone using an id which just pointed to the lineup or whatever
         self.names = names.NameDict(self)
 
+        #add names to lineup object
         self.lineups.add_names(self.names)
 
-        # self.create_plays()
+        #check subs based on the box score with play by play
+        #TODO: clean them up if there's an error
+        self.check_subs()
 
-
+        #remove pbp lines that aren't plays or subs
         self.clean_game()
-        # self.dest = ['']*4
-        # self.event_outs = 0
-        # self.count = [0, 0] #balls/strikes/outs
-        # self.seq = ''
-        # self.score = [0,0]
-        # self.leadoff_fl = True
 
-        # self.defense = self.get_defense() if not parse.get_type(self.play_list[0][0]) == 's' else []
-        # self.output = []
-        # self.last_play = []
-        # self.sub = []
+        #Create play and sub objects for every line of pbp
+        self.create_plays()
 
-        self.error = False
-        self.events = []
+        #iterate through game
+        self.execute_game()
+
 
     # def advance_half(self):
     #     self.leadoff_fl = True
@@ -122,6 +131,9 @@ class Game:
                             if subs_from_box[i]['pos'] == pos:
                                 subs_from_box[i]['text'] = play
                                 sub_plays.remove(play)
+        
+        print(subs_from_box)
+
         for i in range(0, len(subs_from_box)):
             if not 'text' in subs_from_box[i].keys():
                 self.error = True
@@ -136,26 +148,22 @@ class Game:
         # burns = [play for half in self.play_list for play in half if '/ ' in play]
         # for b in burns:
             
-
         self.subs = subs_from_box
         # TODO: handle subs for various types of errors
 
-    # def test_subs(self):
-    #     print([s.__dict__ for s in self.lineups.h_lineup])
-    #     print(self.lineups.a_lineup)
-    #     return True
-
     def create_plays(self):
+        """For each play in the pbp text, create either a play or sub object
+        """        
         g = []
         for half in range(0, len(self.play_list)):
             h = []
             for p in self.play_list[half]:
                 if parse.get_type(p) == 'p':
-                    # pass
                     team = 'a' if half % 2 == 0 else 'h'
                     names = self.names.a_names if team == 'a' else self.names.h_names
                     new_play = play.Play(p, names)
                     new_play.get_type(self.lineups, team)
+                    new_play.create_events()
                     h.append(new_play)
                 elif parse.get_type(p) == 's':
                     new_sub = None
@@ -177,84 +185,87 @@ class Game:
                             team = 'a' if half % 2 == 1 else 'h'
                             new_sub = sub.Removal(team, sub.parse_sub(p)[2], p)
                     h.append(new_sub)
-                    # print('sub' in str(type(new_sub)))
             g.append(h)
         self.events = g
-
-    def parse_plays(self):
-        for half in self.play_list:
-            parse.parse_half(self, half)
-
-    def parse_debug(self, half, play):
-        while self.state['half'] < half:
-            parse.parse_half(self, self.play_list[self.state['half']])
-            print('parsing half ' + str(self.state['half']))
-        while self.inn_pbp_no <= play:
-            parsed = parse.parse(self.play_list[self.state['half']][self.inn_pbp_no], self)
-            print('parsing play ' + str(self.inn_pbp_no))
-            print(self.play_list[self.state['half']][self.inn_pbp_no-1])
-        return parsed
-
-    def parse_step(self):
-        parsed = parse.parse(self.play_list[self.state['half']][self.inn_pbp_no], self)
-        print('parsing play ' + str(self.inn_pbp_no))
-        print(self.play_list[self.state['half']][self.inn_pbp_no-1])
-        return parsed
-
-
-
-
-
+        
+    def execute_game(self):
+        for h in self.events:
+            for e in h:
+                if "sub" in str(type(e)):
+                    self.lineups.make_sub(e)
+                    if 'OffensiveSub' in str(type(e)):
+                        if e.sub_type == 'pr':
+                            for r in self.state['runners']:
+                                if not r == '':
+                                    if r.name == e.sub:
+                                        r.name = e.player
+                else:
+                    check = self.check_lineups()
+                    # print(check)
+                    output = self.execute_play(e)
+                    # print(output)
+            self.state['half'] = (self.state['half']  + 1) % 1
+            self.state['runners'] = ['']*4
+                    
+            
     def execute_play(self, p):
-        self.last_play = p
         new_runners = ['']*4
-        self.dest = ['']*4
+        pitcher = self.lineups.get_defense(self.state['half'])[0]
+        # batter = self.lineups.get_batter(self.state['half'], p.order)
+        dest = ['']*4
+
+        event_outs = 0
+
         for e in reversed(p.events):
+            print(e.__dict__)
+            print('\n')
             if type(e) == play.RunEvent:
-                for i in range(1, len(self.runners)):
-                    if self.runners[i] != '':
-                        runner = self.runners[i]
+                for i in range(1, 4):
+                    if self.state['runners'][i] != '':
+                        runner = self.state['runners'][i]
                         if runner.name == e.player:
-                            self.dest[i] = e.dest[1] if e.dest[1] == 0 else e.dest[0]
+                            dest[i] = e.dest[1] if e.dest[1] == 0 else e.dest[0]
             else:
-                r = play.Runner(e.player, self)
-                if e.code in ['E', 'INT']:
+                r = play.Runner(e.full_name, pitcher)
+                if e.code in [17, 18]:
                     r.resp = ''
-                self.runners[0] = r
-                self.dest[0] = e.dest[1] if e.dest[1] == 0 else e.dest[0]
+                self.state['runners'][0] = r
+                dest[0] = e.dest[1] if e.dest[1] == 0 else e.dest[0]
         for i in range(0, 4):
-            if self.dest[i] != '':
-                if self.dest[i] in [1,2,3]:
-                    new_runners[self.dest[i]] = self.runners[i]
-                elif self.dest[i] == 4:
-                    self.score[self.state['half'] % 2] += 1
-                elif self.dest[i] == 0:
-                    self.event_outs += 1
+            if dest[i] != '':
+                if dest[i] in [1,2,3]:
+                    new_runners[dest[i]] = self.state['runners'][i]
+                elif dest[i] == 4:
+                    self.state['score'][self.state['half'] % 2] += 1
+                elif dest[i] == 0:
+                    event_outs += 1
             else:
-                if self.runners[i] != '':
-                    new_runners[i] = self.runners[i]
+                if self.state['runners'][i] != '':
+                    new_runners[i] = self.state['runners'][i]
+        self.state['runners'] = new_runners
+        return True
 
-        self.output.append(self.get_output(p))
-        print('play no: ' + str(self.play))
-        # print(self.play_list[self.state['half']][self.play_of_inn])
+        # self.output.append(self.get_output(p))
+        # print('play no: ' + str(self.play))
+        # # print(self.play_list[self.state['half']][self.play_of_inn])
 
-        if self.leadoff_fl == True:
-            self.leadoff_fl = False
-        self.runners = new_runners
-        self.dest = ['']*4
-        self.outs += self.event_outs
-        self.event_outs = 0
+        # if self.leadoff_fl == True:
+        #     self.leadoff_fl = False
+        # self.runners = new_runners
+        # self.dest = ['']*4
+        # self.outs += self.event_outs
+        # self.event_outs = 0
 
-        if p.type == 'b':
-            if p.off_team == 'a':
-                self.a_order = (self.a_order + 1) % 9
-            else:
-                self.h_order = (self.h_order + 1) % 9
-        self.play += 1
-        self.play_of_inn += 1
+        # if p.type == 'b':
+        #     if p.off_team == 'a':
+        #         self.a_order = (self.a_order + 1) % 9
+        #     else:
+        #         self.h_order = (self.h_order + 1) % 9
+        # self.play += 1
+        # self.play_of_inn += 1
 
 
-        self.sub = []
+        # self.sub = []
 
     def get_output(self, p):
         output = {
@@ -309,6 +320,28 @@ class Game:
         'pbp_text': p.text
         }
         return output
+
+    
+
+    # def parse_plays(self):
+    #     for half in self.play_list:
+    #         parse.parse_half(self, half)
+
+    # def parse_debug(self, half, play):
+    #     while self.state['half'] < half:
+    #         parse.parse_half(self, self.play_list[self.state['half']])
+    #         print('parsing half ' + str(self.state['half']))
+    #     while self.inn_pbp_no <= play:
+    #         parsed = parse.parse(self.play_list[self.state['half']][self.inn_pbp_no], self)
+    #         print('parsing play ' + str(self.inn_pbp_no))
+    #         print(self.play_list[self.state['half']][self.inn_pbp_no-1])
+    #     return parsed
+
+    # def parse_step(self):
+    #     parsed = parse.parse(self.play_list[self.state['half']][self.inn_pbp_no], self)
+    #     print('parsing play ' + str(self.inn_pbp_no))
+    #     print(self.play_list[self.state['half']][self.inn_pbp_no-1])
+    #     return parsed
 
     # def make_sub(self, s):
     #     # if s.pos == "ph":
@@ -425,9 +458,12 @@ def check_lineup(lineup):
     # no removed players allowed
     pos_list = ['p', 'c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh']
     order_list = list(range(1,11))
+    pinch = 0
     for player in lineup:
         if player.pos in pos_list:
             pos_list.remove(player.pos)
+        elif player.pos in ['pr', 'ph']:
+            pinch += 1
         else:
             print("ERROR: multiple players listed at " + player.pos)
             return False
@@ -437,18 +473,18 @@ def check_lineup(lineup):
             print("ERROR: multiple players listed at " + player.order)
             return False
     if 10 in order_list and not 'dh' in pos_list:
-        print("ERROR: missing position " + pos_list)
+        print("ERROR: missing position " + str(pos_list))
         return False
-    if len(order_list) == 0 and not len(pos_list) == 0:
-        print("ERROR: missing position " + pos_list)
+    if len(order_list) == 0 and not len(pos_list) - pinch == 0:
+        print("ERROR: missing position " + str(pos_list))
         return False
     if len(pos_list) == 0 and not len(order_list) == 0:
-        print("ERROR: missing order " + order_list)
+        print("ERROR: missing order " + str(order_list))
         return False
     if len(order_list) > 0 and not order_list == [10] :
-        print("ERROR: missing order " + order_list)
+        print("ERROR: missing order " + str(order_list))
         return False
     if len(pos_list) > 0 and not pos_list == ['dh'] :
-        print("ERROR: missing order " + order_list)
+        print("ERROR: missing order " + str(order_list))
         return False
     return True
