@@ -30,11 +30,11 @@ class Lineups:
         self.h_lineup = home['lineup']
         self.h_subs = home['subs']
 
-    def get_batter(self, game):
-        if game.half % 2 == 0:
-            return game.lineups.a_lineup[game.a_order].name
+    def get_batter(self, half, order):
+        if half == 0:
+            return self.a_lineup[order-1].name
         else:
-            return game.lineups.h_lineup[game.h_order].name
+            return self.h_lineup[order-1].name
 
     def all_names(self, team):
         if team == 'h':
@@ -42,12 +42,12 @@ class Lineups:
         elif team == 'a':
             return self.a_lineup['name'].to_list() + self.a_subs
 
-    def get_defense(self, team):
-        pos_list = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
+    def get_defense(self, half):
+        pos_list = ['p', 'c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf']
         d = []
-        if team == 'h':
+        if half == 0:
             l = self.h_lineup
-        elif team == 'a':
+        elif half == 1:
             l = self.a_lineup
         for p in pos_list:
             if len([player.pos for player in l if player.pos == p]) > 0:
@@ -174,6 +174,7 @@ def compile_lineups(names, positions, team):
         if names[n][-1] == ' ':
             names[n] = names[n][0:-1]
     for i in range(0, len(names)):
+        names[i] = names[i].replace('Ã±', 'n')
         if '\xa0' in names[i]:
             if not i == 0:
                 if not '\xa0' in names[i-1]:
