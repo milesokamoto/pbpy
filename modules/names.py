@@ -7,105 +7,64 @@ import modules.parse as parse
 import modules.play as play
 
 
-class NameDict:
-    """docstring for NameDict."""
+def match_all(lineup, play_list):
+    """Create a dictionary matching the play by play names to box score names for a team
 
-    def __init__(self, g):
-        self.h_names = match_all(g, 'h')
-        self.a_names = match_all(g, 'a')
-
-    def match_name(self, team, name, type):
-        max = 0
-        match_team = team
-        match = ''
-        if team == "h":
-            d1 = self.h_names
-            d2 = self.a_names
-        elif team == "a":
-            d1 = self.a_names
-            d2 = self.h_names
-        for full, short in d1.items():
-            if short == '':
-                ratio = name_similarity(name, full)
-                if ratio > max:
-                    max = ratio
-                    match = full
-            elif short == name:
-                max = 1
-                match = full
-        if type == 's':
-            for full, short in d2.items():
-                if short == '':
-                    ratio = name_similarity(name, full)
-                    if ratio > max:
-                        max = ratio
-                        match = full
-                        match_team = 'a' if team == 'h' else 'h'
-                elif short == name:
-                    if max < .8:
-                        max = 1
-                        match = full
-                        match_team = 'a' if team == 'h' else 'h'
-        if not match == '':
-            if match_team == team:
-                d1[match] = name
-                if match_team == "h":
-                    self.h_names = d1
-                elif match_team == "a":
-                    self.a_names = d1
-            else:
-                d2[match] = name
-                if match_team == "h":
-                    self.h_names = d2
-                elif match_team == "a":
-                    self.a_names = d2
-        return [match, match_team]
-
-def match_all(g, team):
-    starters = [p.name for p in g.lineups.a_lineup] if team == 'a' else [p.name for p in g.lineups.h_lineup]
+    :param lineup: object containing lineups and subs for a team
+    :type lineup: Lineup object
+    :param play_list: list of all pbp in the game
+    :type play_list: list
+    :return: dictionary of key box score name to value pbp name
+    :rtype: dict
+    """
+    # make a dictionary with keys of the starters in the batting order and empty values
+    starters = [p.name for p in lineup.lineup]
     lu = starters[0:9]
     box_names = {s:'' for s in lu}
     pbp_names = []
-    for h in range(0, len(g.play_list)):
-        if team == 'a' and h % 2 == 0:
-            for p in g.play_list[h]:
+
+    # loop through play list to get a list of names used in play by play
+    for h in range(0, len(play_list)):
+        if (lineup.team == 0) ^ (h % 2 == 1):
+            for p in play_list[h]:
                 if parse.get_type(p) == 'p':
-                    n = play.get_primary(p, play.get_event(p, "")[0])
-                    if not n in pbp_names and not n is None:
-                        pbp_names.append(n)
-        elif team == 'h' and h % 2 == 1:
-            for p in g.play_list[h]:
-                if parse.get_type(p) == 'p':
-                    n = play.get_primary(p, play.get_event(p, "")[0])
+                    n = p.split(' ' + play.find_events(p)[0])[0]
                     if not n in pbp_names and not n is None:
                         pbp_names.append(n)
     nm = match_helper(box_names, pbp_names)
-    def_plays = g.all_plays('a' if team == 'h' else 'h')
+
+    # look at all defensive plays to match pitchers
+    def_plays = all_plays(play_list, (lineup.team + 1) % 2)
     pitcher_subs = [p for p in def_plays if (' to p.' in p and not 'out to p.' in p and not 'up to p.' in p and not '1b to p.' in p) or ' to p for ' in p or '/ for ' in p]
     if len(starters) > 9 and len(pitcher_subs) > 0:
         if ' for ' in pitcher_subs[0]:
             nm[starters[9]] = pitcher_subs[0][0:-1].split(' for ')[1]
+        # if a position player moves to pitcher and burns the dh (syntax '/ for <name>), this will match the starter to his name
         elif len(pitcher_subs) > 1 and '/ for ' in pitcher_subs[1]:
             short = pitcher_subs[1][0:-1].split(' for ')[1]
             if name_similarity(short, starters[9]) > .5:
                 nm[starters[9]] = short
         else:
-            nm[starters[9]] = ''
+            nm[starters[9]] = '' # this might be a problem if we get to here
     pitchers = [p.split(' to p')[0] for p in pitcher_subs]
+    # matching subs
+    subs = lineup.subs
 
-    subs = g.lineups.a_subs if team == 'a' else g.lineups.h_subs
-
-    plays = g.all_plays('')
+    plays = all_plays(play_list, '')
     p_no = 0
     if not subs is None:
         for sub in subs:
+            # offensive substitution
             if sub.pos in ('ph', 'pr'):
                 match = [re.match(r'(.*)(?: pinch (?:hit|ran) for )' + nm[sub.sub] + r'\.', s).group(1) for s in plays if ' pinch ' in s and nm[sub.sub] in s[-len(sub.sub)-2:]]
+                # if pbp text says pinch hit/pinch ran it's easy
                 if len(match) > 0:
                     nm[sub.name] = match[0]
+                
+                # otherwise it might say "to dh for"
                 else:
                     if (sub.name in nm.keys() and nm[sub.name] == '') or not sub.name in nm.keys():
-                        players = g.lineups.a_lineup if team == 'a' else g.lineups.h_lineup
+                        players = lineup.lineup
                         sub_match = [p.pos for p in players if p.name == sub.sub]
                         ph_dh = False
                         if len(sub_match) > 0:
@@ -118,17 +77,23 @@ def match_all(g, team):
                                 nm[sub.name] = ''
                         else:
                             nm[sub.name] = ''
+            
+            # pitcher substitution - assumes pitchers are listed in correct order
             elif sub.pos == 'p':
                 while pitchers[p_no] in list(nm.values()) and p_no < len(pitchers):
                     p_no += 1
                 nm[sub.name] = pitchers[p_no]
                 p_no += 1
+
+            # all other subs
             else:
                 match = [re.match(r'(.*)(?: to ' + sub.pos + ' for )' + nm[sub.sub], s).group(1) for s in plays if ' to ' + sub.pos + ' for ' in s and nm[sub.sub] in s.split(' for ')[1]]
                 if len(match) > 0:
                     nm[sub.name] = match[0]
                 else:
                     nm[sub.name] = ''
+
+    #check if similarity score is less than .5 for any pair
     check = [k for k, v in sorted(nm.items(), key=lambda item: item[1]) if name_similarity(v, k) < .5]
     for i in range(0, len(check)):
         for j in range(i, len(check)):
@@ -137,6 +102,9 @@ def match_all(g, team):
                     temp = nm[check[i]]
                     nm[check[i]] = nm[check[j]]
                     nm[check[j]] = temp
+    
+
+    # check if any names are left blank
     blank = [k for k, v in sorted(nm.items(), key=lambda item: item[1]) if v == '']
     for name in blank:
         sub_out = [[s.name, s.pos, s.sub] for s in subs if s.sub == name]
@@ -147,7 +115,7 @@ def match_all(g, team):
                 sub_type = ' pinch hit'
             else:
                 sub_type = ' to ' + sub_out[0][1]
-            sub_txt = [t for t in g.all_plays('') if nm[sub_out[0][0]] + sub_type + ' for ' in t]
+            sub_txt = [t for t in plays if nm[sub_out[0][0]] + sub_type + ' for ' in t]
             if len(sub_txt) > 0:
                 nm[sub_out[0][2]] = re.search(r'(?<=' + nm[sub_out[0][0]] + sub_type + r' for ).*(?=\.)', sub_txt[0]).group()
             elif sub_out[0][1] == 'p':
@@ -166,47 +134,31 @@ def match_all(g, team):
             if len(sub_in) > 0:
                 sub_txt = [t for t in g.all_plays('') if sub_type + ' for ' + nm[sub_in[0][2]] in t]
                 if len(sub_txt) > 0:
-                    # print(r'.*(?=' + sub_type + r' for ' + nm[sub_in[0][2]] + r'\.)')
                     nm[sub_in[0][0]] = re.search(r'.*(?=' + sub_type + r' for ' + nm[sub_in[0][2]] + r'\.)', sub_txt[0]).group()
-    return nm
+    for player in lineup.lineup:
+        player.pbp_name = nm[player.name]
+    for player in lineup.subs:
+        player.pbp_name = nm[player.name]
 
-
+    return lineup
+    
 def match_helper(box_names, pbp_names):
+    """matches names from box score to names in the pbp score and returns completed dictionary
+
+    :param box_names: dictionary with keys of names from box score and empty values
+    :type box_names: dict
+    :param pbp_names: list of names in order of appearance in play-by-play
+    :type pbp_names: list
+    :return: dictionary with keys of names from box score and values of matching names from pbp
+    :rtype: dict
+    """
+    #TODO: check threshold value and find false positives
     i=0
-    # print(box_names)
-    # print(pbp_names)
     for key in box_names.keys():
         if box_names[key] == '' and name_similarity(pbp_names[i], key) >= .5:
             box_names[key] = pbp_names[i]
-        # elif len(box_names) == len(pbp_names) and name_similarity(box_names[len(box_names-1)], pbp_names[len(pbp_names-1)]) < .5:
-            #Add in position not in the lineup and shift everyone else down (including subs order)
         i+=1
-    # combos = []
-    # for n1 in box_names.keys():
-    #     for n2 in pbp_names:
-    #         combos.append([n1, n2, name_similarity(n1,n2)])
-    # matches = []
-    # names_tbl = pd.DataFrame(combos, columns = ['pbp_name', 'box_name', 'sim'])
-    # while len(names_tbl) > 0:
-    #     max_index = names_tbl["sim"].idxmax()
-    #     match = names_tbl.loc[max_index]
-    #     names_tbl = names_tbl[names_tbl.pbp_name != match[0]]
-    #     names_tbl = names_tbl[names_tbl.box_name != match[1]]
-    #     box_names[match[0]] = match[1]
     return box_names
-
-def get_name(s: str) -> str:
-    """
-    extracts name from start of play string
-    Parameters
-    ----------
-    s : str
-        play string
-    """
-    name = re.search(r"^[A-Za-z,\. '-]*?(?= [a-z])", s)
-    if not name is None:
-        return name.group()
-
 
 def name_similarity(part, full):
     max_score = Levenshtein.ratio(part.title(), full.title())
@@ -223,3 +175,22 @@ def name_similarity(part, full):
     if score > max_score:
         max_score = score
     return max_score
+
+
+def all_plays(play_list, team):
+    """helper function to list all plays for one side
+
+    :param play_list: list of play by play strings
+    :type play_list: list
+    :param team: 'h' for home or 'a' for away or other for all plays in the game
+    :type team: str
+    :return: list of play strings
+    :rtype: list
+    """    
+    out = []
+    for i in range(0, len(play_list)):
+            x = play_list[i]
+            for p in x:
+                if (team == 0) ^ (i % 2 == 1) or not team in [0, 1]:
+                    out.append(p)
+    return out
