@@ -1,54 +1,57 @@
 import modules.scrape as scrape
 import pandas as pd
 import modules.player as player
+import modules.names as names
 
-class Lineups:
+class Lineup:
     """
     Contains lists of player objects
     """
-    def __init__(self, game_id):
+    def __init__(self, game_id, team):
+        #TODO: add player id
         self.game_id = game_id
-        self.a_lineup = None
-        self.a_subs = None
-        self.a_order = 1
-        self.h_lineup = None
-        self.h_subs = None
-        self.h_order = 1
+        self.lineup = None
+        self.subs = None
+        self.order = 1
+        self.team = team
         self.get_lineups()
 
     def get_lineups(self):
-        """Given a game ID, assigns lists of player objects to Lineups object attributes
+        """Assigns lists of player objects to Lineup object attributes based on game_id and team
 
         :param game_id: game ID
         :type game_id: int
         """            
-        [players, positions] = scrape.get_lu_table(self.game_id)
-        away = compile_lineups(players[0], positions[0], 'a')
-        home = compile_lineups(players[1], positions[1], 'h')
-        self.a_lineup = away['lineup']
-        self.a_subs = away['subs']
-        self.h_lineup = home['lineup']
-        self.h_subs = home['subs']
+        [players, positions, ids] = scrape.get_lu_table(self.game_id)
+        lu = compile_lineups(players, positions, self.team)
+        self.lineup = lu['lineup']
+        self.subs = lu['subs']
 
     def get_batter(self, half, order):
+        """Get the batter at a particular position in the batting order given top/bottom of inning
+
+        :param half: 0 for top or 1 for bottom
+        :type half: int
+        :param order: in the range 1-9 to represent batting order
+        :type order: int
+        :return: name of the player in that position in the lineup
+        :rtype: str
+        """        
         if half == 0:
             return self.a_lineup[order-1].name
         else:
             return self.h_lineup[order-1].name
 
     def all_names(self, team):
-        if team == 'h':
+        if team == 1:
             return self.h_lineup['name'].to_list() + self.h_subs
-        elif team == 'a':
+        elif team == 0:
             return self.a_lineup['name'].to_list() + self.a_subs
 
-    def get_defense(self, half):
+    def get_defense(self):
         pos_list = ['p', 'c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf']
         d = []
-        if half == 0:
-            l = self.h_lineup
-        elif half == 1:
-            l = self.a_lineup
+        l = self.lineup
         for p in pos_list:
             if len([player.pos for player in l if player.pos == p]) > 0:
                 d.append([player.name for player in l if player.pos == p][0])
@@ -57,7 +60,12 @@ class Lineups:
         return d
 
     def make_sub(self, sub):
-        [lu, subs] = [self.a_lineup, self.a_subs] if sub.team == 'a' else [self.h_lineup, self.h_subs]
+        """makes lineup change based on Sub object
+
+        :param sub: [description]
+        :type sub: [type]
+        """        
+        [lu, subs] = [self.lineup, self.subs]
         # print([s.__dict__ for s in subs])
         if 'PositionSwitch' in str(type(sub)):
             for player in lu:
@@ -84,11 +92,8 @@ class Lineups:
             lu_idx = find_player_index(lu, sub.sub)
             lu[lu_idx].status = 'removed'
             subs.append(lu.pop(lu_idx))
-        if sub.team == 'a':
-            [self.a_lineup, self.a_subs] = [lu, subs] 
-        else:
-            [self.h_lineup, self.h_subs] = [lu, subs] 
-
+        
+        [self.lineup, self.subs] = [lu, subs]
 
         # if s.sub_in == -1:
         #     print(s.__dict__)
@@ -120,13 +125,9 @@ class Lineups:
         #     self.h_lineup = lu
 
     def add_names(self, names):
-        for player in self.a_lineup:
+        for player in self.lineup:
             player.match_pbp_name(names)
-        for player in self.h_lineup:
-            player.match_pbp_name(names)
-        for player in self.a_subs:
-            player.match_pbp_name(names)
-        for player in self.h_subs:
+        for player in self.subs:
             player.match_pbp_name(names)
 
 
@@ -158,7 +159,7 @@ def get_names(lu):
 # def list_index(list, index):
 #     return [list[i] for i in index]
 
-def compile_lineups(names, positions, team):
+def compile_lineups(players, pos, team):
     """given lists of names and positions returns two lists populated with Player objects
 
     :param names: player names from box score
@@ -170,6 +171,8 @@ def compile_lineups(names, positions, team):
     """
     lu = []
     subs = []
+    names = players[team]
+    positions = pos[team]
     for n in range(len(names)):
         if names[n][-1] == ' ':
             names[n] = names[n][0:-1]
