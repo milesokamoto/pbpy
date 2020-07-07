@@ -1,9 +1,12 @@
 import unittest
 import modules.game as game
+import modules.names as names
+import modules.ui as ui
 
 class TestGame(unittest.TestCase):
     def setUp(self):
-        self.id = 4586702
+        self.id = 4926879
+        # 4926865, 4925736, 4926879, 4586702
         self.testgame = game.Game(self.id)
     
     # def tearDown(self):
@@ -17,16 +20,40 @@ class TestGame(unittest.TestCase):
         self.assertTrue(True)
 
     def test_check_subs(self):
+        self.testgame.play_list = game.get_pbp(self.id)
+        for lu in self.testgame.lineups:
+            names.match_all(lu, self.testgame.play_list)
         self.testgame.check_subs()
-
-    def test_check_lineups(self):
-        self.assertTrue(self.testgame.check_lineups())
-
+        self.assertTrue(len([s for s in self.testgame.subs.values() if not 'text' in s]) == 0)
 
     def test_create_plays(self):
+        self.testgame.play_list = game.get_pbp(self.id)
+        for lu in self.testgame.lineups:
+            names.match_all(lu, self.testgame.play_list)
         self.testgame.check_subs()
         self.testgame.create_plays()
         self.assertTrue(True)
+
+    def test_make_sub(self):
+        self.testgame.play_list = game.get_pbp(self.id)
+        for lu in self.testgame.lineups:
+            names.match_all(lu, self.testgame.play_list)
+        self.testgame.check_subs()
+        self.testgame.check_subs()
+        self.testgame.create_plays()
+        for h in self.testgame.events:
+            for e in h:
+                if "sub" in str(type(e)):
+                    self.testgame.lineups[e.team].make_sub(e)
+                    # ui.print_lineups(self.testgame)
+            self.testgame.state['half'] = (self.testgame.state['half']  + 1) % 2   
+            check = game.check_lineup(self.testgame.lineups[(self.testgame.state['half'] + 1) % 2].lineup)
+        self.assertTrue(check)
+
+    def test_execute_game(self):
+        self.testgame.setup_game()
+        self.testgame.execute_game()
+            
 
 if __name__ == '__main__':
     unittest.main()
