@@ -9,9 +9,14 @@ import modules.ref as ref
 class Play:
     def __init__(self, text, names):
         self.text = text
+        self.type = ''
         self.play_names = play_names(text, names)
+        self.names = {names[k]:k for k in names.keys() if names[k] in self.play_names.keys()}
         self.parts = self.split_play()
         self.order = 0
+        
+        
+        self.dest = None
 
         # print(self.parts)
         
@@ -49,42 +54,48 @@ class Play:
             split = new_text.split(splits[i] + " ")
             new_text = split[0]
             player_text = split[1]
-            parts.insert(0, {'player': name, 'text': player_text})
+            parts.insert(0, {'player':name, 'text': player_text})
         return parts
     
     def get_type(self, lineups, team):
-        lu = lineups.a_lineup if team == 'a' else lineups.h_lineup
-        sub = lineups.a_subs if team == 'a' else lineups.h_subs
-        self.order = lineups.a_order if team == 'a' else lineups.h_order
+        lu = lineups[team].lineup
+        sub = lineups[team].subs
+        self.order = lineups[team].order
         order_names = [player.pbp_name for player in lu if player.order == self.order]
         order_names.extend([player.pbp_name for player in sub if player.order == self.order])
         if self.parts[0]['player'] in order_names:
             self.type = 'b'
-            if team == 'a':
-                lineups.a_order = self.order % 9 + 1
-            else:
-                lineups.h_order = self.order % 9 + 1
+            lineups[team].order = self.order % 9 + 1
         else:
             self.type = 'r'
 
     def create_events(self):
         self.events = []
         if self.type == 'b':
-            self.events.append(BatEvent(self.parts[0]))
+            self.events.append(BatEvent(self.parts[0], self.names[self.parts[0]['player']]))
             if len(self.parts) > 1:
                 for part in self.parts[1:]:
-                    self.events.append(RunEvent(part))
+                    self.events.append(RunEvent(part, self.names[part['player']]))
         else:
             for part in self.parts:
-                self.events.append(RunEvent(part))
+                self.events.append(RunEvent(part, self.names[part['player']]))
 
 class BatEvent:
-    def __init__(self, part):
+    def __init__(self, part, full_name):
         self.player = part['player']
         self.text = part['text']
+        self.full_name = full_name
+
+        self.rbi = None
+        self.flags = None
+        self.bb_loc = None
+        self.count = None
+        self.seq = None
+
+        self.event = None
+        self.code = None
+
         self.deconstruct_text()
-
-
 
         # [self.event, self.code] = get_event(self.text, 'b')
         # [self.det_event, self.det_abb] = get_det_event(self.text, 'b')
@@ -124,8 +135,9 @@ class BatEvent:
         #TODO: Add bb type
 
         self.event = get_event(pbp)
+        self.code = ref.event_codes[ref.codes[get_simple_event(pbp)]]
 
-        print(self.__dict__)
+        # print(self.__dict__)
                 
 
     def get_info(self):
@@ -134,6 +146,9 @@ class BatEvent:
             count = re.search(r'[0-3]-[0-2]', self.text).group(0)
             self.count = count.split('-')
             self.seq = re.search(r'[KFBS]*(?=\))', self.text).group(0)
+        else:
+            self.count = ['','']
+            self.seq = ''
 
 
 
@@ -164,14 +179,20 @@ def get_event(text):
     sorted_ev = [k for k, v in sorted({l:text.index(l) for l in ev}.items(), key=lambda item:item[1])]
     return sorted_ev
 
+def get_simple_event(text):
+    ev = [key for key in ref.codes.keys() if key in text]
+    sorted_ev = [k for k, v in sorted({l:text.index(l) for l in ev}.items(), key=lambda item:item[1])]
+    return sorted_ev[0]
+
 
 
 class RunEvent:
-    def __init__(self, part):
+    def __init__(self, part, full_name):
         self.player = part['player']
         self.text = part['text']
         self.event = get_event(self.text)
         self.dest = get_run_dest(self.text)
+        self.full_name = full_name
         # [self.event, self.code] = get_event(self.text, 'r')
         # [self.det_event, self.det_abb] = get_det_event(self.text, 'r')
         # self.ev_code = ref.event_codes[self.det_abb] if not self.det_abb == '' else ''
@@ -186,29 +207,21 @@ def get_run_dest(text):
 
 
 class Runner:
-    def __init__(self, name, g):
+    def __init__(self, name, pitcher):
         self.name = name
-        self.resp = g.defense[0]
+        self.resp = pitcher
 
-def find_event(text, type):
-    if type == 'b':
-        events = {key: text.index(key) for key in ref.codes.keys() if key in text}
-        sort_events = {k: v for k, v in sorted(events.items(), key=lambda item: item[1])}
-        return [list(sort_events.keys())[0], ref.codes[list(sort_events.keys())[0]]]
-    elif type == 'r':
-        return [[key, ref.run_codes[key]] for key in ref.run_codes.keys() if key in text][0]
-    else:
-        events = {key: text.index(key) for key in ref.codes.keys() if key in text}
-        if len(events) > 0:
-            sort_events = {k: v for k, v in sorted(events.items(), key=lambda item: item[1])}
-            events = [list(sort_events.keys())[0], ref.codes[list(sort_events.keys())[0]]]
-        if events == {}:
-            check = [[key, ref.run_codes[key]] for key in ref.run_codes.keys() if key in text]
-            if check == []:
-                return 'None'
-            return check[0]
-        else:
-            return events
+def find_events(text):
+    """find pbp events within a play by play string
+
+    :param text: play by play string
+    :type text: str
+    :return: list of events in order of occurence in the string
+    :rtype: list
+    """    
+    events = {key: text.index(key) for key in ref.all_codes if key in text}
+    sort_events = {k: v for k, v in sorted(events.items(), key=lambda item: item[1])}
+    return list(sort_events.keys())
 
 # def get_det_event(text, type):
 #     e = [[key, ref.mod_codes[key]] for key in ref.mod_codes.keys() if key in text]
@@ -216,18 +229,6 @@ def find_event(text, type):
 #         return ['','']
 #     else:
 #         return e[0]
-
-def get_primary(text, event):
-    run_txt = [key for key in ref.run_codes.keys() if key in text]
-    if not run_txt == []:
-        if text.index(run_txt[0]) < text.index(event):
-            spl = run_txt[0]
-        else:
-            if not len(event) == 0:
-                spl = event
-    else:
-        spl = event
-    return text.split(' ' + spl)[0]
 
 def play_names(text, names):
     """get player names and indexes within the play by play strings
