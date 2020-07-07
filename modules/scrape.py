@@ -28,6 +28,7 @@ def get_lu_table(id) -> list:
     """
     players = []
     positions = []
+    player_id = []
     team_spl = 0
 
     #Get lineups from situational stats (ss) and box score (bs) pages
@@ -65,7 +66,10 @@ def get_lu_table(id) -> list:
     #separate home and away players
     bs_a_players = [bs_a_lineup[i][0].text for i in range(1, len(bs_a_lineup)-1)]
     bs_h_players = [bs_h_lineup[i][0].text for i in range(1, len(bs_h_lineup)-1)]
+    ids = {bs_a_lineup[i][0].text:bs_a_lineup[i][0].attrib['href'].split('stats_player_seq=')[-1] for i in range(1, len(bs_a_lineup)-1)}
+    ids.update({bs_h_lineup[i][0].text:bs_h_lineup[i][0].attrib['href'].split('stats_player_seq=')[-1] for i in range(1, len(bs_h_lineup)-1)})
 
+    #check number of players on each team
     if len(players[0:team_spl-2]) < len(bs_a_players):
         players = bs_a_players + players[team_spl-2:]
         positions = [bs_a_pos[i].text.lower().split('/') for i in range(0, len(bs_a_pos)-1)] + positions[team_spl-2:]
@@ -76,10 +80,15 @@ def get_lu_table(id) -> list:
         positions = positions[0:team_spl-2] + [bs_h_pos[i].text.lower().split('/') for i in range(0, len(bs_h_pos)-1)]
 
     for i in range(0, len(players)):
+        if players[i] in ids.keys():
+            player_id.append(ids[players[i]])
+        else:
+            player_id.append('x' + str(i))
         players[i] = players[i].replace('ñ', 'n')
-
-    return [[players[0:team_spl-2], players[team_spl-2:]], [positions[0:team_spl-2], positions[team_spl-2:]]]
-#TODO: Use positions to help with substitutions
+        positions[i] = [pos.replace('DP', 'DH') for pos in positions[i]] # https://stats.ncaa.org/game/box_score/4937004
+        
+    return [[players[0:team_spl-2], players[team_spl-2:]], [positions[0:team_spl-2], positions[team_spl-2:]], [player_id[0:team_spl-2], player_id[team_spl-2:]]]
+    #TODO: Use positions to help with substitutions
 
 def get_scoreboard(date):
     """gets scoreboard (teams, game ids, and urls) given a date (MM-DD-YYYY)
