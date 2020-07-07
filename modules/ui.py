@@ -1,24 +1,25 @@
 def print_lineups(game):
     print('\n')
     print("AWAY")
-    for player in game.lineups.a_lineup:
+    for player in game.lineups[0].lineup:
         print_player(player)
     print("\nHOME")
-    for player in game.lineups.h_lineup:
+    for player in game.lineups[1].lineup:
         print_player(player)
 
 def print_subs(game):
     print('\n')
     print("AWAY")
-    for player in game.lineups.a_subs:
+    for player in game.lineups[0].subs:
         print_player(player)
     print("\nHOME")
-    for player in game.lineups.h_subs:
+    for player in game.lineups[1].subs:
         print_player(player)
 
 
 def print_player(player):
     print(player.pos + " "*(3-len(player.pos)) + "| " + player.name)
+    # print("switch: " + str(player.switch) + " | sub: " + player.sub)
 
 def print_play(play):
     pass
