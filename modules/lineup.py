@@ -23,7 +23,7 @@ class Lineup:
         :type game_id: int
         """            
         [players, positions, ids] = scrape.get_lu_table(self.game_id)
-        lu = compile_lineups(players, positions, self.team)
+        lu = compile_lineups(players, positions, ids, self.team)
         self.lineup = lu['lineup']
         self.subs = lu['subs']
 
@@ -159,7 +159,7 @@ def get_names(lu):
 # def list_index(list, index):
 #     return [list[i] for i in index]
 
-def compile_lineups(players, pos, team):
+def compile_lineups(players, pos, id_list, team):
     """given lists of names and positions returns two lists populated with Player objects
 
     :param names: player names from box score
@@ -173,6 +173,7 @@ def compile_lineups(players, pos, team):
     subs = []
     names = players[team]
     positions = pos[team]
+    ids = id_list[team]
     for n in range(len(names)):
         if names[n][-1] == ' ':
             names[n] = names[n][0:-1]
@@ -192,8 +193,8 @@ def compile_lineups(players, pos, team):
                 while '\xa0' in names[j]:
                     j += 1
                 sub_out = names[j]
-            subs.append(player.Player(names[i].replace('\xa0', ''), positions[i][0], positions[i][1:] if len(positions) > 1 else [], len(lu) + 1, sub_out.replace('\xa0', ''), 'available', team))
+            subs.append(player.Player(names[i].replace('\xa0', ''), positions[i][0], positions[i][1:] if len(positions) > 1 else [], len(lu) + 1, sub_out.replace('\xa0', ''), 'available', team, ids[i]))
         else:
-            lu.append(player.Player(names[i], positions[i][0], positions[i][1:] if len(positions)>1 else [], len(lu) + 1, '', 'entered', team))
+            lu.append(player.Player(names[i], positions[i][0], positions[i][1:] if len(positions)>1 else [], len(lu) + 1, '', 'entered', team, ids[i]))
     return {"lineup":lu, "subs":subs}
 

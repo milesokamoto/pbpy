@@ -1,5 +1,5 @@
 class Player:
-    def __init__(self, name, pos, switch, order, sub, status, team):
+    def __init__(self, name, pos, switch, order, sub, status, team, id):
         self.name = name
         self.pos = pos
         self.switch = switch
@@ -8,6 +8,7 @@ class Player:
         self.status = status # 'available', 'entered', 'removed'
         self.team = team
         self.pbp_name = None
+        self.id = id
 
     def match_pbp_name(self, names):
         nm = names.a_names if self.team == 0 else names.h_names
