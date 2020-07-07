@@ -49,6 +49,13 @@ def check_play(pbp_text, g):
 
 
 def get_type(s):
+    """given a play by play string, determine if it's a play or substitution
+
+    :param s: play by play text
+    :type s: str
+    :return: 's' for substitution or 'p' for play
+    :rtype: str
+    """    
     expr = r"^([A-Za-z,\. '-]*?(?= [a-z])|\/) (pinch (?:hit|ran)|to [0-9a-z]{1,2})* *(?:for ([A-Za-z,\. '-]*?)\.$)*"
     if not re.search(expr, s.replace('/ ', '/ to x')).group(2) is None:
         return 's'
