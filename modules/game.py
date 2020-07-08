@@ -79,18 +79,18 @@ class Game:
             for player in lineup.lineup:
                 if len(player.switch) > 0:
                     for pos in player.switch:
-                        s = {'name':player.name, 'pos':pos, 'team':i}
+                        s = {'name':player.name, 'id':player.id, 'pos':pos, 'team':i}
                         subs_from_box[len(subs_from_box)] = s
 
             for player in lineup.subs:
                 if len(player.switch) > 0:
                     for pos in player.switch:
-                        s = {'name':player.name, 'pos':pos, 'team':i}
+                        s = {'name':player.name, 'id':player.id, 'pos':pos, 'team':i}
                         subs_from_box[len(subs_from_box)] = s
 
             for player in lineup.subs:
                 if not player.sub == '':
-                    s = {'name':player.name, 'replaces':player.sub, 'team':i}
+                    s = {'name':player.name, 'id':player.id, 'replaces':player.sub, 'replaces_id':player.sub_id, 'team':i}
                     subs_from_box[len(subs_from_box)] = s
 
         for i in range(0,len(subs_from_box)):
