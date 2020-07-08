@@ -88,6 +88,7 @@ class Play:
         else:
             for part in self.parts:
                 self.events.append(RunEvent(part, self.ids[part['player']]))
+            self.events[0].deconstruct_text()
 
 class BatEvent:
     def __init__(self, part, id):
@@ -202,6 +203,10 @@ class RunEvent:
         self.event = get_event(self.text)
         self.dest = get_run_dest(self.text)
         self.id = id
+
+        self.event = None
+        self.code = None
+
         # [self.event, self.code] = get_event(self.text, 'r')
         # [self.det_event, self.det_abb] = get_det_event(self.text, 'r')
         # self.ev_code = ref.event_codes[self.det_abb] if not self.det_abb == '' else ''
@@ -210,6 +215,11 @@ class RunEvent:
         # else:
         #     self.player = get_primary(self.text, self.event)
         # self.dest = self.get_run_dest()
+
+    def deconstruct_text(self):
+        pbp = self.text
+        self.event = get_event(pbp)
+        self.code = ref.event_codes[ref.codes[get_simple_event(pbp)]]
 
 def get_run_dest(text):
     return [ref.run_codes[key] for key in ref.run_codes.keys() if key in text][-1]
