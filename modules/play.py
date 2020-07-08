@@ -22,7 +22,10 @@ class Play:
         self.order = 0
         
         
-        self.dest = None
+        self.dest = ['']*4
+
+        self.event_outs = 0
+        self.defense = ['']*9
 
         # print(self.parts)
         
