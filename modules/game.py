@@ -196,6 +196,7 @@ class Game:
                 self.play['pbp_of_inn'] += 1
 
             self.state['half'] += 1
+            self.state['outs'] = 0
             if self.state['half'] > 1:
                 self.state['half'] = 0
                 self.state['inning'] += 1
@@ -207,37 +208,34 @@ class Game:
         # print(p.__dict__)
         # print([e.__dict__ for e in p.events])
         new_runners = ['']*4
-        pitcher = self.get_defense()
+        p.defense = self.get_defense()
         # maybe check? batter = self.lineups.get_batter(self.state['half'], p.order)
-        dest = ['']*4
         run_text = ['']*4
-
-        event_outs = 0
-
+        
         for e in reversed(p.events):
             if type(e) == play.RunEvent:
                 for i in range(1, 4):
                     if self.state['runners'][i] != '': # TODO: replace names with ids
                         runner = self.state['runners'][i]
                         if runner.id == e.id:
-                            dest[i] = e.dest[1] if e.dest[1] == 0 else e.dest[0]
+                            p.dest[i] = e.dest[1] if e.dest[1] == 0 else e.dest[0]
                         run_text[i] = e.text
             else:
-                r = play.Runner(e.id, pitcher)
+                r = play.Runner(e.id, p.defense[0])
                 if e.code in [17, 18]:
                     r.resp = ''
                 self.state['runners'][0] = r
-                dest[0] = e.dest[1] if e.dest[1] == 0 else e.dest[0]
+                p.dest[0] = e.dest[1] if e.dest[1] == 0 else e.dest[0]
         
         # advance runners, calculate outs and runs
         for i in range(0, 4):
-            if dest[i] != '':
-                if dest[i] in [1,2,3]:
-                    new_runners[dest[i]] = self.state['runners'][i]
-                elif dest[i] == 4:
+            if p.dest[i] != '':
+                if p.dest[i] in [1,2,3]:
+                    new_runners[p.dest[i]] = self.state['runners'][i]
+                elif p.dest[i] == 4:
                     self.state['score'][self.state['half'] % 2] += 1
-                elif dest[i] == 0:
-                    event_outs += 1
+                elif p.dest[i] == 0:
+                    p.event_outs += 1
             else:
                 if self.state['runners'][i] != '':
                     new_runners[i] = self.state['runners'][i]
@@ -246,7 +244,7 @@ class Game:
         # get output
         output = self.get_output(p)
 
-
+        self.state['outs'] += p.event_outs
         self.state['runners'] = new_runners
         return output
 
@@ -271,14 +269,16 @@ class Game:
         'OUTS_CT': self.state['outs'],
         'AWAY_SCORE': self.state['score'][0],
         'HOME_SCORE': self.state['score'][1],
-
-        # 'batter': p.batter, # TODO: this could be id
-        # 'batter_order': p.order,
-        # 'batter_pos': '', # this should come from same player object as batter id
-        # 'batter_dest': p.dest[0],
+        'BATTER_ID': self.lineups[self.state['half']].lineup[p.order].id,
+        'BAT_LINEUP_ID': p.order,
+        'BAT_FLD_CD': self.lineups[self.state['half']].lineup[p.order].pos, # this should come from same player object as batter id
+        'BAT_DEST_ID': p.dest[0],
+        # TODO: putouts/assists
         # 'batter_play': loc if type(self.last_play.events[0]) == 'play.BatEvent' else '',
-        # 'pitcher': self.defense[0],
-        # 'defense': self.defense[1:],
+        'PIT_ID': p.defense[0],
+        'POS2_FLD_ID': p.defense[1],
+        'POS3_FLD_ID': p.defense[2],
+        'POS4_FLD_ID': p.defense[3],
         # 'run_1': self.runners[1].name if self.runners[1] != '' else '',
         # 'run_1_resp': self.runners[1].resp if self.runners[1] != '' else '',
         # 'run_1_dest': p.dest[1] if self.runners[1] != '' else '',
