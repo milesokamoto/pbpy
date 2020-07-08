@@ -79,18 +79,18 @@ class Game:
             for player in lineup.lineup:
                 if len(player.switch) > 0:
                     for pos in player.switch:
-                        s = {'name':player.name, 'pos':pos, 'team':i}
+                        s = {'name':player.name, 'id':player.id, 'pos':pos, 'team':i}
                         subs_from_box[len(subs_from_box)] = s
 
             for player in lineup.subs:
                 if len(player.switch) > 0:
                     for pos in player.switch:
-                        s = {'name':player.name, 'pos':pos, 'team':i}
+                        s = {'name':player.name, 'id':player.id, 'pos':pos, 'team':i}
                         subs_from_box[len(subs_from_box)] = s
 
             for player in lineup.subs:
                 if not player.sub == '':
-                    s = {'name':player.name, 'replaces':player.sub, 'team':i}
+                    s = {'name':player.name, 'id':player.id, 'replaces':player.sub, 'replaces_id':player.sub_id, 'team':i}
                     subs_from_box[len(subs_from_box)] = s
 
         for i in range(0,len(subs_from_box)):
@@ -140,7 +140,11 @@ class Game:
                     team = 0 if half % 2 == 0 else 1
                     names = {player.name:player.pbp_name for player in self.lineups[team].lineup}
                     names.update({player.name:player.pbp_name for player in self.lineups[team].subs})
-                    new_play = play.Play(p, names)
+                    
+                    ids = {player.name:player.id for player in self.lineups[team].lineup}
+                    ids.update({player.name:player.id for player in self.lineups[team].subs})
+
+                    new_play = play.Play(p, names, ids)
                     new_play.get_type(self.lineups, team)
                     new_play.create_events()
                     h.append(new_play)
@@ -215,11 +219,11 @@ class Game:
                 for i in range(1, 4):
                     if self.state['runners'][i] != '': # TODO: replace names with ids
                         runner = self.state['runners'][i]
-                        if runner.name == e.full_name:
+                        if runner.id == e.id:
                             dest[i] = e.dest[1] if e.dest[1] == 0 else e.dest[0]
                         run_text[i] = e.text
             else:
-                r = play.Runner(e.full_name, pitcher)
+                r = play.Runner(e.id, pitcher)
                 if e.code in [17, 18]:
                     r.resp = ''
                 self.state['runners'][0] = r

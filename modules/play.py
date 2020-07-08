@@ -7,11 +7,17 @@ import modules.ref as ref
 
 
 class Play:
-    def __init__(self, text, names):
+    def __init__(self, text, names, ids):
         self.text = text
         self.type = ''
         self.play_names = play_names(text, names)
+
+        #pbp names to full names
         self.names = {names[k]:k for k in names.keys() if names[k] in self.play_names.keys()}
+
+        #pbp names to id
+        self.ids = {names[k]:ids[k] for k in names.keys() if names[k] in self.play_names.keys()}
+
         self.parts = self.split_play()
         self.order = 0
         
@@ -72,19 +78,19 @@ class Play:
     def create_events(self):
         self.events = []
         if self.type == 'b':
-            self.events.append(BatEvent(self.parts[0], self.names[self.parts[0]['player']]))
+            self.events.append(BatEvent(self.parts[0], self.ids[self.parts[0]['player']]))
             if len(self.parts) > 1:
                 for part in self.parts[1:]:
-                    self.events.append(RunEvent(part, self.names[part['player']]))
+                    self.events.append(RunEvent(part, self.ids[part['player']]))
         else:
             for part in self.parts:
-                self.events.append(RunEvent(part, self.names[part['player']]))
+                self.events.append(RunEvent(part, self.ids[part['player']]))
 
 class BatEvent:
-    def __init__(self, part, full_name):
+    def __init__(self, part, id):
         self.player = part['player']
         self.text = part['text']
-        self.full_name = full_name
+        self.id = id
 
         self.rbi = None
         self.flags = None
@@ -187,12 +193,12 @@ def get_simple_event(text):
 
 
 class RunEvent:
-    def __init__(self, part, full_name):
+    def __init__(self, part, id):
         self.player = part['player']
         self.text = part['text']
         self.event = get_event(self.text)
         self.dest = get_run_dest(self.text)
-        self.full_name = full_name
+        self.id = id
         # [self.event, self.code] = get_event(self.text, 'r')
         # [self.det_event, self.det_abb] = get_det_event(self.text, 'r')
         # self.ev_code = ref.event_codes[self.det_abb] if not self.det_abb == '' else ''
@@ -207,8 +213,8 @@ def get_run_dest(text):
 
 
 class Runner:
-    def __init__(self, name, pitcher):
-        self.name = name
+    def __init__(self, id, pitcher):
+        self.id = id
         self.resp = pitcher
 
 def find_events(text):
