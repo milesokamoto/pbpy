@@ -273,37 +273,42 @@ class Game:
         'BAT_LINEUP_ID': p.order,
         'BAT_FLD_CD': self.lineups[self.state['half']].lineup[p.order].pos, # this should come from same player object as batter id
         'BAT_DEST_ID': p.dest[0],
+        'RUN1_DEST_ID': p.dest[1],
+        'RUN2_DEST_ID': p.dest[2],
+        'RUN3_DEST_ID': p.dest[3],
+ 
+
         # TODO: putouts/assists
         # 'batter_play': loc if type(self.last_play.events[0]) == 'play.BatEvent' else '',
         'PIT_ID': p.defense[0],
         'POS2_FLD_ID': p.defense[1],
         'POS3_FLD_ID': p.defense[2],
         'POS4_FLD_ID': p.defense[3],
-        # 'run_1': self.runners[1].name if self.runners[1] != '' else '',
-        # 'run_1_resp': self.runners[1].resp if self.runners[1] != '' else '',
-        # 'run_1_dest': p.dest[1] if self.runners[1] != '' else '',
+        'POS5_FLD_ID': p.defense[4],
+        'POS6_FLD_ID': p.defense[5],
+        'POS7_FLD_ID': p.defense[6],
+        'POS8_FLD_ID': p.defense[7],
+        'POS9_FLD_ID': p.defense[8],
+        'BASE1_RUN_ID': self.state['runners'][1].id if self.state['runners'][1] != '' else '',
+        'RUN1_RESP_PIT_ID': self.state['runners'][1].resp if self.state['runners'][1] != '' else '',
+
         # 'run_1_play': '', #defense
-        # 'run_2': self.runners[2].name if self.runners[2] != '' else '',
-        # 'run_2_resp': self.runners[2].resp if self.runners[2] != '' else '',
-        # 'run_2_dest': p.dest[2] if self.runners[2] != '' else '',
+        'BASE3_RUN_ID': self.state['runners'][2].id if self.state['runners'][2] != '' else '',
+        'RUN2_RESP_PIT_ID': self.state['runners'][2].resp if self.state['runners'][2] != '' else '',
         # 'run_2_play': '',
-        # 'run_3': self.runners[3].name if self.runners[3] != '' else '',
-        # 'run_3_resp': self.runners[3].resp if self.runners[3] != '' else '',
-        # 'run_3_dest': p.dest[3] if self.runners[3] != '' else '',
+        'BASE3_RUN_ID': self.state['runners'][3].id if self.state['runners'][3] != '' else '',
+        'RUN3_RESP_PIT_ID': self.state['runners'][3].resp if self.state['runners'][3] != '' else '',
         # 'run_3_play': '',
         # 'full_event': p.event, #
-        # 'leadoff_fl': 1 if self.play_of_inn == 0 else 0,
+        'LEADOFF_FL': 1 if self.play['play_of_inn'] == 0 else 0,
         # 'event_text': p.events[0].det_abb,
-        # 'event_cd': p.events[0].ev_code, #
-        # 'bat_event_fl': 1 if p.type == 'b' else 0, #
+        'EVENT_CD': p.events[0].code, #
+        'BAT_EVENT_FL': 1 if p.type == 'b' else 0, #
         # 'sac_fl': 1 if 'SAC' in p.text else 0, #
-        # 'event_outs': self.event_outs,
-        # 'rbi': 1 if ', RBI' in p.text else int(p.text.split(' RBI')[0][-1]) if 'RBI' in p.text else 0,
+        'EVENT_OUTS_CT': p.event_outs,
         # 'fielder': '', #
         # 'batted_ball': '', #
         # 'errors': {}, #Need to add dropped foul
-        # 'h_fl': 1 if p.events[0].ev_code in [20, 21, 22, 23] else 0,
-        # 'ab_fl': 1 if p.events[0].ev_code in [2, 3, 18, 19, 20, 21, 22, 23] else 0,
         # 'sb_fl': 1 if 'stole' in p.text else 0,
         # 'cs_fl': 1 if 'caught stealing' in p.text else 0,
         # 'pk_fl': 1 if 'picked off' in p.text else 0,
@@ -319,6 +324,9 @@ class Game:
                     'BALLS_CT': p.events[0].count[0],
                     'STRIKES_CT': p.events[0].count[1],
                     'PITCH_SEQ': p.events[0].seq if not p.events[0].seq is None else '', # TODO: add x if in play
+                    'RBI': p.events[0].rbi,
+                    'H_FL': 1 if p.events[0].code in [20, 21, 22, 23] else 0,
+                    'AB_FL': 1 if p.events[0].code in [2, 3, 18, 19, 20, 21, 22, 23] else 0,
                 }
             )
         return output
