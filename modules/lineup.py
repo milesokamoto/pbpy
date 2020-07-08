@@ -56,7 +56,7 @@ class Lineup:
         l = self.lineup
         for p in pos_list:
             if len([player.pos for player in l if player.pos == p]) > 0:
-                d.append([player.name for player in l if player.pos == p][0])
+                d.append([player.id for player in l if player.pos == p][0])
             else:
                 d.append('')
         return d
