@@ -1,7 +1,6 @@
 import pandas as pd
 
-teamindex = pd.read_csv(
-    'https://raw.githubusercontent.com/milesok/ncaa-baseball/master/data/teams.csv')
+teamindex = pd.read_csv('data/teams.csv')
 
 codes = {
     'singled': '1B',
