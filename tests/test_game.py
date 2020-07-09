@@ -2,10 +2,11 @@ import unittest
 import modules.game as game
 import modules.names as names
 import modules.ui as ui
+import pandas as pd
 
 class TestGame(unittest.TestCase):
     def setUp(self):
-        self.id = 4926879
+        self.id = 4926874
         # 4926865, 4925736, 4926879, 4586702
         self.testgame = game.Game(self.id)
     
@@ -52,7 +53,9 @@ class TestGame(unittest.TestCase):
 
     def test_execute_game(self):
         self.testgame.setup_game()
-        self.testgame.execute_game()
+        output = self.testgame.execute_game()
+        print((pd.DataFrame(output).iloc[0:,:15]))
+        self.assertTrue(True)
             
 
 if __name__ == '__main__':
