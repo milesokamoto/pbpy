@@ -12,6 +12,8 @@ import modules.ref as ref
 
 import modules.ui as ui
 
+# TODO: Add check for a player that isn't at bat or on base
+
 class Game:
     """Object representing one game
     """
@@ -50,6 +52,8 @@ class Game:
         #TODO: clean them up if there's an error
         self.check_subs()
 
+        self.check_order()
+
         #remove pbp lines that aren't plays or subs
         self.clean_game()
 
@@ -68,6 +72,34 @@ class Game:
     #         if not parse.get_type(self.play_list[self.state['half']][0])[0] == 's':
     #             self.defense = self.get_defense()
 
+    def check_order(self):
+        for team in [0,1]:
+            bat_plays = [] # make sure this is accurately getting only batting plays
+            names = {player.pbp_name:player.id for player in self.lineups[team].lineup}
+            names.update({player.pbp_name:player.id for player in self.lineups[team].subs})
+            plays = [p for p in all_plays(self.play_list, team) if parse.get_type(p) == 'p']
+            for p in plays:
+                for n in list(names.keys()):
+                    p = p.replace(n, names[n])
+                run = [cd for cd in ref.run_play_codes.keys() if cd in p]
+                if not (len(run) > 0 or 'advanced' in p.split(' ')[1]):
+                    bat_plays.append(p)
+            primaries = [p.split(' ')[0] for p in bat_plays]
+            pbp_order = {}
+            for i in range(len(primaries)):
+                p = primaries[i]
+                if not p in pbp_order.keys():
+                    pbp_order.update({p:i%9+1})
+                else:
+                    if pbp_order[p] != i%9+1:
+                        print('ERROR: TWO DIFFERENT ORDERS FOR PLAYER ' + p)
+            orders = {player.id:player.order for player in self.lineups[team].lineup}
+            orders.update({player.id:player.order for player in self.lineups[team].subs})
+            mismatch = [p for p in pbp_order.keys() if pbp_order[p] != orders[p]]
+            print(mismatch)
+            # Look at extra pbp subs and try to reset up the game so it matches better
+
+               
 
     def check_subs(self):
         """Matches substitutions in play by play to box score and raises errors for mismatches
@@ -310,7 +342,7 @@ class Game:
         'EVENT_OUTS_CT': p.event_outs,
         # 'fielder': '', # don't need unless there's an out??
         # 'batted_ball': '', #
-        # 'errors': {}, #Need to add dropped foul
+        # 'errors': {}, #Need to add dropped foul (13)
         'SB_FL': 1 if p.events[0].code == 4 else 0,
         'CS_FL': 1 if p.events[0].code == 6 else 0,
         'PK_FL': 1 if p.events[0].code == 8 else 0,
@@ -466,3 +498,22 @@ def check_lineup(lineup):
         print("ERROR: missing position " + str(pos_list))
         return False
     return True
+
+def all_plays(play_list, team):
+    # Maybe create a new module of helper functions
+    """helper function to list all plays for one side
+
+    :param play_list: list of play by play strings
+    :type play_list: list
+    :param team: 'h' for home or 'a' for away or other for all plays in the game
+    :type team: str
+    :return: list of play strings
+    :rtype: list
+    """    
+    out = []
+    for i in range(0, len(play_list)):
+            x = play_list[i]
+            for p in x:
+                if (team == 0) ^ (i % 2 == 1) or not team in [0, 1]:
+                    out.append(p)
+    return out
