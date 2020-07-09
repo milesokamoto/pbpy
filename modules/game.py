@@ -30,13 +30,19 @@ class Game:
         # keep track of inning/half/outs/runners/score info
         # Runners could be tracked using ids based on lineup order?
         self.state = {'inning': 1, 'half': 0, 'outs': 0, 'runners': ['','','',''], 'score': [0,0]}
-        
+        self.flags = {'ph': 0, 'pr': 0, }
+        self.output = []
+
+        print("A")
         #create lineups based on game id
         self.lineups = [lineup.Lineup(self.id, 0), lineup.Lineup(self.id, 1)] # 2 lineup objects, 2 sub lists
         #scrape the play by play based on id
 
     def setup_game(self):
+        print("B")
         self.play_list = get_pbp(self.id)
+
+        print("C")
 
         for lu in self.lineups:
             names.match_all(lu, self.play_list)
@@ -52,6 +58,8 @@ class Game:
 
         #Create play and sub objects for every line of pbp
         self.create_plays()
+
+        
 
 
     # def advance_half(self):
@@ -189,7 +197,7 @@ class Game:
                         print('half: ' + str(self.state['half']))
                         ui.print_lineups(self)
                     output = self.execute_play(e)
-                    print(output)
+                    self.output.append(output)
                     self.play['play_of_inn'] += 1
                     self.play['play_idx'] += 1
                 self.play['pbp_idx'] += 1
@@ -202,7 +210,8 @@ class Game:
                 self.state['inning'] += 1
             self.state['runners'] = ['']*4
             self.play['pbp_of_inn'] = 0
-            self.play['play_of_inn'] = 0          
+            self.play['play_of_inn'] = 0 
+        return self.output         
             
     def execute_play(self, p):
         # print(p.__dict__)
@@ -304,9 +313,8 @@ class Game:
         # 'event_text': p.events[0].det_abb,
         'EVENT_CD': p.events[0].code, #
         'BAT_EVENT_FL': 1 if p.type == 'b' else 0, #
-        # 'sac_fl': 1 if 'SAC' in p.text else 0, #
         'EVENT_OUTS_CT': p.event_outs,
-        # 'fielder': '', #
+        # 'fielder': '', # don't need unless there's an out??
         # 'batted_ball': '', #
         # 'errors': {}, #Need to add dropped foul
         # 'sb_fl': 1 if 'stole' in p.text else 0,
@@ -327,6 +335,14 @@ class Game:
                     'RBI': p.events[0].rbi,
                     'H_FL': 1 if p.events[0].code in [20, 21, 22, 23] else 0,
                     'AB_FL': 1 if p.events[0].code in [2, 3, 18, 19, 20, 21, 22, 23] else 0,
+                    'SH_FL': 1 if 'SAC' in p.events[0].flags else 0,
+                    'SF_FL': 1 if 'SF' in p.events[0].flags else 0,
+                    'BUNT_FL': 1 if 'B' in p.events[0].flags else 0,
+                }
+            )
+        elif p.type == 'r':
+            output.update(
+                {
                 }
             )
         return output
