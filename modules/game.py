@@ -414,16 +414,18 @@ def get_pbp(game_id) -> list:
 
 def clean_plays(plays) -> list:
     new_plays = []
-    for play in plays:
-        if not 'No play.' in play:
-            if play[0:3] == 'for':
-                play = '/ ' + play
-            if 'fielder\'s choice' in play:
-                fc = re.search(r"(out at first [a-z0-9]{1,2} to [a-z0-9]{1,2}, )reached on a fielder's choice", play)
+    for p in plays:
+        if not 'No play.' in p:
+            if p[0:3] == 'for':
+                p = '/ ' + p
+            if 'fielder\'s choice' in p:
+                fc = re.search(r"(out at first [a-z0-9]{1,2} to [a-z0-9]{1,2}, )reached on a fielder's choice", p)
                 if not fc is None:
-                    play = play.replace(fc.group(1), '')
-            play = play.replace('did not advance', 'no advance')
-            new_plays.append(play.replace('3a', ':').replace(';', ':').replace(': ', ':').replace('a muffed throw', 'an error'))
+                    p = p.replace(fc.group(1), '')
+            p = p.replace('did not advance', 'no advance')
+            p = p.replace('3a', ':').replace(';', ':').replace(': ', ':').replace('a muffed throw', 'an error')
+        if not(parse.get_type(p) == 'p' and len(play.find_events(p)) == 0):
+            new_plays.append(p)
     return new_plays
 
 def check_lineup(lineup):
