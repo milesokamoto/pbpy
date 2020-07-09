@@ -8,6 +8,7 @@ import modules.parse as parse
 import modules.play as play
 import modules.scrape as scrape
 import modules.sub as sub
+import modules.ref as ref
 
 import modules.ui as ui
 
@@ -30,13 +31,16 @@ class Game:
         # keep track of inning/half/outs/runners/score info
         # Runners could be tracked using ids based on lineup order?
         self.state = {'inning': 1, 'half': 0, 'outs': 0, 'runners': ['','','',''], 'score': [0,0]}
-        
+        self.flags = {'ph': 0, 'pr': 0, }
+        self.output = []
+
         #create lineups based on game id
         self.lineups = [lineup.Lineup(self.id, 0), lineup.Lineup(self.id, 1)] # 2 lineup objects, 2 sub lists
         #scrape the play by play based on id
 
     def setup_game(self):
         self.play_list = get_pbp(self.id)
+
 
         for lu in self.lineups:
             names.match_all(lu, self.play_list)
@@ -52,6 +56,8 @@ class Game:
 
         #Create play and sub objects for every line of pbp
         self.create_plays()
+
+        
 
 
     # def advance_half(self):
@@ -189,7 +195,7 @@ class Game:
                         print('half: ' + str(self.state['half']))
                         ui.print_lineups(self)
                     output = self.execute_play(e)
-                    print(output)
+                    self.output.append(output)
                     self.play['play_of_inn'] += 1
                     self.play['play_idx'] += 1
                 self.play['pbp_idx'] += 1
@@ -202,7 +208,8 @@ class Game:
                 self.state['inning'] += 1
             self.state['runners'] = ['']*4
             self.play['pbp_of_inn'] = 0
-            self.play['play_of_inn'] = 0          
+            self.play['play_of_inn'] = 0 
+        return self.output         
             
     def execute_play(self, p):
         # print(p.__dict__)
@@ -271,7 +278,7 @@ class Game:
         'HOME_SCORE': self.state['score'][1],
         'BATTER_ID': self.lineups[self.state['half']].lineup[p.order].id,
         'BAT_LINEUP_ID': p.order,
-        'BAT_FLD_CD': self.lineups[self.state['half']].lineup[p.order].pos, # this should come from same player object as batter id
+        'BAT_FLD_CD': ref.pos_codes[self.lineups[self.state['half']].lineup[p.order].pos], # this should come from same player object as batter id
         'BAT_DEST_ID': p.dest[0],
         'RUN1_DEST_ID': p.dest[1],
         'RUN2_DEST_ID': p.dest[2],
@@ -293,7 +300,7 @@ class Game:
         'RUN1_RESP_PIT_ID': self.state['runners'][1].resp if self.state['runners'][1] != '' else '',
 
         # 'run_1_play': '', #defense
-        'BASE3_RUN_ID': self.state['runners'][2].id if self.state['runners'][2] != '' else '',
+        'BASE2_RUN_ID': self.state['runners'][2].id if self.state['runners'][2] != '' else '',
         'RUN2_RESP_PIT_ID': self.state['runners'][2].resp if self.state['runners'][2] != '' else '',
         # 'run_2_play': '',
         'BASE3_RUN_ID': self.state['runners'][3].id if self.state['runners'][3] != '' else '',
@@ -304,18 +311,20 @@ class Game:
         # 'event_text': p.events[0].det_abb,
         'EVENT_CD': p.events[0].code, #
         'BAT_EVENT_FL': 1 if p.type == 'b' else 0, #
-        # 'sac_fl': 1 if 'SAC' in p.text else 0, #
         'EVENT_OUTS_CT': p.event_outs,
-        # 'fielder': '', #
+        # 'fielder': '', # don't need unless there's an out??
         # 'batted_ball': '', #
         # 'errors': {}, #Need to add dropped foul
-        # 'sb_fl': 1 if 'stole' in p.text else 0,
-        # 'cs_fl': 1 if 'caught stealing' in p.text else 0,
-        # 'pk_fl': 1 if 'picked off' in p.text else 0,
+        'SB_FL': 1 if p.events[0].code == 4 else 0,
+        'CS_FL': 1 if p.events[0].code == 6 else 0,
+        'PK_FL': 1 if p.events[0].code == 8 else 0,
+        # 'DP_FL': 1 if p.event_outs == 2 else 0, redundant?
+        # 'TP_FL': 1 if p.event_outs == 3 else 0,
         # 'sub_fl': self.sub, # new, position, removed,
         # 'po': {}, #,
         # 'assist': {},
-        # 'event_no': self.play['play_idx'], #
+        # 'EVENT_TX': self.get_event_tx(p),
+        'EVENT_ID': self.play['play_idx'],
         # 'pbp_text': p.text
         }
         if p.type == 'b':
@@ -327,38 +336,12 @@ class Game:
                     'RBI': p.events[0].rbi,
                     'H_FL': 1 if p.events[0].code in [20, 21, 22, 23] else 0,
                     'AB_FL': 1 if p.events[0].code in [2, 3, 18, 19, 20, 21, 22, 23] else 0,
+                    'SH_FL': 1 if 'SAC' in p.events[0].flags else 0,
+                    'SF_FL': 1 if 'SF' in p.events[0].flags else 0,
+                    'BUNT_FL': 1 if 'B' in p.events[0].flags else 0,
                 }
             )
         return output
-
-    
-
-    # def parse_plays(self):
-    #     for half in self.play_list:
-    #         parse.parse_half(self, half)
-
-    # def parse_debug(self, half, play):
-    #     while self.state['half'] < half:
-    #         parse.parse_half(self, self.play_list[self.state['half']])
-    #         print('parsing half ' + str(self.state['half']))
-    #     while self.inn_pbp_no <= play:
-    #         parsed = parse.parse(self.play_list[self.state['half']][self.inn_pbp_no], self)
-    #         print('parsing play ' + str(self.inn_pbp_no))
-    #         print(self.play_list[self.state['half']][self.inn_pbp_no-1])
-    #     return parsed
-
-    # def parse_step(self):
-    #     parsed = parse.parse(self.play_list[self.state['half']][self.inn_pbp_no], self)
-    #     print('parsing play ' + str(self.inn_pbp_no))
-    #     print(self.play_list[self.state['half']][self.inn_pbp_no-1])
-    #     return parsed
-
-    # def make_sub(self, s):
-    #     # if s.pos == "ph":
-    #     #     if self.lineups.get_batter(self) != s.sub_out:
-    #     #         return
-    #     self.lineups.make_sub(s, self)
-    #     self.sub.append([s.sub_in, s.pos, s.sub_out])
 
     def get_defense(self):
         return self.lineups[(self.state['half'] + 1) % 2].get_defense()
