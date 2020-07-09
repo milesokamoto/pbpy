@@ -34,22 +34,12 @@ class Game:
         self.flags = {'ph': 0, 'pr': 0, }
         self.output = []
 
-<<<<<<< HEAD
-=======
-        print("A")
->>>>>>> 3dab6015535b43d60c64fb162bea4cff01905f35
         #create lineups based on game id
         self.lineups = [lineup.Lineup(self.id, 0), lineup.Lineup(self.id, 1)] # 2 lineup objects, 2 sub lists
         #scrape the play by play based on id
 
     def setup_game(self):
-        print("B")
         self.play_list = get_pbp(self.id)
-
-<<<<<<< HEAD
-=======
-        print("C")
->>>>>>> 3dab6015535b43d60c64fb162bea4cff01905f35
 
         for lu in self.lineups:
             names.match_all(lu, self.play_list)
@@ -65,9 +55,6 @@ class Game:
 
         #Create play and sub objects for every line of pbp
         self.create_plays()
-
-        
-
 
     # def advance_half(self):
     #     self.leadoff_fl = True
@@ -348,14 +335,6 @@ class Game:
                     'SH_FL': 1 if 'SAC' in p.events[0].flags else 0,
                     'SF_FL': 1 if 'SF' in p.events[0].flags else 0,
                     'BUNT_FL': 1 if 'B' in p.events[0].flags else 0,
-<<<<<<< HEAD
-=======
-                }
-            )
-        elif p.type == 'r':
-            output.update(
-                {
->>>>>>> 3dab6015535b43d60c64fb162bea4cff01905f35
                 }
             )
         return output
