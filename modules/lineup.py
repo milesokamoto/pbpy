@@ -10,7 +10,6 @@ class Lineup:
     """
 
     def __init__(self, game_id, team):
-        # TODO: add player id
         self.game_id = game_id
         self.lineup = None
         self.subs = None
@@ -39,16 +38,10 @@ class Lineup:
         :return: name of the player in that position in the lineup
         :rtype: str
         """
-        if half == 0:
-            return self.a_lineup[order-1].name
-        else:
-            return self.h_lineup[order-1].name
+        return self.lineup[order-1].id
 
-    def all_names(self, team):
-        if team == 1:
-            return self.h_lineup['name'].to_list() + self.h_subs
-        elif team == 0:
-            return self.a_lineup['name'].to_list() + self.a_subs
+    def all_names(self):
+            return self.lineup['name'].to_list() + self.subs['name'].to_list() 
 
     def get_defense(self):
         pos_list = ['p', 'c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf']
@@ -101,42 +94,6 @@ class Lineup:
 
         [self.lineup, self.subs] = [lu, subs]
 
-        # if s.sub_in == -1:
-        #     print(s.__dict__)
-        # if '/' in s.sub_in:
-        #     if len([p.name for p in lu if p.pos == 'p']) > 1:
-        #         lu = lu[0:9]
-        # if s.pos == 'pr':
-        #     for r in g.runners:
-        #         if r != '':
-        #             if r.name == s.sub_out:
-        #                 r.name = s.sub_in
-        # # sub_full = rev_dict(s.sub_in, names)
-        # index = find_player_index(lu, s.sub_in)
-        # if index == -1:
-        #     sub_index = find_player_index(subs, s.sub_in)
-        #     if s.pos == 'p' and find_pos_index(lu, 'p') == -1:
-        #         lu.append(subs[sub_index])
-        #     else:
-        #         out_index = find_player_index(lu, s.sub_out)
-        #         if out_index == -1:
-        #             out_index = find_pos_index(lu, s.pos)
-        #         lu[out_index] = subs[sub_index]
-        # else:
-        #     if s.pos in lu[index].switch:
-        #         lu[index].pos = s.pos
-        # if s.team == 'a':
-        #     self.a_lineup = lu
-        # else:
-        #     self.h_lineup = lu
-
-    def add_names(self, names):
-        for player in self.lineup:
-            player.match_pbp_name(names)
-        for player in self.subs:
-            player.match_pbp_name(names)
-
-
 def find_player_index(lu, name):
     for i in range(0, len(lu)):
         if lu[i].name == name:
@@ -150,22 +107,11 @@ def find_pos_index(lu, pos):
             return i
     return -1
 
-
 def get_names(lu):
     names = []
     for batter in lu:
         names.append(batter.name)
     return names
-
-
-# def get_index(list, type):
-#     if type == "l":
-#         return [i for i, s in enumerate(list) if not '\xa0' in s]
-#     elif type == "s":
-#         return [i for i, s in enumerate(list) if '\xa0' in s]
-#
-# def list_index(list, index):
-#     return [list[i] for i in index]
 
 def compile_lineups(players, pos, id_list, team):
     """given lists of names and positions returns two lists populated with Player objects
