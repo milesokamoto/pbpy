@@ -141,6 +141,10 @@ class BatEvent:
         loc = get_loc(pbp)
         if len(loc) > 0:
             self.bb_loc = ref.loc_codes[loc[0]]
+            if self.count == [0,0]:
+                self.seq = 'X'
+            elif not self.seq is None:
+                self.seq.join('X') 
         #TODO: Add assists and putouts
         #TODO: Add bb type
 
