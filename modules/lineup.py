@@ -78,6 +78,8 @@ class Lineup:
         elif 'OffensiveSub' in str(type(sub)):
             lu_idx = find_player_index(lu, sub.sub)
             sub_idx = find_player_index(subs, sub.player)
+            if subs[sub_idx].status == 'removed':
+                print('ILLEGAL SUB')
             lu[lu_idx].status = 'removed'
             subs.append(lu.pop(lu_idx))
             lu.insert(lu_idx, subs[sub_idx])
@@ -86,6 +88,8 @@ class Lineup:
         elif 'DefensiveSub' in str(type(sub)):
             lu_idx = find_player_index(lu, sub.sub)
             sub_idx = find_player_index(subs, sub.player)
+            if subs[sub_idx].status == 'removed':
+                print('ILLEGAL SUB')
             lu[lu_idx].status = 'removed'
             subs.append(lu.pop(lu_idx))
             lu.insert(lu_idx, subs[sub_idx])
