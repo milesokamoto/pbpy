@@ -73,6 +73,8 @@ class Game:
     #             self.defense = self.get_defense()
 
     def check_order(self):
+        """looking at the play-by-play hitter order and the box score orders and finding discrepancies
+        """        
         for team in [0,1]:
             bat_plays = [] # make sure this is accurately getting only batting plays
             names = {player.pbp_name:player.id for player in self.lineups[team].lineup}
@@ -96,16 +98,16 @@ class Game:
             orders = {player.id:player.order for player in self.lineups[team].lineup}
             orders.update({player.id:player.order for player in self.lineups[team].subs})
             mismatch = [p for p in pbp_order.keys() if pbp_order[p] != orders[p]]
-            print(mismatch)
+            return(mismatch)
             # Look at extra pbp subs and try to reset up the game so it matches better
 
-               
+
 
     def check_subs(self):
         """Matches substitutions in play by play to box score and raises errors for mismatches
         """
         sub_regex = r"^([A-Za-z,\. '-]*?(?= [a-z])|\/) (pinch (?:hit|ran)|to [0-9a-z]{1,2})* *(?:for ([A-Za-z,\. '-]*?)\.$)*"
-        sub_plays = [play for half in self.play_list for play in half if not re.search(sub_regex, play).group(2) is None]
+        sub_plays = [p for half in self.play_list for p in half if not re.search(sub_regex, p).group(2) is None]
         subs_from_box = {}
 
         for i in [0,1]:
@@ -129,20 +131,20 @@ class Game:
 
         for i in range(0,len(subs_from_box)):
             lineup = self.lineups[subs_from_box[i]['team']]
-            for play in sub_plays:
-                [sub_in, pos, sub_out] = sub.parse_sub(play)
+            for p in sub_plays:
+                [sub_in, pos, sub_out] = sub.parse_sub(p)
                 player_in = [p.name for p in lineup.lineup if p.pbp_name == sub_in] + [p.name for p in lineup.subs if p.pbp_name == sub_in]
                 if len(player_in) > 0:
                     if 'replaces' in subs_from_box[i].keys():
                         player_out = [p.name for p in lineup.lineup if p.pbp_name == sub_out] + [p.name for p in lineup.subs if p.pbp_name == sub_out]
                         if subs_from_box[i]['replaces'] in player_out:
-                            subs_from_box[i]['text'] = play
-                            sub_plays.remove(play)
+                            subs_from_box[i]['text'] = p
+                            sub_plays.remove(p)
                     else:
                         if 'pos' in subs_from_box[i].keys():
                             if subs_from_box[i]['pos'] == pos:
-                                subs_from_box[i]['text'] = play
-                                sub_plays.remove(play)
+                                subs_from_box[i]['text'] = p
+                                sub_plays.remove(p)
 
         for i in range(0, len(subs_from_box)):
             if not 'text' in subs_from_box[i].keys():
@@ -152,6 +154,40 @@ class Game:
 
                 
         if len(sub_plays) > 0:
+            parsed = []
+            for p in sub_plays:
+                parsed.append(sub.parse_sub(p))
+            for i in parsed:
+                # If two players are substituted for each other then
+                # the SID subbed them into the wrong place in the lineup
+                # 99% sure on this
+                # so if there's a match here we want to go back into the subs and switch who they entered the game for
+                # and also check if theres a discrepancy in the order from the box score
+                matches = [[p[0], p[2]] for p in parsed if p[2] == i[0] and p[0] == i[2]]
+                if len(matches) > 0:
+                    for team in [0,1]:
+                        names = {player.pbp_name:player.id for player in self.lineups[team].lineup}
+                        names.update({player.pbp_name:player.id for player in self.lineups[team].subs})
+                        if matches[0][0] in names.keys() and matches[0][1] in names.keys():
+                            ids = [names[matches[0][0]], names[matches[0][1]]]
+                            switch = []
+                            for s in range(len(subs_from_box)):
+                                sb = subs_from_box[s]
+                                if sb['id'] in ids and 'replaces' in sb:
+                                    switch.append(s)
+                            sub1 = subs_from_box[switch[0]]
+                            sub2 = subs_from_box[switch[1]]
+                            rep1 = [sub1['replaces'], sub1['replaces_id']]
+                            rep2 = [sub1['replaces'], sub1['replaces_id']]
+                            subs_from_box[switch[0]]['replaces'] = rep2[0]
+                            subs_from_box[switch[0]]['replaces_id'] = rep2[1]
+                            subs_from_box[switch[1]]['replaces'] = rep1[0]
+                            subs_from_box[switch[1]]['replaces_id'] = rep1[1]
+                        
+
+ 
+                    
+                
             self.error = True
             print("ERROR: too many subs in pbp")
             print(subs_from_box)
