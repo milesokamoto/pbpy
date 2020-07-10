@@ -151,6 +151,7 @@ event_codes = {
     'E': 18,
     'O': 2,
     'K': 3,
+    'DF': 13,
 }
 pos_codes = {
     'ph': 11,
@@ -173,6 +174,15 @@ base_codes = {
     'home': 4,
     'scored': 4,
     'out': 0
+}
+run_play_codes = {
+    'stole': 'SB',
+    'picked off': 'PO',
+    'caught stealing': 'CS',
+    'failed pickoff attempt': 'E',
+    'wild pitch': 'WP',
+    'passed ball': 'PB',
+    'balk': 'BK',
 }
 run_codes = {
     'reached first': [1, 1],
