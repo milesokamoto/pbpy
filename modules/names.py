@@ -137,7 +137,10 @@ def match_all(lineup, play_list):
                 if len(sub_txt) > 0:
                     nm[sub_in[0][0]] = re.search(r'.*(?=' + sub_type + r' for ' + nm[sub_in[0][2]] + r'\.)', sub_txt[0]).group()
     for player in lineup.lineup:
-        player.pbp_name = nm[player.name]
+        if player.name in nm.keys():
+            player.pbp_name = nm[player.name]
+        else:
+            player.pbp_name = player.name
     for player in lineup.subs:
         player.pbp_name = nm[player.name]
 
