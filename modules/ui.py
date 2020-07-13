@@ -18,7 +18,7 @@ def print_subs(game):
 
 
 def print_player(player):
-    print(player.pos + " "*(3-len(player.pos)) + "| " + player.name)
+    print(player.pos + " "*(3-len(player.pos)) + "| " + player.name + " "*(20-len(player.name)) + str(player.order))
     # print("switch: " + str(player.switch) + " | sub: " + player.sub)
 
 def print_play(play):

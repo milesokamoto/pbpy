@@ -5,6 +5,7 @@ import pandas as pd
 
 import modules.parse as parse
 import modules.play as play
+import modules.game as game
 
 
 def match_all(lineup, play_list):
@@ -34,7 +35,7 @@ def match_all(lineup, play_list):
     nm = match_helper(box_names, pbp_names)
 
     # look at all defensive plays to match pitchers
-    def_plays = all_plays(play_list, (lineup.team + 1) % 2)
+    def_plays = game.all_plays(play_list, (lineup.team + 1) % 2)
     pitcher_subs = [p for p in def_plays if (' to p.' in p and not 'out to p.' in p and not 'up to p.' in p and not '1b to p.' in p) or ' to p for ' in p or '/ for ' in p]
     if len(starters) > 9 and len(pitcher_subs) > 0:
         if ' for ' in pitcher_subs[0]:
@@ -50,7 +51,7 @@ def match_all(lineup, play_list):
     # matching subs
     subs = lineup.subs
 
-    plays = all_plays(play_list, '')
+    plays = game.all_plays(play_list, '')
     p_no = 0
     if not subs is None:
         for sub in subs:
@@ -119,7 +120,7 @@ def match_all(lineup, play_list):
             if len(sub_txt) > 0:
                 nm[sub_out[0][2]] = re.search(r'(?<=' + nm[sub_out[0][0]] + sub_type + r' for ).*(?=\.)', sub_txt[0]).group()
             elif sub_out[0][1] == 'p':
-                sub_txt = [t for t in g.all_plays('') if '/ for ' in t]
+                sub_txt = [t for t in game.all_plays(play_list, '') if '/ for ' in t]
                 short = re.search(r'(?<=/ for ).*(?=\.)', sub_txt[0]).group()
                 if name_similarity(short, sub_out[0][2]) > .5:
                     nm[sub_out[0][2]] = short
@@ -132,7 +133,7 @@ def match_all(lineup, play_list):
             else:
                 sub_type = ' to ' + sub_in[0][1]
             if len(sub_in) > 0:
-                sub_txt = [t for t in g.all_plays('') if sub_type + ' for ' + nm[sub_in[0][2]] in t]
+                sub_txt = [t for t in game.all_plays(play_list, '') if sub_type + ' for ' + nm[sub_in[0][2]] in t]
                 if len(sub_txt) > 0:
                     nm[sub_in[0][0]] = re.search(r'.*(?=' + sub_type + r' for ' + nm[sub_in[0][2]] + r'\.)', sub_txt[0]).group()
     for player in lineup.lineup:
@@ -177,20 +178,3 @@ def name_similarity(part, full):
     return max_score
 
 
-def all_plays(play_list, team):
-    """helper function to list all plays for one side
-
-    :param play_list: list of play by play strings
-    :type play_list: list
-    :param team: 'h' for home or 'a' for away or other for all plays in the game
-    :type team: str
-    :return: list of play strings
-    :rtype: list
-    """    
-    out = []
-    for i in range(0, len(play_list)):
-            x = play_list[i]
-            for p in x:
-                if (team == 0) ^ (i % 2 == 1) or not team in [0, 1]:
-                    out.append(p)
-    return out

@@ -6,7 +6,7 @@ import pandas as pd
 
 class TestGame(unittest.TestCase):
     def setUp(self):
-        self.id = 4926874
+        self.id = 4926019
         # 4926865, 4925736, 4926879, 4586702
         self.testgame = game.Game(self.id)
     
@@ -17,13 +17,21 @@ class TestGame(unittest.TestCase):
         self.assertFalse(len(game.get_pbp(self.id)) > 30)
 
     def test_create_game(self):
+        ui.print_lineups(self.testgame)
+        ui.print_subs(self.testgame)
         #TODO: Tests for creating game
+        self.assertTrue(True)
+
+    def check_order(self):
+        self.testgame.play_list = game.get_pbp(self.id)
+        self.testgame.check_order()
         self.assertTrue(True)
 
     def test_check_subs(self):
         self.testgame.play_list = game.get_pbp(self.id)
         for lu in self.testgame.lineups:
             names.match_all(lu, self.testgame.play_list)
+        # print([p.__dict__ for p in self.testgame.lineups[0].lineup])
         self.testgame.check_subs()
         self.assertTrue(len([s for s in self.testgame.subs.values() if not 'text' in s]) == 0)
 
