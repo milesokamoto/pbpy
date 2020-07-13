@@ -47,7 +47,7 @@ def rev_dict(value, dict):
         return -1
 
 def parse_sub(s):
-    s = s.replace('/ ', '/ to x')
+    s = s.replace('/ ', '/ to x ')
     sub = re.search(r"^([A-Za-z,\. '-]*?(?= [a-z])|\/) (pinch (?:hit|ran)|to [0-9a-z]{1,2})* *(?:for ([A-Za-z,\. '-]*?)\.$)*", s)
     if not sub is None:
         sub = [sub.group(1), sub.group(2), sub.group(3)]
