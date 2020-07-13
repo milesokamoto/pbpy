@@ -129,13 +129,13 @@ class Game:
                 if not player.sub == '':
                     s = {'name':player.name, 'id':player.id, 'replaces':player.sub, 'replaces_id':player.sub_id, 'team':i}
                     subs_from_box[len(subs_from_box)] = s
-
         for i in range(0,len(subs_from_box)):
             lineup = self.lineups[subs_from_box[i]['team']]
             for p in sub_plays:
                 [sub_in, pos, sub_out] = sub.parse_sub(p)
                 player_in = [p.name for p in lineup.lineup if p.pbp_name == sub_in] + [p.name for p in lineup.subs if p.pbp_name == sub_in]
-                if len(player_in) > 0:
+                
+                if len(player_in) > 0 and subs_from_box[i]['name'] in player_in:
                     if 'replaces' in subs_from_box[i].keys():
                         player_out = [p.name for p in lineup.lineup if p.pbp_name == sub_out] + [p.name for p in lineup.subs if p.pbp_name == sub_out]
                         if subs_from_box[i]['replaces'] in player_out:
@@ -146,7 +146,6 @@ class Game:
                             if subs_from_box[i]['pos'] == pos:
                                 subs_from_box[i]['text'] = p
                                 sub_plays.remove(p)
-
         for i in range(0, len(subs_from_box)):
             if not 'text' in subs_from_box[i].keys():
                 self.error = True
@@ -228,21 +227,22 @@ class Game:
                 elif parse.get_type(p) == 's':
                     new_sub = None
                     for i in range(0, len(self.subs)):
-                        if self.subs[i]['text'] == p:
-                            sub_idx = self.subs[i]
-                            if not 'replaces' in sub_idx.keys():
-                                new_sub = sub.PositionSwitch(sub_idx['team'], sub_idx['id'], sub_idx['pos'], p)
-                            elif half % 2 == sub_idx['team']:
-                                if ' ran ' in p:
-                                    sub_type = 'pr'
+                        if 'text' in self.subs[i]:
+                            if self.subs[i]['text'] == p:
+                                sub_idx = self.subs[i]
+                                if not 'replaces' in sub_idx.keys():
+                                    new_sub = sub.PositionSwitch(sub_idx['team'], sub_idx['id'], sub_idx['pos'], p)
+                                elif half % 2 == sub_idx['team']:
+                                    if ' ran ' in p:
+                                        sub_type = 'pr'
+                                    else:
+                                        sub_type = 'ph'
+                                    new_sub = sub.OffensiveSub(sub_idx['team'], sub_idx['id'], sub_idx['replaces_id'], sub_type, p)
                                 else:
-                                    sub_type = 'ph'
-                                new_sub = sub.OffensiveSub(sub_idx['team'], sub_idx['id'], sub_idx['replaces_id'], sub_type, p)
-                            else:
-                                new_sub = sub.DefensiveSub(sub_idx['team'], sub_idx['id'], sub_idx['replaces_id'], sub.parse_sub(p)[1], p)
+                                    new_sub = sub.DefensiveSub(sub_idx['team'], sub_idx['id'], sub_idx['replaces_id'], sub.parse_sub(p)[1], p)
                     if new_sub is None:
                         if '/ ' in p:
-                            team = 'a' if half % 2 == 1 else 'h'
+                            team = (half + 1) % 2
                             new_sub = sub.Removal(team, sub.parse_sub(p)[2], p)
                     if not new_sub is None:
                         h.append(new_sub)
