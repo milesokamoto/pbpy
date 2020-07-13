@@ -9,7 +9,6 @@ import modules.ref as ref
 class Play:
     def __init__(self, text, names, ids):
         self.text = text
-        print(text)
         self.type = ''
         self.play_names = play_names(text, names)
 
@@ -20,7 +19,6 @@ class Play:
         self.ids = {names[k]:ids[k] for k in names.keys() if names[k] in self.play_names.keys()}
 
         self.parts = self.split_play()
-        print(self.parts)
         self.order = 0
         
         
@@ -126,7 +124,7 @@ class BatEvent:
 
     def deconstruct_text(self):
         pbp = self.text
-        print(pbp)
+        # print(pbp)
         self.get_info()
         pbp = pbp.split('(')[0]
         if ', RBI' in pbp:
@@ -218,6 +216,16 @@ def get_simple_event(text):
 def get_simple_run_event(text):
     ev = [key for key in ref.run_play_codes.keys() if key in text]
     sorted_ev = [k for k, v in sorted({l:text.index(l) for l in ev}.items(), key=lambda item:item[1])]
+    if len(sorted_ev) == 0:
+        if 'advanced' in text.split(' ')[0]:
+            if 'error' in text:
+                # TODO: are there any situations where this wouldn't be a failed pickoff?
+                return 'failed pickoff attempt'
+            else:
+                return 'stole'
+        if 'out' in text.split(' ')[0]:
+            return 'picked off'
+            # TODO: would this happen for a caught stealing?
     return sorted_ev[0] if len(sorted_ev) > 0 else None
 
 
