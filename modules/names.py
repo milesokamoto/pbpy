@@ -47,7 +47,7 @@ def match_all(lineup, play_list):
                 nm[starters[9]] = short
         else:
             nm[starters[9]] = '' # this might be a problem if we get to here
-    pitchers = [p.split(' to p')[0] for p in pitcher_subs]
+    pitchers = [p.split(' to p')[0] for p in pitcher_subs if ' to p' in p]\
     # matching subs
     subs = lineup.subs
 
@@ -83,8 +83,18 @@ def match_all(lineup, play_list):
             elif sub.pos == 'p':
                 while pitchers[p_no] in list(nm.values()) and p_no < len(pitchers):
                     p_no += 1
-                nm[sub.name] = pitchers[p_no]
-                p_no += 1
+                if name_similarity(pitchers[p_no], sub.name) > .5:
+                    nm[sub.name] = pitchers[p_no]
+                    if sub.order < 9:
+                        p_no = 0
+                    else:
+                        p_no += 1
+                else:
+                    while name_similarity(pitchers[p_no], sub.name) < .5 and p_no < len(pitchers) - 1:
+                        p_no += 1
+                    if name_similarity(pitchers[p_no], sub.name) > .5:
+                        nm[sub.name] = pitchers[p_no]
+                        p_no = 0
 
             # all other subs
             else:
@@ -103,7 +113,6 @@ def match_all(lineup, play_list):
                     temp = nm[check[i]]
                     nm[check[i]] = nm[check[j]]
                     nm[check[j]] = temp
-    
 
     # check if any names are left blank
     blank = [k for k, v in sorted(nm.items(), key=lambda item: item[1]) if v == '']
@@ -143,7 +152,6 @@ def match_all(lineup, play_list):
             player.pbp_name = player.name
     for player in lineup.subs:
         player.pbp_name = nm[player.name]
-
     return lineup
     
 def match_helper(box_names, pbp_names):
