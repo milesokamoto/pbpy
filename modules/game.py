@@ -83,7 +83,8 @@ class Game:
             for p in plays:
                 for n in list(names.keys()):
                     p = p.replace(n, names[n])
-                run = [cd for cd in ref.run_play_codes.keys() if cd in p]
+                # TODO: there might be a better fix if this is a problem again - there was a problem with 'struck out, stole second'
+                run = [cd for cd in ref.run_play_codes.keys() if cd in p and not 'struck out' in p and not 'walked' in p] 
                 if not (len(run) > 0 or 'advanced' in p.split(' ')[1]):
                     bat_plays.append(p)
             primaries = [p.split(' ')[0] for p in bat_plays]
@@ -91,17 +92,14 @@ class Game:
             for i in range(len(primaries)):
                 p = primaries[i]
                 if not p in pbp_order.keys():
-                    pbp_order.update({p:i%9+1})
+                    pbp_order.update({p:i % 9 + 1})
             orders = {player.id:player.order for player in self.lineups[team].lineup}
             orders.update({player.id:player.order for player in self.lineups[team].subs})
             mismatch = [p for p in pbp_order.keys() if pbp_order[p] != orders[p]]
-            # print(mismatch)
             for player_id in mismatch:
                 for player in self.lineups[team].subs:
                     if player.id == player_id:
-                        
                         player.order = pbp_order[player_id]
-                        # print(player.__dict__)
             # Look at extra pbp subs and try to reset up the game so it matches better
 
 
@@ -227,14 +225,12 @@ class Game:
                     new_play.get_type(self.lineups, team)
                     new_play.create_events()
                     h.append(new_play)
+                    # print(new_play.__dict__)
                 elif parse.get_type(p) == 's':
                     new_sub = None
                     for i in range(0, len(self.subs)):
                         if self.subs[i]['text'] == p:
                             sub_idx = self.subs[i]
-                            print('SUB IDX')
-                            print(sub_idx)
-                            print('\n\n')
                             # print('half: ' + str(half % 2))
                             # print('sub: ' + str(sub_idx))
                             if not 'replaces' in sub_idx.keys():
@@ -259,12 +255,12 @@ class Game:
     def execute_game(self):
         for h in self.events:
             for e in h:
-                print(e.__dict__)
+                # print(e.__dict__)
                 if "sub" in str(type(e)):
                     self.lineups[e.team].make_sub(e)
                     if 'OffensiveSub' in str(type(e)):
                         if e.sub_type == 'pr':
-                            print(e.sub)
+                            # print(e.sub)
                             for r in self.state['runners']:
                                 if not r == '':
                                     if r.id == e.sub:
