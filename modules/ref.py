@@ -50,7 +50,7 @@ codes = {
     'reached on a dropped fly': 'E',
     'reached on a fielder\'s choice': 'FC',
     'reached on a fielders choice': 'FC',
-    'indifference': 'DI'
+    'indifference': 'DI',
 }
 all_codes = [
     'singled', 'doubled', 'tripled', 'homered', 'flied out',
