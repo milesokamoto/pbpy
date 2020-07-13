@@ -9,28 +9,39 @@ import modules.scrape as scrape
 
 def main():
     error_log = []
-    day = datetime.strptime('02-14-2020', '%m-%d-%Y')
-    while day < datetime.strptime('02-15-2020', '%m-%d-%Y'):
-        date = datetime.strftime(day, '%m-%d-%Y')
-        path = "output/" + date
-        try:
-            os.mkdir(path)
-        except OSError:
-            print ("Creation of the directory %s failed" % path)
-        else:
-            print ("Successfully created the directory %s " % path)
-        games = scrape.get_scoreboard(date)
-        games["ncaa_id"] = ""
-        games["error"] = ""
-        for i in range(0, len(games)):
-            ncaa_id = scrape.get_id('https://stats.ncaa.org' + games.iloc[i]['link'])
-            games.at[i, "ncaa_id"] = ncaa_id
-            print(games.at[i, 'link'])
-            g = game.Game(ncaa_id)
-            g.setup_game()
-            output = g.execute_game()
-            df = pd.DataFrame(output)
-            df.to_csv('output/' + date + '/' + str(ncaa_id) + '.csv')
+    ncaa_id = input("Input specific game id or press ENTER to scrape a date: ")
+    if ncaa_id != '':
+        g = game.Game(ncaa_id)
+        g.setup_game()
+        output = g.execute_game()
+        df = pd.DataFrame(output)
+        df.to_csv('output/debug/' + str(ncaa_id) + '.csv')
+    else:
+        day_input = input("Input start date in format 'MM-DD-YYYY': ")
+        end_input = input("Input end date in format 'MM-DD-YYYY': ")
+        day = datetime.strptime(day_input, '%m-%d-%Y')
+        while day < datetime.strptime(end_input, '%m-%d-%Y'):
+            date = datetime.strftime(day, '%m-%d-%Y')
+            path = "output/" + date
+            try:
+                os.mkdir(path)
+            except OSError:
+                print ("Creation of the directory %s failed" % path)
+            else:
+                print ("Successfully created the directory %s " % path)
+            games = scrape.get_scoreboard(date)
+            games["ncaa_id"] = ""
+            games["error"] = ""
+            for i in range(0, len(games)):
+                ncaa_id = scrape.get_id('https://stats.ncaa.org' + games.iloc[i]['link'])
+                games.at[i, "ncaa_id"] = ncaa_id
+                print(games.at[i, 'link'])
+                g = game.Game(ncaa_id)
+                g.setup_game()
+                output = g.execute_game()
+                df = pd.DataFrame(output)
+                df.to_csv('output/' + date + '/' + str(ncaa_id) + '.csv')
+        day = day + timedelta(days=1)
             # TODO: Check output score against scoreboard
 
 
@@ -49,5 +60,5 @@ def main():
         #         df = pd.DataFrame(data, columns = g.output[0].keys())
         #         df.to_csv('../output/' + date + '/' + games.iloc[i]['id'] + '.csv', index = False)
         # games.to_csv('../output/meta/' + date + '.csv', index = False)
-        day = day + timedelta(days=1)
+        
 main()
