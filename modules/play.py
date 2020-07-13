@@ -9,6 +9,7 @@ import modules.ref as ref
 class Play:
     def __init__(self, text, names, ids):
         self.text = text
+        print(text)
         self.type = ''
         self.play_names = play_names(text, names)
 
@@ -19,6 +20,7 @@ class Play:
         self.ids = {names[k]:ids[k] for k in names.keys() if names[k] in self.play_names.keys()}
 
         self.parts = self.split_play()
+        print(self.parts)
         self.order = 0
         
         
@@ -124,6 +126,7 @@ class BatEvent:
 
     def deconstruct_text(self):
         pbp = self.text
+        print(pbp)
         self.get_info()
         pbp = pbp.split('(')[0]
         if ', RBI' in pbp:
@@ -141,9 +144,14 @@ class BatEvent:
 
         run = get_run(pbp)
         if len(run) > 1:
-            pbp = pbp.split(run[1])[0]
-        self.dest = ref.run_codes[run[-1]]
-        
+            if len(get_run(pbp.split(run[1])[0])) > 0:
+                pbp = pbp.split(run[1])[0]
+                self.dest = ref.run_codes[run[-1]]
+            else:
+                self.dest = ref.run_codes[run[0]]
+        else:
+            self.dest = ref.run_codes[run[0]]
+
         loc = get_loc(pbp)
         if len(loc) > 0:
             self.bb_loc = ref.loc_codes[loc[0]]
@@ -202,6 +210,9 @@ def get_event(text):
 def get_simple_event(text):
     ev = [key for key in ref.codes.keys() if key in text]
     sorted_ev = [k for k, v in sorted({l:text.index(l) for l in ev}.items(), key=lambda item:item[1])]
+    if len(sorted_ev) == 0:
+        print("NO EVENT FOUND")
+        print(text)
     return sorted_ev[0]
 
 def get_simple_run_event(text):
