@@ -251,7 +251,6 @@ class Game:
                     if new_sub is None:
                         if '/ ' in p:
                             team = (half + 1) % 2
-                            print(sub.parse_sub(p))
                             pbp_ids = {player.pbp_name:player.id for player in self.lineups[team].lineup}
                             pbp_ids.update({player.pbp_name:player.id for player in self.lineups[team].subs})
 
