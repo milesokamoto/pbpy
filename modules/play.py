@@ -88,6 +88,12 @@ class Play:
         else:
             for part in self.parts:
                 self.events.append(RunEvent(part, self.ids[part['player']]))
+            if get_simple_run_event(self.events[0].text) is None:
+                for e in range(1,len(self.events)):
+                    sre = get_simple_run_event(self.events[e].text)
+                    if not sre is None:
+                        self.events[0].text = self.events[0].text + sre
+                        break
             self.events[0].deconstruct_text()
 
 class BatEvent:
@@ -198,6 +204,11 @@ def get_simple_event(text):
     sorted_ev = [k for k, v in sorted({l:text.index(l) for l in ev}.items(), key=lambda item:item[1])]
     return sorted_ev[0]
 
+def get_simple_run_event(text):
+    ev = [key for key in ref.run_play_codes.keys() if key in text]
+    sorted_ev = [k for k, v in sorted({l:text.index(l) for l in ev}.items(), key=lambda item:item[1])]
+    return sorted_ev[0] if len(sorted_ev) > 0 else None
+
 
 
 class RunEvent:
@@ -223,7 +234,7 @@ class RunEvent:
     def deconstruct_text(self):
         pbp = self.text
         self.event = get_event(pbp)
-        self.code = ref.event_codes[ref.codes[get_simple_event(pbp)]]
+        self.code = ref.event_codes[ref.codes[get_simple_run_event(pbp)]]
 
 def get_run_dest(text):
     return [ref.run_codes[key] for key in ref.run_codes.keys() if key in text][-1]
