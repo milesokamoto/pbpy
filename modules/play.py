@@ -72,11 +72,15 @@ class Play:
         self.order = lineups[team].order
         order_names = [player.pbp_name for player in lu if player.order == self.order]
         order_names.extend([player.pbp_name for player in sub if player.order == self.order])
+        print(self.parts)
+        print(self.order)
+        print(order_names)
         if self.parts[0]['player'] in order_names:
             self.type = 'b'
             lineups[team].order = self.order % 9 + 1
         else:
             self.type = 'r'
+        print(self.type)
 
     def create_events(self):
         self.events = []

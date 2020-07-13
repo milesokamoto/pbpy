@@ -150,9 +150,13 @@ def compile_lineups(players, pos, id_list, team):
                     j += 1
                 sub_out = names[j]
                 sub_out_id = ids[j]
+            print(names[i].replace('\xa0', ''))
+            print(len(lu))
             subs.append(player.Player(names[i].replace('\xa0', ''), ids[i], positions[i][0], positions[i][1:] if len(
                 positions) > 1 else [], len(lu) + 1, sub_out.replace('\xa0', ''), sub_out_id, 'available', team))
         else:
+            print(names[i])
+            print(len(lu))
             lu.append(player.Player(names[i], ids[i], positions[i][0], positions[i][1:] if len(
                 positions) > 1 else [], len(lu) + 1, '', '', 'entered', team))
     return {"lineup": lu, "subs": subs}
