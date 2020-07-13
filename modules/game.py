@@ -219,7 +219,7 @@ class Game:
         for half in range(0, len(self.play_list)):
             h = []
             for p in self.play_list[half]:
-                # print(p)
+                print(p)
                 if parse.get_type(p) == 'p':
                     team = 0 if half % 2 == 0 else 1
                     names = {player.name:player.pbp_name for player in self.lineups[team].lineup}
@@ -251,7 +251,11 @@ class Game:
                     if new_sub is None:
                         if '/ ' in p:
                             team = (half + 1) % 2
-                            new_sub = sub.Removal(team, sub.parse_sub(p)[2], p)
+                            print(sub.parse_sub(p))
+                            pbp_ids = {player.pbp_name:player.id for player in self.lineups[team].lineup}
+                            pbp_ids.update({player.pbp_name:player.id for player in self.lineups[team].subs})
+
+                            new_sub = sub.Removal(team, pbp_ids[sub.parse_sub(p)[2]], p)
                     if not new_sub is None:
                         h.append(new_sub)
             g.append(h)
@@ -272,9 +276,9 @@ class Game:
                 else:
                     check = check_lineup(self.lineups[(self.state['half'] + 1) % 2].lineup)
                     if not check:
-                        # print('half: ' + str(self.state['half']))
-                        # ui.print_lineups(self)
-                        # ui.print_subs(self)
+                    #     print('half: ' + str(self.state['half']))
+                    #     ui.print_lineups(self)
+                    #     ui.print_subs(self)
                         pass
                     output = self.execute_play(e)
                     self.output.append(output)
@@ -358,9 +362,9 @@ class Game:
         'OUTS_CT': self.state['outs'],
         'AWAY_SCORE': self.state['score'][0],
         'HOME_SCORE': self.state['score'][1],
-        'BATTER_ID': self.lineups[self.state['half']].lineup[p.order].id,
+        'BATTER_ID': self.lineups[self.state['half']].lineup[p.order-1].id,
         'BAT_LINEUP_ID': p.order,
-        'BAT_FLD_CD': ref.pos_codes[self.lineups[self.state['half']].lineup[p.order].pos], # this should come from same player object as batter id
+        'BAT_FLD_CD': ref.pos_codes[self.lineups[self.state['half']].lineup[p.order-1].pos], # this should come from same player object as batter id
         'BAT_DEST_ID': p.dest[0],
         'RUN1_DEST_ID': p.dest[1],
         'RUN2_DEST_ID': p.dest[2],
