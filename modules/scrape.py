@@ -65,11 +65,9 @@ def get_lu_table(id) -> list:
 
     #separate home and away players
     for i in range(1, len(bs_a_lineup)-1):
-        print(bs_a_lineup[i][0].text)
         if bs_a_lineup[i][0].text[-1] == ' ':
             bs_a_lineup[i][0].text = bs_a_lineup[i][0].text[0:-1]
     for i in range(1, len(bs_h_lineup)-1):
-        print(bs_h_lineup[i][0].text)
         if bs_h_lineup[i][0].text[-1] == ' ':
             bs_h_lineup[i][0].text = bs_h_lineup[i][0].text[0:-1]
 
@@ -77,7 +75,6 @@ def get_lu_table(id) -> list:
     bs_h_players = [bs_h_lineup[i][0].text for i in range(1, len(bs_h_lineup)-1)]
     ids = {bs_a_lineup[i][0].text:bs_a_lineup[i][0].attrib['href'].split('stats_player_seq=')[-1] for i in range(1, len(bs_a_lineup)-1)}
     ids.update({bs_h_lineup[i][0].text:bs_h_lineup[i][0].attrib['href'].split('stats_player_seq=')[-1] for i in range(1, len(bs_h_lineup)-1)})
-    print(ids)
 
     #check number of players on each team
     if len(players[0:team_spl-2]) < len(bs_a_players):
@@ -95,7 +92,7 @@ def get_lu_table(id) -> list:
         else:
             player_id.append('x' + str(i))
         players[i] = players[i].replace('ñ', 'n')
-        positions[i] = [pos.replace('DP', 'DH') for pos in positions[i]] # https://stats.ncaa.org/game/box_score/4937004
+        positions[i] = [pos.replace('dp', 'dh') for pos in positions[i]] # https://stats.ncaa.org/game/box_score/4937004
         
     return [[players[0:team_spl-2], players[team_spl-2:]], [positions[0:team_spl-2], positions[team_spl-2:]], [player_id[0:team_spl-2], player_id[team_spl-2:]]]
     #TODO: Use positions to help with substitutions
