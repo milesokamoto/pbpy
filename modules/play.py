@@ -217,7 +217,7 @@ def get_simple_run_event(text):
     ev = [key for key in ref.run_play_codes.keys() if key in text]
     sorted_ev = [k for k, v in sorted({l:text.index(l) for l in ev}.items(), key=lambda item:item[1])]
     if len(sorted_ev) == 0:
-        if 'advanced' in text.split(' ')[0]:
+        if 'advanced' in text.split(' ')[0] or 'scored' in text.split(' ')[0]:
             if 'error' in text:
                 # TODO: are there any situations where this wouldn't be a failed pickoff?
                 return 'failed pickoff attempt'
