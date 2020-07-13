@@ -64,10 +64,20 @@ def get_lu_table(id) -> list:
         team_spl = len(positions) - team_spl + 4
 
     #separate home and away players
+    for i in range(1, len(bs_a_lineup)-1):
+        print(bs_a_lineup[i][0].text)
+        if bs_a_lineup[i][0].text[-1] == ' ':
+            bs_a_lineup[i][0].text = bs_a_lineup[i][0].text[0:-1]
+    for i in range(1, len(bs_h_lineup)-1):
+        print(bs_h_lineup[i][0].text)
+        if bs_h_lineup[i][0].text[-1] == ' ':
+            bs_h_lineup[i][0].text = bs_h_lineup[i][0].text[0:-1]
+
     bs_a_players = [bs_a_lineup[i][0].text for i in range(1, len(bs_a_lineup)-1)]
     bs_h_players = [bs_h_lineup[i][0].text for i in range(1, len(bs_h_lineup)-1)]
     ids = {bs_a_lineup[i][0].text:bs_a_lineup[i][0].attrib['href'].split('stats_player_seq=')[-1] for i in range(1, len(bs_a_lineup)-1)}
     ids.update({bs_h_lineup[i][0].text:bs_h_lineup[i][0].attrib['href'].split('stats_player_seq=')[-1] for i in range(1, len(bs_h_lineup)-1)})
+    print(ids)
 
     #check number of players on each team
     if len(players[0:team_spl-2]) < len(bs_a_players):
