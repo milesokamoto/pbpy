@@ -64,7 +64,7 @@ class Lineup:
         # print([s.__dict__ for s in subs])
         if 'PositionSwitch' in str(type(sub)):
             for player in lu:
-                if player.name == sub.player:
+                if player.id == sub.player:
                     player.pos = sub.pos
                     player.switch.remove(sub.pos)
 
@@ -94,9 +94,9 @@ class Lineup:
 
         [self.lineup, self.subs] = [lu, subs]
 
-def find_player_index(lu, name):
+def find_player_index(lu, id):
     for i in range(0, len(lu)):
-        if lu[i].name == name:
+        if lu[i].id == id:
             return i
     return -1
 
