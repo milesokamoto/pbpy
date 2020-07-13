@@ -34,13 +34,14 @@ def main():
             games["error"] = ""
             for i in range(0, len(games)):
                 ncaa_id = scrape.get_id('https://stats.ncaa.org' + games.iloc[i]['link'])
-                games.at[i, "ncaa_id"] = ncaa_id
-                print(games.at[i, 'link'])
-                g = game.Game(ncaa_id)
-                g.setup_game()
-                output = g.execute_game()
-                df = pd.DataFrame(output)
-                df.to_csv('output/' + date + '/' + str(ncaa_id) + '.csv')
+                if not os.path.isfile("output/" + date + '/' + ncaa_id + '.csv'):
+                    games.at[i, "ncaa_id"] = ncaa_id
+                    print(games.at[i, 'link'])
+                    g = game.Game(ncaa_id)
+                    g.setup_game()
+                    output = g.execute_game()
+                    df = pd.DataFrame(output)
+                    df.to_csv('output/' + date + '/' + str(ncaa_id) + '.csv')
         day = day + timedelta(days=1)
             # TODO: Check output score against scoreboard
 
