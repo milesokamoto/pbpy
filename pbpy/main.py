@@ -60,5 +60,3 @@ def main():
         #         df = pd.DataFrame(data, columns = g.output[0].keys())
         #         df.to_csv('../output/' + date + '/' + games.iloc[i]['id'] + '.csv', index = False)
         # games.to_csv('../output/meta/' + date + '.csv', index = False)
-        
-main()
