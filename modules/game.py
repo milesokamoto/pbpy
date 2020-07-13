@@ -129,23 +129,30 @@ class Game:
                 if not player.sub == '':
                     s = {'name':player.name, 'id':player.id, 'replaces':player.sub, 'replaces_id':player.sub_id, 'team':i}
                     subs_from_box[len(subs_from_box)] = s
-        for i in range(0,len(subs_from_box)):
-            lineup = self.lineups[subs_from_box[i]['team']]
-            for p in sub_plays:
-                [sub_in, pos, sub_out] = sub.parse_sub(p)
+        
+        unmatched = 0
+        while len(sub_plays) - unmatched > 0:
+            p = sub_plays[unmatched]
+            [sub_in, pos, sub_out] = sub.parse_sub(p)
+            for i in range(0,len(subs_from_box)):
+                lineup = self.lineups[subs_from_box[i]['team']]
                 player_in = [p.name for p in lineup.lineup if p.pbp_name == sub_in] + [p.name for p in lineup.subs if p.pbp_name == sub_in]
-                
                 if len(player_in) > 0 and subs_from_box[i]['name'] in player_in:
                     if 'replaces' in subs_from_box[i].keys():
                         player_out = [p.name for p in lineup.lineup if p.pbp_name == sub_out] + [p.name for p in lineup.subs if p.pbp_name == sub_out]
                         if subs_from_box[i]['replaces'] in player_out:
                             subs_from_box[i]['text'] = p
                             sub_plays.remove(p)
+                            break
                     else:
                         if 'pos' in subs_from_box[i].keys():
                             if subs_from_box[i]['pos'] == pos:
                                 subs_from_box[i]['text'] = p
                                 sub_plays.remove(p)
+                                break
+                if i == len(subs_from_box)-1:
+                    unmatched += 1
+                
         for i in range(0, len(subs_from_box)):
             if not 'text' in subs_from_box[i].keys():
                 self.error = True
@@ -212,6 +219,7 @@ class Game:
         for half in range(0, len(self.play_list)):
             h = []
             for p in self.play_list[half]:
+                # print(p)
                 if parse.get_type(p) == 'p':
                     team = 0 if half % 2 == 0 else 1
                     names = {player.name:player.pbp_name for player in self.lineups[team].lineup}
