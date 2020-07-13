@@ -92,13 +92,16 @@ class Game:
                 p = primaries[i]
                 if not p in pbp_order.keys():
                     pbp_order.update({p:i%9+1})
-                else:
-                    if pbp_order[p] != i%9+1:
-                        print('ERROR: TWO DIFFERENT ORDERS FOR PLAYER ' + p)
             orders = {player.id:player.order for player in self.lineups[team].lineup}
             orders.update({player.id:player.order for player in self.lineups[team].subs})
             mismatch = [p for p in pbp_order.keys() if pbp_order[p] != orders[p]]
-            return(mismatch)
+            # print(mismatch)
+            for player_id in mismatch:
+                for player in self.lineups[team].subs:
+                    if player.id == player_id:
+                        
+                        player.order = pbp_order[player_id]
+                        # print(player.__dict__)
             # Look at extra pbp subs and try to reset up the game so it matches better
 
 
@@ -163,7 +166,7 @@ class Game:
                 # 99% sure on this
                 # so if there's a match here we want to go back into the subs and switch who they entered the game for
                 # and also check if theres a discrepancy in the order from the box score
-                matches = [[p[0], p[2]] for p in parsed if p[2] == i[0] and p[0] == i[2]]
+                matches = [[pl[0], pl[2]] for pl in parsed if p[2] == i[0] and p[0] == i[2]]
                 if len(matches) > 0:
                     for team in [0,1]:
                         names = {player.pbp_name:player.id for player in self.lineups[team].lineup}
@@ -178,15 +181,21 @@ class Game:
                             sub1 = subs_from_box[switch[0]]
                             sub2 = subs_from_box[switch[1]]
                             rep1 = [sub1['replaces'], sub1['replaces_id']]
-                            rep2 = [sub1['replaces'], sub1['replaces_id']]
+                            rep2 = [sub2['replaces'], sub2['replaces_id']]
                             subs_from_box[switch[0]]['replaces'] = rep2[0]
                             subs_from_box[switch[0]]['replaces_id'] = rep2[1]
                             subs_from_box[switch[1]]['replaces'] = rep1[0]
                             subs_from_box[switch[1]]['replaces_id'] = rep1[1]
-                        
-
- 
-                    
+                            for player in self.lineups[team].subs:
+                                if player.id == sub1['id']:
+                                    player.sub = rep2[0]
+                                    player.sub_id = rep2[1]
+                                if player.id == sub2['id']:
+                                    player.sub = rep1[0]
+                                    player.sub_id = rep1[1]
+                    parsed.remove(i)
+                    # print(subs_from_box)
+               
                 
             self.error = True
             print("ERROR: too many subs in pbp")
@@ -223,41 +232,51 @@ class Game:
                     for i in range(0, len(self.subs)):
                         if self.subs[i]['text'] == p:
                             sub_idx = self.subs[i]
+                            print('SUB IDX')
+                            print(sub_idx)
+                            print('\n\n')
+                            # print('half: ' + str(half % 2))
+                            # print('sub: ' + str(sub_idx))
                             if not 'replaces' in sub_idx.keys():
-                                new_sub = sub.PositionSwitch(sub_idx['team'], sub_idx['name'], sub_idx['pos'], p)
-                            elif not((self.state['half'] == 0) ^ (sub_idx['team'] == 'h')):
+                                new_sub = sub.PositionSwitch(sub_idx['team'], sub_idx['id'], sub_idx['pos'], p)
+                            elif half % 2 == sub_idx['team']:
                                 if ' ran ' in p:
                                     sub_type = 'pr'
                                 else:
                                     sub_type = 'ph'
-                                new_sub = sub.OffensiveSub(sub_idx['team'], sub_idx['name'], sub_idx['replaces'], sub_type, p)
+                                new_sub = sub.OffensiveSub(sub_idx['team'], sub_idx['id'], sub_idx['replaces_id'], sub_type, p)
                             else:
-                                new_sub = sub.DefensiveSub(sub_idx['team'], sub_idx['name'], sub_idx['replaces'], sub.parse_sub(p)[1], p)
+                                new_sub = sub.DefensiveSub(sub_idx['team'], sub_idx['id'], sub_idx['replaces_id'], sub.parse_sub(p)[1], p)
                     if new_sub is None:
                         if '/ ' in p:
                             team = 'a' if half % 2 == 1 else 'h'
                             new_sub = sub.Removal(team, sub.parse_sub(p)[2], p)
-                    h.append(new_sub)
+                    if not new_sub is None:
+                        h.append(new_sub)
             g.append(h)
         self.events = g
         
     def execute_game(self):
         for h in self.events:
             for e in h:
-                # print(e.text)
+                print(e.__dict__)
                 if "sub" in str(type(e)):
                     self.lineups[e.team].make_sub(e)
                     if 'OffensiveSub' in str(type(e)):
                         if e.sub_type == 'pr':
+                            print(e.sub)
                             for r in self.state['runners']:
                                 if not r == '':
-                                    if r.name == e.sub:
-                                        r.name = e.player
+                                    if r.id == e.sub:
+                                        r.id = e.player
+
                 else:
                     check = check_lineup(self.lineups[(self.state['half'] + 1) % 2].lineup)
                     if not check:
-                        print('half: ' + str(self.state['half']))
-                        ui.print_lineups(self)
+                        # print('half: ' + str(self.state['half']))
+                        # ui.print_lineups(self)
+                        # ui.print_subs(self)
+                        pass
                     output = self.execute_play(e)
                     self.output.append(output)
                     self.play['play_of_inn'] += 1
@@ -516,7 +535,7 @@ def check_lineup(lineup):
         if player.order in order_list:
             order_list.remove(player.order)
         else:
-            print("ERROR: multiple players listed at " + player.order)
+            print("ERROR: multiple players listed at " + str(player.order))
             return False
     if 10 in order_list and not 'dh' in pos_list:
         print("ERROR: missing position " + str(pos_list))
