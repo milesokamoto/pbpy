@@ -31,6 +31,7 @@ def main():
             output = g.execute_game()
             df = pd.DataFrame(output)
             df.to_csv('output/' + date + '/' + str(ncaa_id) + '.csv')
+            # TODO: Check output score against scoreboard
 
 
         #     try:
