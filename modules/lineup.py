@@ -88,8 +88,9 @@ class Lineup:
 
         elif 'Removal' in str(type(sub)):
             lu_idx = find_player_index(lu, sub.sub)
-            lu[lu_idx].status = 'removed'
-            subs.append(lu.pop(lu_idx))
+            if not lu_idx is None:
+                lu[lu_idx].status = 'removed'
+                subs.append(lu.pop(lu_idx))
 
         [self.lineup, self.subs] = [lu, subs]
 
@@ -97,14 +98,14 @@ def find_player_index(lu, id):
     for i in range(0, len(lu)):
         if lu[i].id == id:
             return i
-    return -1
+    return None
 
 
 def find_pos_index(lu, pos):
     for i in range(0, len(lu)):
         if lu[i].pos == pos:
             return i
-    return -1
+    return None
 
 def get_names(lu):
     names = []
