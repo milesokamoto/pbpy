@@ -83,7 +83,7 @@ def match_all(lineup, play_list):
             elif sub.pos == 'p':
                 while pitchers[p_no] in list(nm.values()) and p_no < len(pitchers):
                     p_no += 1
-                if name_similarity(pitchers[p_no], sub.name) > .5:
+                if name_similarity(pitchers[p_no], sub.name) >= .5:
                     nm[sub.name] = pitchers[p_no]
                     if sub.order < 9:
                         p_no = 0
@@ -92,7 +92,7 @@ def match_all(lineup, play_list):
                 else:
                     while name_similarity(pitchers[p_no], sub.name) < .5 and p_no < len(pitchers) - 1:
                         p_no += 1
-                    if name_similarity(pitchers[p_no], sub.name) > .5:
+                    if name_similarity(pitchers[p_no], sub.name) >= .5:
                         nm[sub.name] = pitchers[p_no]
                         p_no = 0
 
