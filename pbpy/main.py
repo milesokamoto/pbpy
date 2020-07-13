@@ -12,7 +12,7 @@ def main():
     day = datetime.strptime('02-14-2020', '%m-%d-%Y')
     while day < datetime.strptime('02-15-2020', '%m-%d-%Y'):
         date = datetime.strftime(day, '%m-%d-%Y')
-        path = "../output/" + date
+        path = "output/" + date
         try:
             os.mkdir(path)
         except OSError:
@@ -27,10 +27,11 @@ def main():
             games.at[i, "ncaa_id"] = ncaa_id
             print(games.at[i, 'link'])
             g = game.Game(ncaa_id)
-            pbp = g.get_pbp(ncaa_id)
-            pbp_flat = [item for sublist in pbp for item in sublist]
-            if len([s for s in pbp_flat if '/ for' in s]) > 0:
-                print(ncaa_id)
+            g.setup_game()
+            output = g.execute_game()
+            df = pd.DataFrame(output)
+            df.to_csv('output/' + date + '/' + str(ncaa_id) + '.csv')
+
 
         #     try:
         #         g.parse_plays()
