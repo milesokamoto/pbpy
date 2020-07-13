@@ -225,14 +225,11 @@ class Game:
                     new_play.get_type(self.lineups, team)
                     new_play.create_events()
                     h.append(new_play)
-                    # print(new_play.__dict__)
                 elif parse.get_type(p) == 's':
                     new_sub = None
                     for i in range(0, len(self.subs)):
                         if self.subs[i]['text'] == p:
                             sub_idx = self.subs[i]
-                            # print('half: ' + str(half % 2))
-                            # print('sub: ' + str(sub_idx))
                             if not 'replaces' in sub_idx.keys():
                                 new_sub = sub.PositionSwitch(sub_idx['team'], sub_idx['id'], sub_idx['pos'], p)
                             elif half % 2 == sub_idx['team']:
@@ -255,12 +252,10 @@ class Game:
     def execute_game(self):
         for h in self.events:
             for e in h:
-                # print(e.__dict__)
                 if "sub" in str(type(e)):
                     self.lineups[e.team].make_sub(e)
                     if 'OffensiveSub' in str(type(e)):
                         if e.sub_type == 'pr':
-                            # print(e.sub)
                             for r in self.state['runners']:
                                 if not r == '':
                                     if r.id == e.sub:
