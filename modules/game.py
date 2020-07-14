@@ -88,7 +88,7 @@ class Game:
                 run = [cd for cd in ref.run_play_codes.keys() if cd in p and not 'struck out' in p and not 'walked' in p] 
                 if not (len(run) > 0 or 'advanced' in p.split(' ')[1]):
                     # bat_plays.append(p)
-                    if not p.split(' ')[0] in primaries[-3:-1]: 
+                    if not p.split(' ')[0] in primaries[-3:]: 
                         primaries.append(p.split(' ')[0])
             pbp_order = {}
             for i in range(len(primaries)):
