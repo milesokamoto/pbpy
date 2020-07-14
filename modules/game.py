@@ -219,7 +219,6 @@ class Game:
         for half in range(0, len(self.play_list)):
             h = []
             for p in self.play_list[half]:
-                print(p)
                 if parse.get_type(p) == 'p':
                     team = 0 if half % 2 == 0 else 1
                     names = {player.name:player.pbp_name for player in self.lineups[team].lineup}
@@ -513,7 +512,7 @@ def clean_plays(plays) -> list:
                     p = p.replace(fc.group(1), '')
             p = p.replace('did not advance', 'no advance')
             p = p.replace('3a', ':').replace(';', ':').replace(': ', ':').replace('a muffed throw', 'an error')
-        if not(parse.get_type(p) == 'p' and len(play.find_events(p)) == 0):
+        if not(parse.get_type(p) == 'p' and len(play.find_events(p)) == 0) and not parse.get_type(p) == 'n':
             new_plays.append(p)
     return new_plays
 

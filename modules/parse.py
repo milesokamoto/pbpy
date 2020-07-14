@@ -55,9 +55,13 @@ def get_type(s):
     :type s: str
     :return: 's' for substitution or 'p' for play
     :rtype: str
-    """    
+    """
     expr = r"^([A-Za-z,\. '-]*?(?= [a-z])|\/) (pinch (?:hit|ran)|to [0-9a-z]{1,2})* *(?:for ([A-Za-z,\. '-]*?)\.$)*"
-    if not re.search(expr, s.replace('/ ', '/ to x')).group(2) is None:
-        return 's'
+    search = re.search(expr, s.replace('/ ', '/ to x'))
+    if not search is None:
+        if not search.group(2) is None:
+            return 's'
+        else:
+            return 'p'
     else:
-        return 'p'
+        return 'n'
