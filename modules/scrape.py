@@ -55,8 +55,12 @@ def get_lu_table(id) -> list:
             text = ss_lineups[i].text.split(', ')
             if text[1][-1] == ' ':
                 text[1] = text[1][0:-1]
-            players.append(text[0] + ', ' + text[1])
-            positions.append(text[2].split('/'))
+            if 'Jr.' in text[1]:
+                players.append(text[0] + ', ' + text[1] + ', ' + text[2])
+                positions.append(text[3].split('/'))
+            else:
+                players.append(text[0] + ', ' + text[1])
+                positions.append(text[2].split('/'))            
 
     if flip:
         players = players[team_spl-2:] + players[0:team_spl-2]
@@ -93,7 +97,7 @@ def get_lu_table(id) -> list:
             player_id.append('x' + str(i))
         players[i] = players[i].replace('ñ', 'n')
         positions[i] = [pos.replace('dp', 'dh') for pos in positions[i]] # https://stats.ncaa.org/game/box_score/4937004
-        
+            
     return [[players[0:team_spl-2], players[team_spl-2:]], [positions[0:team_spl-2], positions[team_spl-2:]], [player_id[0:team_spl-2], player_id[team_spl-2:]]]
     #TODO: Use positions to help with substitutions
 
