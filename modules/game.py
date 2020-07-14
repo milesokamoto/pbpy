@@ -80,14 +80,16 @@ class Game:
             names = {player.pbp_name:player.id for player in self.lineups[team].lineup}
             names.update({player.pbp_name:player.id for player in self.lineups[team].subs})
             plays = [p for p in all_plays(self.play_list, team) if parse.get_type(p) == 'p']
+            primaries = []
             for p in plays:
                 for n in list(names.keys()):
                     p = p.replace(n, names[n])
                 # TODO: there might be a better fix if this is a problem again - there was a problem with 'struck out, stole second'
                 run = [cd for cd in ref.run_play_codes.keys() if cd in p and not 'struck out' in p and not 'walked' in p] 
                 if not (len(run) > 0 or 'advanced' in p.split(' ')[1]):
-                    bat_plays.append(p)
-            primaries = [p.split(' ')[0] for p in bat_plays]
+                    # bat_plays.append(p)
+                    if not p.split(' ')[0] in primaries[-3:-1]: 
+                        primaries.append(p.split(' ')[0])
             pbp_order = {}
             for i in range(len(primaries)):
                 p = primaries[i]
