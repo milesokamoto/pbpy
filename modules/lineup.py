@@ -62,32 +62,56 @@ class Lineup:
         """
         [lu, subs] = [self.lineup, self.subs]
         if 'PositionSwitch' in str(type(sub)):
+            done = False
             for player in lu:
                 if player.id == sub.player:
+                    done = True
+                    player.switch.append(player.pos)
                     player.pos = sub.pos
                     if sub.pos in player.switch:
                         player.switch.remove(sub.pos)
+            if not done:
+                sub_idx = find_player_index(subs, sub.player)
+                if sub.pos == 'p':
+                    subs[sub_idx].status = 'entered'
+                    if not len([s for s in lu if s.pos == 'p']) > 0:
+                        subs[sub_idx].order = 10
+                    lu.append(subs.pop(sub_idx))
+                else:
+                    print("ERROR: NOT SURE WHAT TO DO WITH SUB")
 
         elif 'OffensiveSub' in str(type(sub)):
             lu_idx = find_player_index(lu, sub.sub)
             sub_idx = find_player_index(subs, sub.player)
-            if subs[sub_idx].status == 'removed':
-                print('ILLEGAL SUB')
-            if not lu_idx is None:
-                lu[lu_idx].status = 'removed'
-                subs.append(lu.pop(lu_idx))
-                lu.insert(lu_idx, subs[sub_idx])
+            if sub_idx is None:
+                print("ERROR: " + str(sub.__dict__))
+            else:
+                if subs[sub_idx].status == 'removed':
+                    print('ILLEGAL SUB')
+                if not lu_idx is None:
+                    lu[lu_idx].status = 'removed'
+                    subs.append(lu.pop(lu_idx))
+                    lu.insert(lu_idx, subs.pop(sub_idx))
             # TODO: Pinch runner functionality
 
         elif 'DefensiveSub' in str(type(sub)):
             lu_idx = find_player_index(lu, sub.sub)
             sub_idx = find_player_index(subs, sub.player)
-            if subs[sub_idx].status == 'removed':
-                print('ILLEGAL SUB')
-            if not lu_idx is None:  
-                lu[lu_idx].status = 'removed'
-                subs.append(lu.pop(lu_idx))
-                lu.insert(lu_idx, subs[sub_idx])
+            if sub_idx is None:
+                print("ERROR: " + str(sub.__dict__))
+            else:
+                if subs[sub_idx].status == 'removed':
+                    print('ILLEGAL SUB')
+                if not lu_idx is None:  
+                    lu[lu_idx].status = 'removed'
+                    if lu[lu_idx].order != subs[sub_idx].order:
+                        print("ASSUMING ORDER FOR SUB: " + subs[sub_idx].name)
+                        subs[sub_idx].order = lu[lu_idx].order
+                    for p in lu:
+                        if p.pos == subs[sub_idx].pos:
+                            p.pos = ''
+                    subs.append(lu.pop(lu_idx))
+                    lu.insert(lu_idx, subs.pop(sub_idx))
 
         elif 'Removal' in str(type(sub)):
             lu_idx = find_player_index(lu, sub.sub)
