@@ -145,6 +145,11 @@ def match_all(lineup, play_list):
                 sub_txt = [t for t in game.all_plays(play_list, '') if sub_type + ' for ' + nm[sub_in[0][2]] in t]
                 if len(sub_txt) > 0:
                     nm[sub_in[0][0]] = re.search(r'.*(?=' + sub_type + r' for ' + nm[sub_in[0][2]] + r'\.)', sub_txt[0]).group()
+                else:
+                    sub_txt = [t for t in game.all_plays(play_list, '') if sub_type + ' for ' in t]
+                    if len(sub_txt) == 1:
+                        nm[sub_in[0][0]] = re.search(r'.*(?=' + sub_type + r' for )', sub_txt[0]).group()
+
     for player in lineup.lineup:
         if player.name in nm.keys():
             player.pbp_name = nm[player.name]
