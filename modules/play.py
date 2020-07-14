@@ -63,7 +63,8 @@ class Play:
             split = new_text.split(splits[i] + " ")
             new_text = split[0]
             player_text = split[1]
-            parts.insert(0, {'player':name, 'text': player_text})
+            if not 'no advance' in player_text:
+                parts.insert(0, {'player':name, 'text': player_text})
         return parts
     
     def get_type(self, lineups, team):
