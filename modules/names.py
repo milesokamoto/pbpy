@@ -39,8 +39,8 @@ def match_all(lineup, play_list):
                     ph_check = sub.parse_sub(p)
                     if ph_check[1] == 'ph':
                         n = ph_check[2]
-                    if not n in pbp_names and not n is None:
-                        pbp_names.append(n)
+                        if not n in pbp_names and not n is None:
+                            pbp_names.append(n)
     nm = match_helper(box_names, pbp_names)
 
     # look at all defensive plays to match pitchers
