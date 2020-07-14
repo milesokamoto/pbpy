@@ -65,7 +65,8 @@ class Lineup:
             for player in lu:
                 if player.id == sub.player:
                     player.pos = sub.pos
-                    player.switch.remove(sub.pos)
+                    if sub.pos in player.switch:
+                        player.switch.remove(sub.pos)
 
         elif 'OffensiveSub' in str(type(sub)):
             lu_idx = find_player_index(lu, sub.sub)
