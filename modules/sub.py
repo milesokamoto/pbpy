@@ -52,7 +52,7 @@ def parse_sub(s):
     if not sub is None:
         sub = [sub.group(1), sub.group(2), sub.group(3)]
         if not sub[1] is None:
-            if ' hit ' in s:
+            if ' hit ' in s or 'hit.' in s:
                 sub[1] = 'ph'
             elif ' ran ' in s:
                 sub[1] = 'pr'
