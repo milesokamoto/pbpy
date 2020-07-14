@@ -166,6 +166,7 @@ pos_codes = {
     'cf': 8,
     'rf': 9,
     'dh': 10,
+    '': ''
 }
 base_codes = {
     'first': 1,
