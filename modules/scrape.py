@@ -43,7 +43,7 @@ def get_lu_table(id) -> list:
     bs_order = [bs_a_lineup[0].text[0:-1], bs_h_lineup[0].text[0:-1]]
 
     #If the teams are in the wrong order, switch them
-    if ss_order != bs_order:
+    if ss_order[0] != bs_order[0] and ss_order[1] != bs_order[1]:
         flip = True
     else:
         flip = False
@@ -97,7 +97,7 @@ def get_lu_table(id) -> list:
             player_id.append('x' + str(i))
         players[i] = players[i].replace('ñ', 'n')
         positions[i] = [pos.replace('dp', 'dh') for pos in positions[i]] # https://stats.ncaa.org/game/box_score/4937004
-            
+   
     return [[players[0:team_spl-2], players[team_spl-2:]], [positions[0:team_spl-2], positions[team_spl-2:]], [player_id[0:team_spl-2], player_id[team_spl-2:]]]
     #TODO: Use positions to help with substitutions
 
