@@ -79,6 +79,7 @@ class Lineup:
                     lu.append(subs.pop(sub_idx))
                 else:
                     print("ERROR: NOT SURE WHAT TO DO WITH SUB")
+                    print(sub.__dict__)
 
         elif 'OffensiveSub' in str(type(sub)):
             lu_idx = find_player_index(lu, sub.sub)

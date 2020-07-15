@@ -101,6 +101,9 @@ class Game:
                 for player in self.lineups[team].subs:
                     if player.id == player_id:
                         player.order = pbp_order[player_id]
+                for player in self.lineups[team].lineup:
+                    if player.id == player_id:
+                        player.order = pbp_order[player_id]
             # Look at extra pbp subs and try to reset up the game so it matches better
 
 
@@ -285,6 +288,7 @@ class Game:
     def execute_game(self):
         for h in self.events:
             for e in h:
+                # print(e.text)
                 if "sub" in str(type(e)):
                     self.lineups[e.team].make_sub(e)
                     if 'OffensiveSub' in str(type(e)):

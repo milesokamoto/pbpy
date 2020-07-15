@@ -66,8 +66,8 @@ def match_all(lineup, play_list):
     # matching subs
     subs = lineup.subs
     plays = game.all_plays(play_list, '')
-    p_no = 0
     if not subs is None:
+        pitcher_no = 0
         for s in subs:
             # offensive substitution
             if s.pos in ('ph', 'pr'):
@@ -98,20 +98,38 @@ def match_all(lineup, play_list):
                         s = ''
             # pitcher substitution - assumes pitchers are listed in correct order
             elif s.pos == 'p':
-                while pitchers[p_no] in list(nm.values()) and p_no < len(pitchers):
-                    p_no += 1
-                if name_similarity(pitchers[p_no], s.name) >= .5:
-                    nm[s.name] = pitchers[p_no]
-                    if s.order < 9:
-                        p_no = 0
+                if pitcher_no < len(pitchers):
+                    while pitchers[pitcher_no] in list(nm.values()) and pitcher_no < len(pitchers)-1:
+                        pitcher_no += 1
+                    if name_similarity(pitchers[pitcher_no], s.name) >= .5:
+                        nm[s.name] = pitchers[pitcher_no]
+                        if s.order < 9:
+                            pitcher_no = 0
+                        else:
+                            pitcher_no += 1
                     else:
-                        p_no += 1
+                        while name_similarity(pitchers[pitcher_no], s.name) < .5 and pitcher_no < len(pitchers) - 1:
+                            pitcher_no += 1
+                        if name_similarity(pitchers[pitcher_no], s.name) >= .5:
+                            nm[s.name] = pitchers[pitcher_no]
+                            pitcher_no = 0
+                        
                 else:
-                    while name_similarity(pitchers[p_no], s.name) < .5 and p_no < len(pitchers) - 1:
-                        p_no += 1
-                    if name_similarity(pitchers[p_no], s.name) >= .5:
-                        nm[s.name] = pitchers[p_no]
-                        p_no = 0
+                    off_plays = game.all_plays(play_list, (lineup.team) % 2)
+                    pitcher_subs2 = [p for p in off_plays if (' to p.' in p and not 'out to p.' in p and not 'up to p.' in p and not '1b to p.' in p) or ' to p for ' in p or '/ for ' in p]
+                    pitchers2 = [p.split(' to p')[0] for p in pitcher_subs2 if ' to p' in p]
+                    pitcher_no = 0
+                    max_sim = .5
+                    max_idx = None
+                    while pitcher_no < len(pitchers2)-1:
+                        pitcher_no += 1
+                        sim = name_similarity(pitchers2[pitcher_no], s.name)
+                        if sim > max_sim:
+                            max_sim = sim
+                            max_idx = pitcher_no
+                    if not max_idx is None:
+                        nm[s.name] = pitchers2[max_idx]
+                    pitcher_no = 0
 
             # all other subs
             else:
