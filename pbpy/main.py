@@ -44,7 +44,7 @@ def main():
                     output = g.execute_game()
                     df = pd.DataFrame(output)
                     df.to_csv('output/' + date + '/' + str(ncaa_id) + '.csv')
-        day = day + timedelta(days=1)
+            day = day + timedelta(days=1)
             # TODO: Check output score against scoreboard
 
 

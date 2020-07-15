@@ -39,7 +39,9 @@ codes = {
     'balk': 'BK',
     'out at first': 'O',  # ONLY FOR BATTERS - check on this for fielding
     'out on batter\'s interference': 'BINT',
+    'out on batters interference': 'BINT',
     'reached on catcher\'s interference': 'C',
+    'reached on catchers interference': 'C',
     'reached on a throwing error': 'E',
     'reached first on a throwing error': 'E',
     'reached on a fielding error': 'E',
@@ -62,7 +64,7 @@ all_codes = [
     'fouled into double play', 'fouled out', '  # when doing fielders',
     'hit by pitch', 'intentionally walked', 'walked', 'stole', 'picked off',
     'caught stealing', 'failed pickoff attempt', 'wild pitch', 'passed ball',
-    'balk', 'out at first', 'reached on catchers interference',
+    'balk', 'out at first', 'reached on catcher\'s interference',
     'reached on a throwing error', 'reached first on a throwing error',
     'reached on a fielding error', 'reached first on a fielding error',
     'reached on an error', 'reached first on an error',
@@ -74,7 +76,7 @@ all_codes = [
     'grounded into double play', 'grounded into triple play', 'hit into double play',
     'hit into triple play', 'fouled', 'flied', 'popped', 'lined', 'infield fly',
     'out at first', 'out at second', 'out at third', 'out at home', 'out on the play', 
-    'struck out', 'out on batters interference', 'reached on catchers interference'
+    'struck out', 'out on batters interference', 'out on batter\'s interference', 'reached on catchers interference'
     ]
 mod_codes = {
     'singled': '1B',
@@ -166,6 +168,7 @@ pos_codes = {
     'cf': 8,
     'rf': 9,
     'dh': 10,
+    '': ''
 }
 base_codes = {
     'first': 1,
@@ -217,7 +220,9 @@ run_codes = {
     'out on the play': [0, 0],
     'struck out': [0, 0],
     'out on batter\'s interference': [0, 0],
-    'reached on catcher\'s interference': [1, 0]
+    'out on batters interference': [0, 0],
+    'reached on catcher\'s interference': [1, 0],
+    'reached on catchers interference': [1, 0]
 }
 adv_codes = {
     'advanced to second': [2, 1],
