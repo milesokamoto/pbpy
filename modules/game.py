@@ -82,7 +82,8 @@ class Game:
             primaries = []
             for p in plays:
                 for n in list(names.keys()):
-                    p = p.replace(n, names[n])
+                    if not n == '':
+                        p = p.replace(n, names[n])
                 # TODO: there might be a better fix if this is a problem again - there was a problem with 'struck out, stole second'
                 run = [cd for cd in ref.run_play_codes.keys() if cd in p and not 'struck out' in p and not 'walked' in p]
                 if not (len(run) > 0 or 'advanced' in p.split(' ')[1]):
@@ -261,21 +262,9 @@ class Game:
                             # otherwise if the player coming in is in the game and switch his position,
                             # otherwise substitute the player into the game maybe(?)
                             [name, pos, sub_out] = sub.parse_sub(p)
-                            # if not pos in ['ph', 'pr', 'dh', 'p']:
-                            #     team = (half + 1) % 2
-                            #     pbp_ids = {player.pbp_name:player.id for player in self.lineups[team].lineup}
-                            #     pbp_ids.update({player.pbp_name:player.id for player in self.lineups[team].subs})
-                            #     print(pbp_ids)
-                            #     in_id = pbp_ids[name]
-                            #     if not sub_out is None:
-                            #         out_id = pbp_ids[sub_out]
-                            #         new_sub = sub.DefensiveSub(team, in_id, out_id, pos, p)
-                            #     else:
-                            #         new_sub = sub.PositionSwitch(team, in_id, pos, p)
-                        
                             for team in [0, 1]:
                                 all_players = [player for player in self.lineups[team].lineup] + [player for player in self.lineups[team].subs]
-                                possible = [player.pbp_name for player in all_players if name == player.pbp_name and (pos == player.pos or pos in player.switch)]
+                                possible = [player.pbp_name for player in all_players if name == player.pbp_name] # and (pos == player.pos or pos in player.switch)]
                                 if len(possible) == 1:
                                     pbp_ids = {player.pbp_name:player.id for player in self.lineups[team].lineup}
                                     pbp_ids.update({player.pbp_name:player.id for player in self.lineups[team].subs})
@@ -283,7 +272,7 @@ class Game:
                                         out_possible = [player.pbp_name for player in all_players if sub_out == player.pbp_name and (pos == player.pos or pos in player.switch)]
                                         if len(possible) == 1 and len(out_possible) == 1:
                                             if (half % 2) == team:
-                                                new_sub = sub.OffensiveSub(sub_idx['team'], sub_idx['id'], sub_idx['replaces_id'], sub_type, p)
+                                                new_sub = sub.OffensiveSub(team, pbp_ids[possible[0]], pbp_ids[out_possible[0]], pos, p)
                                             else:
                                                 new_sub = sub.DefensiveSub(team, pbp_ids[possible[0]], pbp_ids[out_possible[0]], pos, p)
                                     else:

@@ -136,39 +136,45 @@ def match_all(lineup, play_list):
 
     # check if any names are left blank
     blank = [k for k, v in sorted(nm.items(), key=lambda item: item[1]) if v == '']
+    pbp_blank = [n for n in pbp_names if not n in nm.values()]
     for name in blank:
-        sub_out = [[s.name, s.pos, s.sub] for s in subs if s.sub == name]
-        if len(sub_out) > 0:
-            if sub_out[0][1] == 'pr':
-                sub_type = ' pinch ran'
-            elif sub_out[0][1] == 'ph':
-                sub_type = ' pinch hit'
-            else:
-                sub_type = ' to ' + sub_out[0][1]
-            sub_txt = [t for t in plays if nm[sub_out[0][0]] + sub_type + ' for ' in t]
-            if len(sub_txt) > 0:
-                nm[sub_out[0][2]] = re.search(r'(?<=' + nm[sub_out[0][0]] + sub_type + r' for ).*(?=\.)', sub_txt[0]).group()
-            elif sub_out[0][1] == 'p':
-                sub_txt = [t for t in game.all_plays(play_list, '') if '/ for ' in t]
-                short = re.search(r'(?<=/ for ).*(?=\.)', sub_txt[0]).group()
-                if name_similarity(short, sub_out[0][2]) > .5:
-                    nm[sub_out[0][2]] = short
-        else:
-            sub_in = [[s.name, s.pos, s.sub] for s in subs if s.name == name]
-            if sub_in[0][1] == 'pr':
-                sub_type = ' pinch ran'
-            elif sub_in[0][1] == 'ph':
-                sub_type = ' pinch hit'
-            else:
-                sub_type = ' to ' + sub_in[0][1]
-            if len(sub_in) > 0:
-                sub_txt = [t for t in game.all_plays(play_list, '') if sub_type + ' for ' + nm[sub_in[0][2]] in t]
-                if len(sub_txt) > 0:
-                    nm[sub_in[0][0]] = re.search(r'.*(?=' + sub_type + r' for ' + nm[sub_in[0][2]] + r'\.)', sub_txt[0]).group()
+        for n in pbp_blank:
+            if name_similarity(n, name) > .5:
+                nm[name] = n
+
+        if nm[name] == '':
+            sub_out = [[s.name, s.pos, s.sub] for s in subs if s.sub == name]
+            if len(sub_out) > 0:
+                if sub_out[0][1] == 'pr':
+                    sub_type = ' pinch ran'
+                elif sub_out[0][1] == 'ph':
+                    sub_type = ' pinch hit'
                 else:
-                    sub_txt = [t for t in game.all_plays(play_list, '') if sub_type + ' for ' in t]
-                    if len(sub_txt) == 1:
-                        nm[sub_in[0][0]] = re.search(r'.*(?=' + sub_type + r' for )', sub_txt[0]).group()
+                    sub_type = ' to ' + sub_out[0][1]
+                sub_txt = [t for t in plays if nm[sub_out[0][0]] + sub_type + ' for ' in t]
+                if len(sub_txt) > 0:
+                    nm[sub_out[0][2]] = re.search(r'(?<=' + nm[sub_out[0][0]] + sub_type + r' for ).*(?=\.)', sub_txt[0]).group()
+                elif sub_out[0][1] == 'p':
+                    sub_txt = [t for t in game.all_plays(play_list, '') if '/ for ' in t]
+                    short = re.search(r'(?<=/ for ).*(?=\.)', sub_txt[0]).group()
+                    if name_similarity(short, sub_out[0][2]) > .5:
+                        nm[sub_out[0][2]] = short
+            else:
+                sub_in = [[s.name, s.pos, s.sub] for s in subs if s.name == name]
+                if sub_in[0][1] == 'pr':
+                    sub_type = ' pinch ran'
+                elif sub_in[0][1] == 'ph':
+                    sub_type = ' pinch hit'
+                else:
+                    sub_type = ' to ' + sub_in[0][1]
+                if len(sub_in) > 0:
+                    sub_txt = [t for t in game.all_plays(play_list, '') if sub_type + ' for ' + nm[sub_in[0][2]] in t]
+                    if len(sub_txt) > 0:
+                        nm[sub_in[0][0]] = re.search(r'.*(?=' + sub_type + r' for ' + nm[sub_in[0][2]] + r'\.)', sub_txt[0]).group()
+                    else:
+                        sub_txt = [t for t in game.all_plays(play_list, '') if sub_type + ' for ' in t]
+                        if len(sub_txt) == 1:
+                            nm[sub_in[0][0]] = re.search(r'.*(?=' + sub_type + r' for )', sub_txt[0]).group()
 
     for player in lineup.lineup:
         if player.name in nm.keys():
