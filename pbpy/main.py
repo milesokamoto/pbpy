@@ -33,6 +33,8 @@ def main():
             games["ncaa_id"] = ""
             games["error"] = ""
             for i in range(0, len(games)):
+                pct = i/len(games)*100
+                print(str(round(pct)) + '%' + ' '*(1 if pct>=10 else 2) + '|' + '-'*round(pct/2) + ' '*round(50-pct/2) + '|')
                 ncaa_id = scrape.get_id('https://stats.ncaa.org' + games.iloc[i]['link'])
                 if not os.path.isfile("output/" + date + '/' + ncaa_id + '.csv'):
                     games.at[i, "ncaa_id"] = ncaa_id
@@ -42,7 +44,7 @@ def main():
                     output = g.execute_game()
                     df = pd.DataFrame(output)
                     df.to_csv('output/' + date + '/' + str(ncaa_id) + '.csv')
-        day = day + timedelta(days=1)
+            day = day + timedelta(days=1)
             # TODO: Check output score against scoreboard
 
 
