@@ -21,38 +21,10 @@ class Play:
         self.parts = self.split_play()
         self.order = 0
         
-        
         self.dest = ['']*4
 
         self.event_outs = 0
         self.defense = ['']*9
-
-        # print(self.parts)
-        
-
-        # self.state_before = state
-        # self.state_after = {'inning': 0, 'half': 0, 'outs': 0, 'runners': '000'}
-
-        # self.play_info = {}
- 
-        # self.off_team = 'a' if self.g.half == 0 else 'h'
-
-        # [self.event, self.code] = get_event(self.text, '')
-        
-        # self.events = []
-        # self.batter = self.g.lineups.get_batter(self.g)
-        # parts = self.split_play()
-        # # print('parts: ' + str(parts))
-        # if self.primary == self.batter:
-        #     self.events.append(BatEvent(parts.pop(0)))
-        #     self.type = 'b'
-        # else:
-        #     self.type = 'r'
-        # for p in parts:
-        #     if not p == '' and not ' no advance' in p:
-        #         self.events.append(RunEvent(p))
-        # self.match_players()
-        # self.get_info()
     
     def split_play(self):
         new_text = self.text
@@ -96,6 +68,7 @@ class Play:
                         self.events[0].text = self.events[0].text + sre
                         break
             self.events[0].deconstruct_text()
+            
 
 class BatEvent:
     def __init__(self, part, id):

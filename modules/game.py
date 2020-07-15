@@ -76,18 +76,17 @@ class Game:
         """looking at the play-by-play hitter order and the box score orders and finding discrepancies
         """        
         for team in [0,1]:
-            bat_plays = [] # make sure this is accurately getting only batting plays
             names = {player.pbp_name:player.id for player in self.lineups[team].lineup}
             names.update({player.pbp_name:player.id for player in self.lineups[team].subs})
             plays = [p for p in all_plays(self.play_list, team) if parse.get_type(p) == 'p']
             primaries = []
             for p in plays:
                 for n in list(names.keys()):
-                    p = p.replace(n, names[n])
+                    if not n == '':
+                        p = p.replace(n, names[n])
                 # TODO: there might be a better fix if this is a problem again - there was a problem with 'struck out, stole second'
-                run = [cd for cd in ref.run_play_codes.keys() if cd in p and not 'struck out' in p and not 'walked' in p] 
+                run = [cd for cd in ref.run_play_codes.keys() if cd in p and not 'struck out' in p and not 'walked' in p]
                 if not (len(run) > 0 or 'advanced' in p.split(' ')[1]):
-                    # bat_plays.append(p)
                     if not p.split(' ')[0] in primaries[-3:]: 
                         primaries.append(p.split(' ')[0])
             pbp_order = {}
@@ -100,6 +99,9 @@ class Game:
             mismatch = [p for p in pbp_order.keys() if pbp_order[p] != orders[p]]
             for player_id in mismatch:
                 for player in self.lineups[team].subs:
+                    if player.id == player_id:
+                        player.order = pbp_order[player_id]
+                for player in self.lineups[team].lineup:
                     if player.id == player_id:
                         player.order = pbp_order[player_id]
             # Look at extra pbp subs and try to reset up the game so it matches better
@@ -172,7 +174,7 @@ class Game:
                 # 99% sure on this
                 # so if there's a match here we want to go back into the subs and switch who they entered the game for
                 # and also check if theres a discrepancy in the order from the box score
-                matches = [[pl[0], pl[2]] for pl in parsed if p[2] == i[0] and p[0] == i[2]]
+                matches = [[pl[0], pl[2]] for pl in parsed if pl[2] == i[0] and pl[0] == i[2]]
                 if len(matches) > 0:
                     for team in [0,1]:
                         names = {player.pbp_name:player.id for player in self.lineups[team].lineup}
@@ -244,8 +246,10 @@ class Game:
                                 elif half % 2 == sub_idx['team']:
                                     if ' ran ' in p:
                                         sub_type = 'pr'
-                                    else:
+                                    elif ' hit ' in p or ' to dh ' in p:
                                         sub_type = 'ph'
+                                    else:
+                                        sub_type = 'o'
                                     new_sub = sub.OffensiveSub(sub_idx['team'], sub_idx['id'], sub_idx['replaces_id'], sub_type, p)
                                 else:
                                     new_sub = sub.DefensiveSub(sub_idx['team'], sub_idx['id'], sub_idx['replaces_id'], sub.parse_sub(p)[1], p)
@@ -256,6 +260,26 @@ class Game:
                             pbp_ids.update({player.pbp_name:player.id for player in self.lineups[team].subs})
 
                             new_sub = sub.Removal(team, pbp_ids[sub.parse_sub(p)[2]], p)
+                        else:
+                            # just look for if the player coming out is in the game, and take him out and switch for player coming in,
+                            # otherwise if the player coming in is in the game and switch his position,
+                            # otherwise substitute the player into the game maybe(?)
+                            [name, pos, sub_out] = sub.parse_sub(p)
+                            for team in [0, 1]:
+                                all_players = [player for player in self.lineups[team].lineup] + [player for player in self.lineups[team].subs]
+                                possible = [player.pbp_name for player in all_players if name == player.pbp_name] # and (pos == player.pos or pos in player.switch)]
+                                if len(possible) == 1:
+                                    pbp_ids = {player.pbp_name:player.id for player in self.lineups[team].lineup}
+                                    pbp_ids.update({player.pbp_name:player.id for player in self.lineups[team].subs})
+                                    if not sub_out is None:
+                                        out_possible = [player.pbp_name for player in all_players if sub_out == player.pbp_name and (pos == player.pos or pos in player.switch)]
+                                        if len(possible) == 1 and len(out_possible) == 1:
+                                            if (half % 2) == team:
+                                                new_sub = sub.OffensiveSub(team, pbp_ids[possible[0]], pbp_ids[out_possible[0]], pos, p)
+                                            else:
+                                                new_sub = sub.DefensiveSub(team, pbp_ids[possible[0]], pbp_ids[out_possible[0]], pos, p)
+                                    else:
+                                        new_sub = sub.PositionSwitch(team, pbp_ids[possible[0]], pos, p)
                     if not new_sub is None:
                         h.append(new_sub)
             g.append(h)
@@ -264,6 +288,7 @@ class Game:
     def execute_game(self):
         for h in self.events:
             for e in h:
+                # print(e.text)
                 if "sub" in str(type(e)):
                     self.lineups[e.team].make_sub(e)
                     if 'OffensiveSub' in str(type(e)):
@@ -272,13 +297,12 @@ class Game:
                                 if not r == '':
                                     if r.id == e.sub:
                                         r.id = e.player
-
                 else:
                     check = check_lineup(self.lineups[(self.state['half'] + 1) % 2].lineup)
                     if not check:
-                    #     print('half: ' + str(self.state['half']))
-                    #     ui.print_lineups(self)
-                    #     ui.print_subs(self)
+                        print('half: ' + str(self.state['half']))
+                        ui.print_lineups(self)
+                        ui.print_subs(self)
                         pass
                     output = self.execute_play(e)
                     self.output.append(output)
@@ -508,10 +532,11 @@ def clean_plays(plays) -> list:
         if not 'No play.' in p:
             if p[0:3] == 'for':
                 p = '/ ' + p
-            if 'fielder\'s choice' in p:
+            if 'fielder\'s choice' in p or 'fielders choice' in p:
                 fc = re.search(r"(out at first [a-z0-9]{1,2} to [a-z0-9]{1,2}, )reached on a fielder's choice", p)
                 if not fc is None:
                     p = p.replace(fc.group(1), '')
+                p = p.replace(', picked off', '')
             p = p.replace('did not advance', 'no advance')
             p = p.replace('3a', ':').replace(';', ':').replace(': ', ':').replace('a muffed throw', 'an error')
         if not(parse.get_type(p) == 'p' and len(play.find_events(p)) == 0) and not parse.get_type(p) == 'n':
