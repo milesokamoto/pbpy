@@ -190,7 +190,7 @@ def get_simple_event(text):
 def get_simple_run_event(text):
     ev = [key for key in ref.run_play_codes.keys() if key in text]
     sorted_ev = [k for k, v in sorted({l:text.index(l) for l in ev}.items(), key=lambda item:item[1])]
-    if len(sorted_ev) == 0:
+    if len(sorted_ev) == 0 or 'out at' in sorted_ev[0]:
         if 'advanced' in text.split(' ')[0] or 'scored' in text.split(' ')[0]:
             if 'error' in text:
                 # TODO: are there any situations where this wouldn't be a failed pickoff?
@@ -227,9 +227,13 @@ class RunEvent:
     def deconstruct_text(self):
         pbp = self.text
         self.event = get_event(pbp)
+
         self.code = ref.event_codes[ref.codes[get_simple_run_event(pbp)]]
 
 def get_run_dest(text):
+    print(text)
+    if 'picked off' in text and not ' out at ' in text:
+        return [-1, 0]
     return [ref.run_codes[key] for key in ref.run_codes.keys() if key in text][-1]
 
 
