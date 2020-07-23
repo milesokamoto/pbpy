@@ -1,3 +1,4 @@
 data/games/
 data/output/
 data/raw/
+*.pyc
