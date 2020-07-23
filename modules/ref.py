@@ -186,6 +186,9 @@ run_play_codes = {
     'wild pitch': 'WP',
     'passed ball': 'PB',
     'balk': 'BK',
+    'out at second': '',
+    'out at third': '',
+    'out at home': '', # maybe would have to be caught stealing? unless it's carried over from the last play
 }
 run_codes = {
     'reached first': [1, 1],

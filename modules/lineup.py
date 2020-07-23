@@ -165,19 +165,27 @@ def compile_lineups(players, pos, id_list, team):
             if not i == 0:
                 if not '\xa0' in names[i-1]:
                     j = i + 1
-                    while '\xa0' in names[j]:
-                        j += 1
-                    sub_out = names[j]
-                    sub_out_id = ids[j]
+                    if not j >= len(names):
+                        while '\xa0' in names[j]:
+                            j += 1
+                            if j >= len(names):
+                                break
+                        if not j >= len(names): 
+                            sub_out = names[j]
+                            sub_out_id = ids[j]
                 else:
                     sub_out = names[i-1]
                     sub_out_id = ids[i-1]
             else:
                 j = i + 1
-                while '\xa0' in names[j]:
-                    j += 1
-                sub_out = names[j]
-                sub_out_id = ids[j]
+                if not j >= len(names):
+                    while '\xa0' in names[j]:
+                        j += 1
+                        if j >= len(names):
+                            break
+                    if not j >= len(names): 
+                        sub_out = names[j]
+                        sub_out_id = ids[j]
             subs.append(player.Player(names[i].replace('\xa0', ''), ids[i], positions[i][0], positions[i][1:] if len(
                 positions) > 1 else [], len(lu) + 1, sub_out.replace('\xa0', ''), sub_out_id, 'available', team))
         else:

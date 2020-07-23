@@ -9,7 +9,6 @@ import modules.play as play
 import modules.scrape as scrape
 import modules.sub as sub
 import modules.ref as ref
-
 import modules.ui as ui
 
 # TODO: Add check for a player that isn't at bat or on base
@@ -83,12 +82,13 @@ class Game:
             for p in plays:
                 for n in list(names.keys()):
                     if not n == '':
-                        p = p.replace(n, names[n])
+                        p = p.replace(n + ' ', '|' + names[n] + ' ')
                 # TODO: there might be a better fix if this is a problem again - there was a problem with 'struck out, stole second'
-                run = [cd for cd in ref.run_play_codes.keys() if cd in p and not 'struck out' in p and not 'walked' in p]
+                run = [cd for cd in ref.run_play_codes.keys() if cd in p.split('|')[1].replace(', out', '') and not 'struck out' in p and not 'walked' in p]
                 if not (len(run) > 0 or 'advanced' in p.split(' ')[1]):
-                    if not p.split(' ')[0] in primaries[-3:]: 
-                        primaries.append(p.split(' ')[0])
+                    if not p.split(' ')[0].split('|')[1] in primaries[-3:]: 
+                        primaries.append(p.split(' ')[0].split('|')[1])
+            print(primaries)
             pbp_order = {}
             for i in range(len(primaries)):
                 p = primaries[i]
@@ -186,25 +186,25 @@ class Game:
                                 sb = subs_from_box[s]
                                 if sb['id'] in ids and 'replaces' in sb:
                                     switch.append(s)
-                            sub1 = subs_from_box[switch[0]]
-                            sub2 = subs_from_box[switch[1]]
-                            rep1 = [sub1['replaces'], sub1['replaces_id']]
-                            rep2 = [sub2['replaces'], sub2['replaces_id']]
-                            subs_from_box[switch[0]]['replaces'] = rep2[0]
-                            subs_from_box[switch[0]]['replaces_id'] = rep2[1]
-                            subs_from_box[switch[1]]['replaces'] = rep1[0]
-                            subs_from_box[switch[1]]['replaces_id'] = rep1[1]
-                            for player in self.lineups[team].subs:
-                                if player.id == sub1['id']:
-                                    player.sub = rep2[0]
-                                    player.sub_id = rep2[1]
-                                if player.id == sub2['id']:
-                                    player.sub = rep1[0]
-                                    player.sub_id = rep1[1]
+                            if len(switch) > 1:
+                                sub1 = subs_from_box[switch[0]]
+                                sub2 = subs_from_box[switch[1]]
+                                rep1 = [sub1['replaces'], sub1['replaces_id']]
+                                rep2 = [sub2['replaces'], sub2['replaces_id']]
+                                subs_from_box[switch[0]]['replaces'] = rep2[0]
+                                subs_from_box[switch[0]]['replaces_id'] = rep2[1]
+                                subs_from_box[switch[1]]['replaces'] = rep1[0]
+                                subs_from_box[switch[1]]['replaces_id'] = rep1[1]
+                                for player in self.lineups[team].subs:
+                                    if player.id == sub1['id']:
+                                        player.sub = rep2[0]
+                                        player.sub_id = rep2[1]
+                                    if player.id == sub2['id']:
+                                        player.sub = rep1[0]
+                                        player.sub_id = rep1[1]
                     parsed.remove(i)
                     # print(subs_from_box)
                
-                
             self.error = True
             print("ERROR: too many subs in pbp")
             print(subs_from_box)
@@ -529,6 +529,8 @@ def get_pbp(game_id) -> list:
 def clean_plays(plays) -> list:
     new_plays = []
     for p in plays:
+        if 'challenged' in p or 'review' in p:
+            p = 'No play.'
         if not 'No play.' in p:
             if p[0:3] == 'for':
                 p = '/ ' + p
