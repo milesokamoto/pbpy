@@ -268,7 +268,7 @@ def play_names(text, names):
     :param names: name directory of offensive team
     :type names: dict
     """    
-    players = {name: text.index(name) for name in names.values() if name + ' ' in text}
+    players = {name: text.index(name) for name in names.values() if name.title() + ' ' in text.title()}
     return({k: v for k, v in sorted(players.items(), key=lambda item: item[1], reverse=True)})
 
 def get_fielders(text, event):
