@@ -15,7 +15,8 @@ class Lineup:
         self.subs = None
         self.order = 1
         self.team = team
-        self.get_lineups()
+        if not game_id == '':
+            self.get_lineups()
 
     def get_lineups(self):
         """Assigns lists of player objects to Lineup object attributes based on game_id and team
