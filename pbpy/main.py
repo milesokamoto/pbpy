@@ -52,7 +52,10 @@ def main():
                         with open('data/raw/' + date + '/' + ncaa_id + '.json', 'w') as outfile:
                             json.dump(raw, outfile)
                     else:
-                        g.reparse_game(json.loads('data/raw/' + date + '/' + ncaa_id + '.json'))
+                        with open('data/raw/' + date + '/' + ncaa_id + '.json', 'r') as infile:
+                            d = json.load(infile)
+                        g.reparse_game(d)
+                    g.create_plays()
                     output = g.execute_game()
                     if g.error:
                         errors.append(1)
