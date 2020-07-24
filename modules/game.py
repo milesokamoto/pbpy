@@ -10,6 +10,7 @@ import modules.scrape as scrape
 import modules.sub as sub
 import modules.ref as ref
 import modules.ui as ui
+import modules.player as player
 
 # TODO: Add check for a player that isn't at bat or on base
 
@@ -33,15 +34,12 @@ class Game:
         self.flags = {'ph': 0, 'pr': 0, }
         self.output = []
         self.subs = []
-
         #scrape the play by play based on id
 
     def setup_game(self):
-        #create lineups based on game id
         self.lineups = [lineup.Lineup(self.id, 0), lineup.Lineup(self.id, 1)] # 2 lineup objects, 2 sub lists
-
         self.play_list = get_pbp(self.id)
-
+        #create lineups based on game id
         for lu in self.lineups:
             names.match_all(lu, self.play_list)
         #create a dictionary of names to go between the lineup and play by play
@@ -50,47 +48,48 @@ class Game:
         #check subs based on the box score with play by play
         #TODO: clean them up if there's an error
         self.check_subs()
-
         self.check_order()
 
         #remove pbp lines that aren't plays or subs
         self.clean_game()
-
-        self.create_plays()
 
         raw = {
             'plays': self.play_list,
             'lineups': {'away': {'lineup': [p.__dict__ for p in self.lineups[0].lineup], 'subs': [p.__dict__ for p in self.lineups[0].subs]},
                         'home': {'lineup': [p.__dict__ for p in self.lineups[1].lineup], 'subs': [p.__dict__ for p in self.lineups[1].subs]}},
             'subs': self.subs
-            
             }
         
         return raw
 
     def reparse_game(self, d):
         self.play_list = d['plays']
-        self.lineups[0].lineup.__dict__.update(d['lineups']['away']['lineup'])
-        self.lineups[0].subs.__dict__.update(d['lineups']['away']['subs'])
-        self.lineups[1].lineup.__dict__.update(d['lineups']['home']['lineup'])
-        self.lineups[1].subs.__dict__.update(d['lineups']['home']['subs'])
-        self.subs = d['subs']
+        self.lineups = [lineup.Lineup('', 0), lineup.Lineup('', 1)]
+        self.lineups[0].lineup = []
+        for i in (range(len(d['lineups']['away']['lineup']))):
+            p = player.Player('','','','','','','','','')
+            p.__dict__.update(d['lineups']['away']['lineup'][i])
+            self.lineups[0].lineup.append(p)
 
-        self.create_plays()
+        self.lineups[0].subs = []
+        for i in (range(len(d['lineups']['away']['subs']))):
+            p = player.Player('','','','','','','','','')
+            p.__dict__.update(d['lineups']['away']['subs'][i])
+            self.lineups[0].subs.append(p)
 
-        #Create play and sub objects for every line of pbp
+        self.lineups[1].lineup = []
+        for i in (range(len(d['lineups']['home']['lineup']))):
+            p = player.Player('','','','','','','','','')
+            p.__dict__.update(d['lineups']['home']['lineup'][i])
+            self.lineups[1].lineup.append(p)
 
-    # def advance_half(self):
-    #     self.leadoff_fl = True
-    #     self.outs = 0
-    #     self.play_of_inn = 0
-    #     self.inn_pbp_no = 0
-    #     self.count = [0, 0]
-    #     self.state['half'] += 1
-    #     self.runners = ['']*4
-    #     if len(self.play_list[self.state['half']]) > 1:
-    #         if not parse.get_type(self.play_list[self.state['half']][0])[0] == 's':
-    #             self.defense = self.get_defense()
+        self.lineups[1].subs = []
+        for i in (range(len(d['lineups']['home']['subs']))):
+            p = player.Player('','','','','','','','','')
+            p.__dict__.update(d['lineups']['home']['subs'][i])
+            self.lineups[1].subs.append(p)
+            
+        self.subs = {int(k): v for k,v in d['subs'].items()}
 
     def check_order(self):
         """looking at the play-by-play hitter order and the box score orders and finding discrepancies
