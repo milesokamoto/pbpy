@@ -44,25 +44,29 @@ def main():
                 print(str(round(pct)) + '%' + ' '*(1 if round(pct)>=10 else 2) + '|' + '-'*round(pct/2) + ' '*round(50-pct/2) + '|')
                 ncaa_id = scrape.get_id('https://stats.ncaa.org' + games.iloc[i]['link'])
                 if not os.path.isfile('data/output/' + date + '/' + ncaa_id + '.csv'):
-                    games.at[i, 'ncaa_id'] = ncaa_id
-                    print(games.at[i, 'link'])
-                    g = game.Game(ncaa_id)
-                    if not os.path.isfile('data/raw/' + date + '/' + ncaa_id + '.json'):
-                        raw = g.setup_game()
-                        with open('data/raw/' + date + '/' + ncaa_id + '.json', 'w') as outfile:
-                            json.dump(raw, outfile)
-                    else:
-                        with open('data/raw/' + date + '/' + ncaa_id + '.json', 'r') as infile:
-                            d = json.load(infile)
-                        g.reparse_game(d)
-                    g.create_plays()
-                    output = g.execute_game()
-                    if g.error:
+                    try:
+                        games.at[i, 'ncaa_id'] = ncaa_id
+                        print(games.at[i, 'link'])
+                        g = game.Game(ncaa_id)
+                        if not os.path.isfile('data/raw/' + date + '/' + ncaa_id + '.json'):
+                            raw = g.setup_game()
+                            with open('data/raw/' + date + '/' + ncaa_id + '.json', 'w') as outfile:
+                                json.dump(raw, outfile)
+                        else:
+                            with open('data/raw/' + date + '/' + ncaa_id + '.json', 'r') as infile:
+                                d = json.load(infile)
+                            g.reparse_game(d)
+                        g.create_plays()
+                        output = g.execute_game()
+                        df = pd.DataFrame(output)
+                        df.to_csv('data/output/' + date + '/' + str(ncaa_id) + '.csv', index=False)
+                        if g.error:
+                            errors.append(1)
+                        else:
+                            errors.append(0)
+                    except:
                         errors.append(1)
-                    else:
-                        errors.append(0)
-                    df = pd.DataFrame(output)
-                    df.to_csv('data/output/' + date + '/' + str(ncaa_id) + '.csv', index=False)
+                
             games['error'] = errors
             games.to_csv('data/games/' + date + '.csv', index=False)
             day = day + timedelta(days=1)
