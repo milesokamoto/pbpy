@@ -162,14 +162,17 @@ def get_scoreboard(date):
     # Remove rankings and leading spaces
     for i in range(0,len(away)):
         if '#' in away[i]:
-            away[i] = away[i].split(' ')[2:]
+            away[i] = away[i][away[i].index(' ')+1:]
         else:
             away[i] = away[i][1:]
+
         if '#' in home[i]:
-            home[i] = home[i].split(' ')[2:]
+            home[i] = home[i][home[i].index(' ')+1:]
         else:
             home[i] = home[i][1:]
         # Check for doubleheaders
+        print(away[i])
+        print(home[i])
         m = away[i] + ' ' + home[i]
         if m in matchups:
             game[matchups.index(m)] = 1
@@ -180,7 +183,8 @@ def get_scoreboard(date):
 
     for j in range(len(away)):
         # Remove records
-        if len(re.search(r'([0-9]{1,2}-[0-9]{1,2})', home[j]).group()):
+        record_check = re.search(r'([0-9]{1,2}-[0-9]{1,2})', home[j])
+        if not record_check is None:
             home[j] = home[j].replace(' (' + home[j].split(' (')[-1], '')
             away[j] = away[j].replace(' (' + away[j].split(' (')[-1], '')
         # Search for team ids
