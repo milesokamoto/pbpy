@@ -3,9 +3,7 @@ import lxml.html as lh
 import pandas as pd
 
 base_url = 'https://stats.ncaa.org'
-year=str(2020)
-for year in range(2015, 2021):
-
+for year in range(2000, 2020):
     div = str(1)
     ids_url = 'https://stats.ncaa.org/team/inst_team_list?sport_code=MBA&academic_year=' + str(year) + '&division=' + str(div)
     season_teams = requests.get(ids_url).content
@@ -35,12 +33,12 @@ for year in range(2015, 2021):
     divs = [div]*len(conf_names)
     season_id = [link.split('/')[3]]*len(ids)
     school_table = pd.DataFrame({'school_id':ids, 'school_name':schools}) 
-    teamseasons = pd.DataFrame({'season_id':season_id, 'conf_id':conf_ids, 'school_id':ids}) 
+    teamseasons = pd.DataFrame({'season_id':season_id, 'conf_id':school_confs, 'school_id':ids})
     conf_table = pd.DataFrame({'conf_id':conf_ids, 'conf_name':conf_names, 'div':divs})
 
-    school_table.to_csv('data/schools/schools' + year + '.csv', index=False)
-    teamseasons.to_csv('data/teamseasons/teamseasons' + year + '.csv', index=False)
-    conf_table.to_csv('data/conferences/conferences' + year + '.csv', index=False)
+    school_table.to_csv('data/tables/schools/schools' + str(year) + '.csv', index=False)
+    teamseasons.to_csv('data/tables/teamseasons/teamseasons' + str(year) + '.csv', index=False)
+    conf_table.to_csv('data/tables/conferences/conferences' + str(year) + '.csv', index=False)
 
     jersey = []
     players = []
@@ -67,5 +65,5 @@ for year in range(2015, 2021):
     player_table = pd.DataFrame({'player_id':ids, 'player':players, 'pos':pos})
     playerseasons = pd.DataFrame({'team_id': team, 'player_id':ids, 'season_id':season_id, 'year':yr, 'jersey':jersey})
 
-    playerseasons.to_csv('data/rosters/rosters' + year + '.csv', index=False)
-    player_table.to_csv('data/players/players' + year + '.csv', index=False)
+    playerseasons.to_csv('data/tables/rosters/rosters' + str(year) + '.csv', index=False)
+    player_table.to_csv('data/tables/players/players' + str(year) + '.csv', index=False)
