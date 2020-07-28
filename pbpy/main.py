@@ -21,7 +21,7 @@ def main():
         day_input = input("Input start date in format 'MM-DD-YYYY': ")
         end_input = input("Input end date in format 'MM-DD-YYYY': ")
         day = datetime.strptime(day_input, '%m-%d-%Y')
-        while day < datetime.strptime(end_input, '%m-%d-%Y'):
+        while day <= datetime.strptime(end_input, '%m-%d-%Y'):
             date = datetime.strftime(day, '%m-%d-%Y')
             raw_path = "data/raw/" + date
             try:
