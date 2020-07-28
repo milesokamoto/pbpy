@@ -171,8 +171,6 @@ def get_scoreboard(date):
         else:
             home[i] = home[i][1:]
         # Check for doubleheaders
-        print(away[i])
-        print(home[i])
         m = away[i] + ' ' + home[i]
         if m in matchups:
             game[matchups.index(m)] = 1
@@ -181,6 +179,7 @@ def get_scoreboard(date):
             game.append(0)
         matchups.append(m)
 
+    na = []
     for j in range(len(away)):
         # Remove records
         record_check = re.search(r'([0-9]{1,2}-[0-9]{1,2})', home[j])
@@ -190,9 +189,21 @@ def get_scoreboard(date):
         # Search for team ids
         if len(teams.loc[teams['institution'] == home[j]]) < 1:
             print("ERROR TEAM: " + home[j])
-        if len(teams.loc[teams['institution'] == away[j]]) < 1:
+            na.append(j)
+        elif len(teams.loc[teams['institution'] == away[j]]) < 1:
             print("ERROR TEAM: " + away[j])
-        ids.append(day[2] + day[0] + day[1] + "{:0>6d}".format(teams.loc[teams['institution'] == away[j]]['id'].item()) + "{:0>6d}".format(teams.loc[teams['institution'] == home[j]]['id'].item()) + str(game[j]))
+            na.append(j)
+        else:
+            ids.append(day[2] + day[0] + day[1] + "{:0>6d}".format(teams.loc[teams['institution'] == away[j]]['id'].item()) + "{:0>6d}".format(teams.loc[teams['institution'] == home[j]]['id'].item()) + str(game[j]))
+
+    deleted = 0
+    for i in na:
+        del away[i-deleted]
+        del home[i-deleted]
+        del game[i-deleted]
+        del links[i-deleted]
+        deleted += 1
+
     return pd.DataFrame({'away': away, 'home': home, 'game': game, 'link': links, 'id': ids})
 
 def get_team_schedule(url):
