@@ -2,6 +2,8 @@ import re
 
 import pandas as pd
 
+import string
+
 import modules.names as names
 import modules.ref as ref
 
@@ -267,8 +269,8 @@ def play_names(text, names):
     :type text: str
     :param names: name directory of offensive team
     :type names: dict
-    """    
-    players = {name: text.index(name) for name in names.values() if name.lower().capitalize() + ' ' in text.lower().capitalize()}
+    """
+    players = {name: text.index(name) for name in names.values() if string.capwords(name) + ' ' in "".join([s.capitalize() + ' ' for s in text.replace(':', ': ').split(' ') if s[0].isupper()])}
     return({k: v for k, v in sorted(players.items(), key=lambda item: item[1], reverse=True)})
 
 def get_fielders(text, event):
