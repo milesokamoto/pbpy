@@ -1,0 +1,6 @@
+data/games/
+data/output/
+data/raw/
+data/tables/
+*.pyc
+*.cpython-38

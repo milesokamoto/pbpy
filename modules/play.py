@@ -231,7 +231,6 @@ class RunEvent:
         self.code = ref.event_codes[ref.codes[get_simple_run_event(pbp)]]
 
 def get_run_dest(text):
-    print(text)
     if 'picked off' in text and not ' out at ' in text:
         return [-1, 0]
     return [ref.run_codes[key] for key in ref.run_codes.keys() if key in text][-1]
@@ -269,7 +268,7 @@ def play_names(text, names):
     :param names: name directory of offensive team
     :type names: dict
     """    
-    players = {name: text.index(name) for name in names.values() if name + ' ' in text}
+    players = {name: text.index(name) for name in names.values() if name.lower().capitalize() + ' ' in text.lower().capitalize()}
     return({k: v for k, v in sorted(players.items(), key=lambda item: item[1], reverse=True)})
 
 def get_fielders(text, event):

@@ -119,18 +119,19 @@ def get_scoreboard(date):
     ids = []
     away = []
     home = []
+    links = []
 
     #get elements in td index 3 (away team names and home final scores)
     a_teams = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[3]")
 
     #
-    for a in range(0, len(a_teams)):
+    for a in range(len(a_teams)):
         if not 'totalcol' in [x for x in a_teams[a].classes]:
             away.append(a_teams[a][0].text if not len(a_teams[a]) < 1 else a_teams[a].text.replace('\n', '').replace('               ', '').replace('            ', ''))
 
     #get elements in td index 2 (away team logos, home team names and blank element below attendance)
     h_teams = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[2]")
-    for h in range(0, len(h_teams)):
+    for h in range(len(h_teams)):
         if not 'img' in [a.tag for a in h_teams[h]]:
             if not len([a.text for a in h_teams[h]]) > 0:
                 test = h_teams[h].text
@@ -140,16 +141,33 @@ def get_scoreboard(date):
                         home.append(team)
             else:
                 home.append(h_teams[h][0].text)
-    links = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[1]/a/@href")
+
+    l = doc.xpath("//div[@id='contentarea']/table/tbody/tr/td[1]")
+    na = []
+    for i in range(round(len(l)/3)):
+        e = l[(i)*3+2]
+        if len(e) == 0:
+            na.append(i)
+        else:
+            links.append(e[0].attrib['href'])
+
+    deleted = 0
+    for i in na:
+        del away[i-deleted]
+        del home[i-deleted]
+        deleted += 1
+
+
 
     # Remove rankings and leading spaces
     for i in range(0,len(away)):
         if '#' in away[i]:
-            away[i] = away[i].split(' ')[2:]
+            away[i] = away[i][away[i].index(' ')+1:]
         else:
             away[i] = away[i][1:]
+
         if '#' in home[i]:
-            home[i] = home[i].split(' ')[2:]
+            home[i] = home[i][home[i].index(' ')+1:]
         else:
             home[i] = home[i][1:]
         # Check for doubleheaders
@@ -161,17 +179,31 @@ def get_scoreboard(date):
             game.append(0)
         matchups.append(m)
 
-    for j in range(0,len(away)):
+    na = []
+    for j in range(len(away)):
         # Remove records
-        if len(re.search(r'([0-9]{1,2}-[0-9]{1,2})', home[j]).group()):
+        record_check = re.search(r'([0-9]{1,2}-[0-9]{1,2})', home[j])
+        if not record_check is None:
             home[j] = home[j].replace(' (' + home[j].split(' (')[-1], '')
             away[j] = away[j].replace(' (' + away[j].split(' (')[-1], '')
         # Search for team ids
         if len(teams.loc[teams['institution'] == home[j]]) < 1:
             print("ERROR TEAM: " + home[j])
-        if len(teams.loc[teams['institution'] == away[j]]) < 1:
+            na.append(j)
+        elif len(teams.loc[teams['institution'] == away[j]]) < 1:
             print("ERROR TEAM: " + away[j])
-        ids.append(day[2] + day[0] + day[1] + "{:0>6d}".format(teams.loc[teams['institution'] == away[j]]['id'].item()) + "{:0>6d}".format(teams.loc[teams['institution'] == home[j]]['id'].item()) + str(game[j]))
+            na.append(j)
+        else:
+            ids.append(day[2] + day[0] + day[1] + "{:0>6d}".format(teams.loc[teams['institution'] == away[j]]['id'].item()) + "{:0>6d}".format(teams.loc[teams['institution'] == home[j]]['id'].item()) + str(game[j]))
+
+    deleted = 0
+    for i in na:
+        del away[i-deleted]
+        del home[i-deleted]
+        del game[i-deleted]
+        del links[i-deleted]
+        deleted += 1
+
     return pd.DataFrame({'away': away, 'home': home, 'game': game, 'link': links, 'id': ids})
 
 def get_team_schedule(url):
