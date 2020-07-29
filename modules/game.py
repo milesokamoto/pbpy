@@ -320,10 +320,10 @@ class Game:
                     check = check_lineup(self.lineups[(self.state['half'] + 1) % 2].lineup)
                     if not check:
                         self.error = True
-                        print('half: ' + str(self.state['half']))
+                        print(e.text)
+                        print('inning: ' + str(self.state['inning']) + ' - half: ' + str(self.state['half']))
                         ui.print_lineups(self)
                         ui.print_subs(self)
-                        pass
                     output = self.execute_play(e)
                     self.output.append(output)
                     self.play['play_of_inn'] += 1
