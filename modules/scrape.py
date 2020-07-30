@@ -8,6 +8,8 @@ import requests
 teams = pd.read_csv('data/team_ids.csv', index_col = False)
 seasons = pd.read_csv('data/seasons.csv', index_col = False)
 
+base_url = "https://stats.ncaa.org"
+
 def get_table(url) -> list:
     """returns a table from a given url
 
@@ -32,8 +34,8 @@ def get_lu_table(id) -> list:
     team_spl = 0
 
     #Get lineups from situational stats (ss) and box score (bs) pages
-    ss_lineups = lh.fromstring(requests.get('https://stats.ncaa.org/game/situational_stats/' + str(id)).content).xpath("//table[@class='mytable'][2]/tr/td[1]")
-    bs = lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/' + str(id)).content)
+    ss_lineups = lh.fromstring(requests.get(base_url + '/game/situational_stats/' + str(id)).content).xpath("//table[@class='mytable'][2]/tr/td[1]")
+    bs = lh.fromstring(requests.get(base_url + '/game/box_score/' + str(id)).content)
     bs_a_lineup = bs.xpath("//table[@class='mytable'][2]/tr/td[1]")
     bs_a_pos = bs.xpath("//table[@class='mytable'][2]/tr/td[2]")
     bs_h_lineup = bs.xpath("//table[@class='mytable'][3]/tr/td[1]")
@@ -239,15 +241,43 @@ def get_game_info(id):
     if home[0] == ' ':
         home = home[1:]
 
-    # lh.parse('https://stats.ncaa.org/game/box_score/4705496').xpath("//table[@align='center']/tbody/tr/td")
+def get_splits(id):
+    id = 4925736
+    names = []
+    split_l = []
+    split_r = []
+    ss = lh.fromstring(requests.get('https://stats.ncaa.org/game/situational_stats/' + str(id)).content)
+    ss_tbl = ss.xpath("//table[@class='mytable'][2]/tr")
+    for i in range(2,len(ss_tbl)):
+        tr = ss_tbl[i]
+        name = tr[0]
+        if not name.text is None:
+            lhp = tr[3][0]
+            rhp = tr[4][0]
+            if not lhp.text is None and not rhp.text is None:
+                split_l.append(lhp.text) # .attrib['title'])
+                split_r.append(rhp.text)
+                names.append("".join(name.text.replace('\xa0\xa0\xa0\xa0\xa0','').split(',')[0:-1]))
+    ss_pit_link = ss.xpath("//tr[@class='heading']/td[2]/a/@href")[0]
+    pit_ss = lh.fromstring(requests.get(base_url + ss_pit_link).content)
+    pit_ss_tbl = pit_ss.xpath("//table[@class='mytable'][2]/tr")
+    pit_names = []
+    pit_split_l = []
+    pit_split_r = []
+    for i in range(2,len(pit_ss_tbl)):
+        tr = pit_ss_tbl[i]
+        name = tr[0]
+        if not name.text is None:
+            lhh = tr[3][0]
+            rhh = tr[4][0]
+            if not lhh.text is None and not rhh.text is None:
+                pit_split_l.append(lhh.text) # .attrib['title'])
+                pit_split_r.append(rhh.text)
+                pit_names.append("".join(name.text.replace('\xa0\xa0\xa0\xa0\xa0','').split(',')[0:-1]))
+            
 
-    # print(lh.tostring(lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/4705496').content)))
-#     info1 = lh.fromstring(requests.get(url).content).xpath("//table")
-#     for i in info1:
-#         print(i)
-#         for e in i:
-#             print(e)
-#             for a in e:
-#                 print(a)
-#     info2 = lh.fromstring(requests.get(url).content).xpath("//div[@id='contentarea']/table[3]/tbody/tr/td/text()")
-#     info3 = lh.fromstring(requests.get(url).content).xpath("//div[@id='contentarea']/table[4]/tbody/tr/td/text()")
+
+    bs = lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/' + str(id)).content)
+    bs_a_lineup = bs.xpath("//table[@class='mytable'][2]/tr/td[1]")
+
+    
