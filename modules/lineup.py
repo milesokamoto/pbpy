@@ -80,6 +80,7 @@ class Lineup:
                     lu.append(subs.pop(sub_idx))
                 else:
                     print("ERROR: NOT SURE WHAT TO DO WITH SUB")
+                    print([p.__dict__ for p in lu])
                     print(sub.__dict__)
 
         elif 'OffensiveSub' in str(type(sub)):
@@ -89,7 +90,7 @@ class Lineup:
                 print("ERROR: " + str(sub.__dict__))
             else:
                 if subs[sub_idx].status == 'removed':
-                    print('ILLEGAL SUB')
+                    print('ILLEGAL SUB ' + str(subs[sub_idx].__dict__))
                 if not lu_idx is None:
                     lu[lu_idx].status = 'removed'
                     subs.append(lu.pop(lu_idx))
@@ -103,7 +104,7 @@ class Lineup:
                 print("ERROR: " + str(sub.__dict__))
             else:
                 if subs[sub_idx].status == 'removed':
-                    print('ILLEGAL SUB')
+                    print('ILLEGAL SUB ' + str(subs[sub_idx].__dict__ ))
                 if not lu_idx is None:  
                     lu[lu_idx].status = 'removed'
                     if lu[lu_idx].order != subs[sub_idx].order:
@@ -120,6 +121,7 @@ class Lineup:
             if not lu_idx is None:
                 lu[lu_idx].status = 'removed'
                 subs.append(lu.pop(lu_idx))
+            
 
         [self.lineup, self.subs] = [lu, subs]
 
