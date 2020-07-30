@@ -270,7 +270,11 @@ def play_names(text, names):
     :param names: name directory of offensive team
     :type names: dict
     """
-    players = {name: text.index(name) for name in names.values() if string.capwords(name) + ' ' in "".join([s.capitalize() + ' ' for s in text.replace(':', ': ').split(' ') if s[0].isupper()])}
+    # print([string.capwords(name) for name in names.values()])
+    # print("".join([s.capitalize() + ' ' if s[0].isupper() else s + ' ' for s in text.replace(':', ': ').split(' ')]))
+    # print([name.lower().capitalize() for name in names.values if string.capwords(name.lower()) + ' ' in "".join([s.capitalize() for s in text.split(':')])])
+    players = {name: text.index(name) for name in names.values() if string.capwords(name) + ' ' in "".join([s.capitalize() + ' ' if s[0].isupper() else s + ' ' for s in text.replace(':', ': ').split(' ')])}
+    # print(players)
     return({k: v for k, v in sorted(players.items(), key=lambda item: item[1], reverse=True)})
 
 def get_fielders(text, event):
