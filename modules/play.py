@@ -200,7 +200,12 @@ def get_simple_run_event(text):
             else:
                 return 'stole'
         if 'out' in text.split(' ')[0]:
-            return 'picked off'
+            if 'at second c to ' in text:
+                return 'caught stealing'
+            elif 'at third c to 3b' in text:
+                return 'caught stealing'
+            else:
+             return 'picked off'
             # TODO: would this happen for a caught stealing?
     return sorted_ev[0] if len(sorted_ev) > 0 else None
 
@@ -229,7 +234,6 @@ class RunEvent:
     def deconstruct_text(self):
         pbp = self.text
         self.event = get_event(pbp)
-
         self.code = ref.event_codes[ref.codes[get_simple_run_event(pbp)]]
 
 def get_run_dest(text):

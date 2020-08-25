@@ -49,7 +49,7 @@ def check_play(pbp_text, g):
 
 
 def get_type(s):
-    """given a play by play string, determine if it's a play or substitution
+    """given a play by play string, determine if it's a play or     xtitution
 
     :param s: play by play text
     :type s: str

@@ -95,13 +95,22 @@ class Lineup:
                     lu[lu_idx].status = 'removed'
                     subs.append(lu.pop(lu_idx))
                     lu.insert(lu_idx, subs.pop(sub_idx))
-            # TODO: Pinch runner functionality
 
         elif 'DefensiveSub' in str(type(sub)):
             lu_idx = find_player_index(lu, sub.sub)
             sub_idx = find_player_index(subs, sub.player)
             if sub_idx is None:
-                print("ERROR: " + str(sub.__dict__))
+                if sub.pos == 'p':
+                    sub_idx = find_player_index(lu, sub.player)
+                    if not sub_idx is None and not lu_idx is None:
+                        add = lu[sub_idx]
+                        lu[lu_idx].status = 'removed'
+                        subs.append(lu.pop(lu_idx))
+                        lu.insert(lu_idx, add)
+                        if lu[lu_idx].order == 10:
+                            lu[lu_idx].order = lu_idx+1
+                else:
+                    print("ERROR: " + str(sub.__dict__))
             else:
                 if subs[sub_idx].status == 'removed':
                     print('ILLEGAL SUB ' + str(subs[sub_idx].__dict__ ))
@@ -117,7 +126,10 @@ class Lineup:
                     lu.insert(lu_idx, subs.pop(sub_idx))
 
         elif 'Removal' in str(type(sub)):
-            lu_idx = find_player_index(lu, sub.sub)
+            if lu[-1].id == sub.sub:
+                lu_idx = len(lu)-1
+            else:
+                lu_idx = find_player_index(lu, sub.sub)
             if not lu_idx is None:
                 lu[lu_idx].status = 'removed'
                 subs.append(lu.pop(lu_idx))
