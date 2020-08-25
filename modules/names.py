@@ -48,7 +48,6 @@ def match_all(lineup, play_list):
                     sub_names.append(sub_check[0])
                 if not sub_check[0] is None and not sub_check[1] in sub_names:
                     sub_names.append(sub_check[1])
-        
     nm = match_helper(box_names, pbp_names)
 
     # look at all defensive plays to match pitchers
@@ -78,13 +77,13 @@ def match_all(lineup, play_list):
             if name_similarity(short, unmatched[0]) >= .5:
                 nm[unmatched[0]] = short
     pitchers = [p.split(' to p')[0] for p in pitcher_subs if ' to p' in p]
-
     # matching subs
     subs = lineup.subs
     plays = game.all_plays(play_list, '')
     if not subs is None:
         pitcher_no = 0
-        for s in subs:
+        for i in range(len(subs)):
+            s = subs[i]
             matched = False
             # offensive substitution
             if s.pos in ('ph', 'pr'):
@@ -161,9 +160,9 @@ def match_all(lineup, play_list):
                     nm[s.name] = match[0]
                 else:
                     nm[s.name] = ''
-    
     if '' in subs:
         subs.remove('')
+
 
     #check if similarity score is less than .5 for any pair
     check = [k for k, v in sorted(nm.items(), key=lambda item: item[1]) if name_similarity(v, k) < .5]
@@ -284,6 +283,8 @@ def name_similarity(part, full):
 
     if ' ' in last:
         if last.split(' ')[0] in p or last.split(' ')[1] in p:
+            print(last.split(' '))
+            print(p)
             return .7
     
     if '-' in full:

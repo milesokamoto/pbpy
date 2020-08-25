@@ -225,7 +225,9 @@ run_codes = {
     'out on batter\'s interference': [0, 0],
     'out on batters interference': [0, 0],
     'reached on catcher\'s interference': [1, 0],
-    'reached on catchers interference': [1, 0]
+    'reached on catchers interference': [1, 0],
+    'out on double play': [0,0],
+    'caught stealing': [0,0]
 }
 adv_codes = {
     'advanced to second': [2, 1],
