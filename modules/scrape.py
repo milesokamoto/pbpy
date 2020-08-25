@@ -34,7 +34,11 @@ def get_lu_table(id) -> list:
     team_spl = 0
 
     #Get lineups from situational stats (ss) and box score (bs) pages
-    ss_lineups = lh.fromstring(requests.get(base_url + '/game/situational_stats/' + str(id)).content).xpath("//table[@class='mytable'][2]/tr/td[1]")
+    ss = lh.fromstring(requests.get(base_url + '/game/situational_stats/' + str(id)).content)
+    ss_lineups = ss.xpath("//table[@class='mytable'][2]/tr/td[1]")
+    # ss_pit_link = ss.xpath("//tr[@class='heading']/td[2]/a/@href") -- debug game 4753245
+    # ss_pitchers = lh.fromstring(requests.get(base_url + ss_pit_link).content).xpath("//table[@class='mytable'][2]/tr/td[1]")
+    # print(ss_pitchers)
     bs = lh.fromstring(requests.get(base_url + '/game/box_score/' + str(id)).content)
     bs_a_lineup = bs.xpath("//table[@class='mytable'][2]/tr/td[1]")
     bs_a_pos = bs.xpath("//table[@class='mytable'][2]/tr/td[2]")
@@ -45,7 +49,8 @@ def get_lu_table(id) -> list:
     bs_order = [bs_a_lineup[0].text[0:-1], bs_h_lineup[0].text[0:-1]]
 
     #If the teams are in the wrong order, switch them
-    if ss_order[0] != bs_order[0] and ss_order[1] != bs_order[1]:
+
+    if ss_order[0] != bs_order[0] and ss_order[1] == bs_order[0]:
         flip = True
     else:
         flip = False
@@ -68,6 +73,7 @@ def get_lu_table(id) -> list:
         players = players[team_spl-2:] + players[0:team_spl-2]
         positions = positions[team_spl-2:] + positions[0:team_spl-2]
         team_spl = len(positions) - team_spl + 4
+
 
     #separate home and away players
     for i in range(1, len(bs_a_lineup)-1):
@@ -97,7 +103,9 @@ def get_lu_table(id) -> list:
             player_id.append(ids[players[i]])
         else:
             player_id.append('x' + str(i))
-        players[i] = players[i].replace('ñ', 'n')
+        players[i] = players[i].replace('ñ', 'n').replace('Ã±', 'n')
+        
+        players[i] = players[i].replace(' , ', ', ')
         positions[i] = [pos.replace('dp', 'dh') for pos in positions[i]] # https://stats.ncaa.org/game/box_score/4937004
    
     return [[players[0:team_spl-2], players[team_spl-2:]], [positions[0:team_spl-2], positions[team_spl-2:]], [player_id[0:team_spl-2], player_id[team_spl-2:]]]
@@ -118,7 +126,7 @@ def get_scoreboard(date):
     doc = lh.fromstring(page.content)
     matchups = []
     game = []
-    ids = []
+    dates = []
     away = []
     home = []
     links = []
@@ -159,8 +167,6 @@ def get_scoreboard(date):
         del home[i-deleted]
         deleted += 1
 
-
-
     # Remove rankings and leading spaces
     for i in range(0,len(away)):
         if '#' in away[i]:
@@ -181,32 +187,15 @@ def get_scoreboard(date):
             game.append(0)
         matchups.append(m)
 
-    na = []
     for j in range(len(away)):
         # Remove records
         record_check = re.search(r'([0-9]{1,2}-[0-9]{1,2})', home[j])
         if not record_check is None:
             home[j] = home[j].replace(' (' + home[j].split(' (')[-1], '')
             away[j] = away[j].replace(' (' + away[j].split(' (')[-1], '')
-        # Search for team ids
-        if len(teams.loc[teams['institution'] == home[j]]) < 1:
-            print("ERROR TEAM: " + home[j])
-            na.append(j)
-        elif len(teams.loc[teams['institution'] == away[j]]) < 1:
-            print("ERROR TEAM: " + away[j])
-            na.append(j)
-        else:
-            ids.append(day[2] + day[0] + day[1] + "{:0>6d}".format(teams.loc[teams['institution'] == away[j]]['id'].item()) + "{:0>6d}".format(teams.loc[teams['institution'] == home[j]]['id'].item()) + str(game[j]))
+            dates.append(day[2] + day[0] + day[1])
 
-    deleted = 0
-    for i in na:
-        del away[i-deleted]
-        del home[i-deleted]
-        del game[i-deleted]
-        del links[i-deleted]
-        deleted += 1
-
-    return pd.DataFrame({'away': away, 'home': home, 'game': game, 'link': links, 'id': ids})
+    return pd.DataFrame({'away': away, 'home': home, 'game': game, 'link': links, 'date': dates})
 
 def get_team_schedule(url):
     """Given team page url, scrape list of links to games
@@ -242,7 +231,7 @@ def get_game_info(id):
         home = home[1:]
 
 def get_splits(id):
-    id = 4925736
+    # id = 4925736
     names = []
     split_l = []
     split_r = []
@@ -277,7 +266,7 @@ def get_splits(id):
             
 
 
-    bs = lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/' + str(id)).content)
-    bs_a_lineup = bs.xpath("//table[@class='mytable'][2]/tr/td[1]")
+    # bs = lh.fromstring(requests.get('https://stats.ncaa.org/game/box_score/' + str(id)).content)
+    # bs_a_lineup = bs.xpath("//table[@class='mytable'][2]/tr/td[1]")
 
     
