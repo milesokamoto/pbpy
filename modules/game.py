@@ -142,7 +142,7 @@ class Game:
         """
         sub_regex = r"^([A-Za-z,\. '-]*?(?= [a-z])|\/) (pinch (?:hit|ran)|to [0-9a-z]{1,2})* *(?:for ([A-Za-z,\. '-]*?)\.$)*"
         sub_plays = [p for half in self.play_list for p in half if not re.search(
-            sub_regex, p).group(2) is None]
+            sub_regex, p).group(2) is None or '/' in p]
         subs_from_box = {}
 
         for i in [0, 1]:
@@ -163,7 +163,7 @@ class Game:
 
             for player in lineup.subs:
                 if not player.sub == '':
-                    s = {'name': player.name, 'id': player.id,
+                    s = {'name': player.name, 'id': player.id, 'pos': player.pos,
                          'replaces': player.sub, 'replaces_id': player.sub_id, 'team': i}
                     subs_from_box[len(subs_from_box)] = s
 
@@ -171,32 +171,29 @@ class Game:
         while len(sub_plays) - unmatched > 0:
             p = sub_plays[unmatched]
             [sub_in, pos, sub_out] = sub.parse_sub(p)
-            for i in range(0, len(subs_from_box)):
-                lineup = self.lineups[subs_from_box[i]['team']]
-                player_in = [p.name for p in lineup.lineup if p.pbp_name ==
-                             sub_in] + [p.name for p in lineup.subs if p.pbp_name == sub_in]
-                if len(player_in) > 0 and subs_from_box[i]['name'] in player_in:
-                    if 'replaces' in subs_from_box[i].keys():
-                        player_out = [p.name for p in lineup.lineup if p.pbp_name == sub_out] + [
-                            p.name for p in lineup.subs if p.pbp_name == sub_out]
-                        if subs_from_box[i]['replaces'] in player_out:
-                            subs_from_box[i]['text'] = p
-                            sub_plays.remove(p)
-                            break
-                    else:
-                        if 'pos' in subs_from_box[i].keys():
-                            if subs_from_box[i]['pos'] == pos:
+            if len(subs_from_box) > 0:
+                for i in range(0, len(subs_from_box)):
+                    lineup = self.lineups[subs_from_box[i]['team']]
+                    player_in = [p.name for p in lineup.lineup if p.pbp_name ==
+                                sub_in] + [p.name for p in lineup.subs if p.pbp_name == sub_in]
+                    if len(player_in) > 0 and subs_from_box[i]['name'] in player_in:
+                        if 'replaces' in subs_from_box[i].keys():
+                            player_out = [p.name for p in lineup.lineup if p.pbp_name == sub_out] + [
+                                p.name for p in lineup.subs if p.pbp_name == sub_out]
+                            if subs_from_box[i]['replaces'] in player_out:
                                 subs_from_box[i]['text'] = p
                                 sub_plays.remove(p)
                                 break
-                if i == len(subs_from_box)-1:
-                    unmatched += 1
-
-        for i in range(0, len(subs_from_box)):
-            if not 'text' in subs_from_box[i].keys():
-                self.error = True
-                print("ERROR: not all subs accounted for")
-                print(subs_from_box[i])
+                        else:
+                            if 'pos' in subs_from_box[i].keys():
+                                if subs_from_box[i]['pos'] == pos:
+                                    subs_from_box[i]['text'] = p
+                                    sub_plays.remove(p)
+                                    break
+                    if i == len(subs_from_box)-1:
+                        unmatched += 1
+            else:
+                unmatched += 1
 
         if len(sub_plays) > 0:
             parsed = []
@@ -242,13 +239,52 @@ class Game:
                                         player.sub = rep1[0]
                                         player.sub_id = rep1[1]
                     parsed.remove(i)
-                    # print(subs_from_box)
 
-            self.error = True
-            print("ERROR: too many subs in pbp")
-            print(subs_from_box)
-            print(sub_plays)
+            for i in range(0, len(subs_from_box)):
+                sb = subs_from_box[i]
+                if not 'text' in sb.keys():
+                    team = sb['team']
+                    names = {
+                        player.pbp_name: player.id for player in self.lineups[team].lineup}
+                    names.update(
+                        {player.pbp_name: player.id for player in self.lineups[team].subs})
+                    
+                    [n1, n2, n3, n4, n5] = ['']*5
+                    [s1, s2, s3] = [0]*3
+                    p2 = ''
+                    for j in range(len(sub_plays)):
+                        sp = sub_plays[j]
+                        if '/ ' in sp:
+                            n5 = names[sub.parse_sub(sp)[2]] # cacchione
+                            s3 = j
+                        if sub.parse_sub(sp)[0] in names:
+                            if sb['id'] == names[sub.parse_sub(sp)[0]]:
+                                n1 = sb['id'] #denson
+                                if sub.parse_sub(sp)[2] in names:
+                                    n3 = names[sub.parse_sub(sp)[2]] # cacchione
+                                    s1 = j
+                        if sub.parse_sub(sp)[2] in names:
+                            if sb['replaces_id'] == names[sub.parse_sub(sp)[2]]:
+                                n2 = sb['replaces_id'] #ferri
+                                if sub.parse_sub(sp)[0] in names:
+                                    n4 =  names[sub.parse_sub(sp)[0]] #cacchione
+                                    p2 = sub.parse_sub(sp)[1]
+                                    s2 = j
 
+                    if not n3 == '' and n3 == n4 and n4 == n5:
+                        subs_from_box[i]['replaces_id'] = n3
+                        subs_from_box[i]['text'] = sub_plays[s1]
+                        idx = len(subs_from_box)
+                        subs_from_box[idx] = ({'id': n4, 'pos': p2, 'replaces_id': n2, 'team': team, 'text': sub_plays[s2]})
+                        subs_from_box[idx+1] = ({'replaces_id': n5, 'team': team, 'text': sub_plays[s3]})
+                        sub_plays.pop(s1)
+                        sub_plays.pop(s2-1)
+                        sub_plays.pop(s3-1)
+                if not 'text' in subs_from_box[i].keys():
+                    # self.error = True
+                    print("ERROR: not all subs accounted for")
+                    print(subs_from_box[i])
+        
         # burns = [play for half in self.play_list for play in half if '/ ' in play]
         # for b in burns:
 
@@ -284,7 +320,10 @@ class Game:
                         if 'text' in self.subs[i]:
                             if self.subs[i]['text'] == p:
                                 sub_idx = self.subs[i]
-                                if not 'replaces' in sub_idx.keys():
+                                if '/ ' in p:
+                                    new_sub = sub.Removal(
+                                        sub_idx['team'], sub_idx['replaces_id'], p)
+                                elif not 'replaces_id' in sub_idx.keys():
                                     new_sub = sub.PositionSwitch(
                                         sub_idx['team'], sub_idx['id'], sub_idx['pos'], p)
                                 elif half % 2 == sub_idx['team']:
@@ -340,6 +379,8 @@ class Game:
                                             team, pbp_ids[possible[0]], pos, p)
                     if not new_sub is None:
                         h.append(new_sub)
+                    else:
+                        self.error = True
             g.append(h)
         self.events = g
 
@@ -355,6 +396,11 @@ class Game:
                                 if not r == '':
                                     if r.id == e.sub:
                                         r.id = e.player
+                    # print(e.text)
+                    # print(
+                    #     'inning: ' + str(self.state['inning']) + ' - half: ' + str(self.state['half']))
+                    # ui.print_lineups(self)
+                    # ui.print_subs(self)
                 else:
                     check = check_lineup(
                         self.lineups[(self.state['half'] + 1) % 2].lineup)
@@ -380,6 +426,17 @@ class Game:
             self.state['runners'] = ['']*4
             self.play['pbp_of_inn'] = 0
             self.play['play_of_inn'] = 0
+        seq = False
+        for row in self.output:
+            if 'pitch_seq_tx' in row:
+                if not row['pitch_seq_tx'] == '':
+                    seq = True
+                    break
+        if seq:
+            for row in self.output:
+                if 'pitch_seq_tx' in row:
+                    in_play = 'X' if row['event_cd'] in [2,19,20,21,22,23,18] else ''
+                    row['pitch_seq_tx'] = row['pitch_seq_tx'] + in_play
         return self.output
 
     def execute_play(self, p):
@@ -510,7 +567,7 @@ class Game:
                     'pitch_seq_tx': p.events[0].seq if not p.events[0].seq is None else '',
                     'rbi_ct': p.events[0].rbi,
                     'h_fl': 1 if p.events[0].code in [20, 21, 22, 23] else 0,
-                    'ab_fl': 1 if p.events[0].code in [2, 3, 18, 19, 20, 21, 22, 23] else 0,
+                    'ab_fl': 1 if p.events[0].code in [2, 3, 18, 19, 20, 21, 22, 23] and not 'SF' in p.events[0].flags or 'SAC' in p.events[0].flags else 0,
                     'sh_fl': 1 if 'SAC' in p.events[0].flags else 0,
                     'sf_fl': 1 if 'SF' in p.events[0].flags else 0,
                     'bunt_fl': 1 if 'B' in p.events[0].flags else 0,
@@ -609,7 +666,7 @@ def clean_plays(plays) -> list:
                     r"(out at first [a-z0-9]{1,2} to [a-z0-9]{1,2}, )reached on a fielder's choice", p)
                 if not fc is None:
                     p = p.replace(fc.group(1), '')
-                p = p.replace(', picked off', '')
+                p = p.replace(', picked off', '')                
             p = p.replace('did not advance', 'no advance')
             p = p.replace('3a', ':').replace(';', ':').replace(
                 ': ', ':').replace('a muffed throw', 'an error')
