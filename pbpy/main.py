@@ -13,7 +13,14 @@ def main():
     ncaa_id = input("Input specific game id or press ENTER to scrape a date: ")
     if ncaa_id != '':
         g = game.Game(ncaa_id)
-        g.setup_game()
+        if not os.path.isfile('data/raw/debug/' + ncaa_id + '.json'):
+            raw = g.setup_game()
+            with open('data/raw/debug/' + ncaa_id + '.json', 'w') as outfile:
+                json.dump(raw, outfile)
+        else:
+            with open('data/raw/debug/' + ncaa_id + '.json', 'r') as infile:
+                d = json.load(infile)
+            g.reparse_game(d)
         g.create_plays()
         output = g.execute_game()
         df = pd.DataFrame(output)
@@ -73,9 +80,10 @@ def main():
                 
             games['error'] = errors
             games['msg'] = msg
-            if not os.path.isfile('data/games/' + date + '.csv'):
-                games.to_csv('data/games/' + date + '.csv', index=False)
-            else:
-                games.to_csv('data/games/' + date + '.csv', index=False, mode='a', header=False)
+            if len(games)>0:
+                if not os.path.isfile('data/games/' + date + '.csv'):
+                    games.to_csv('data/games/' + date + '.csv', index=False)
+                else:
+                    games.to_csv('data/games/' + date + '.csv', index=False, mode='a', header=False)
             day = day + timedelta(days=1)
             # TODO: Check output score against scoreboard
